@@ -36,7 +36,8 @@ Fecha: 21/11/2026. Precios consultados en fuentes públicas. **Confírmalos al c
 
 | Servicio | Costo | Periodicidad |
 |---|---|---|
-| GitHub (organización con repositorio privado y automatizaciones) | USD 0 (plan gratuito) | — |
+| GitHub | No se usa (código en carpeta local con Git local) | — |
+| Copia del código (OneDrive / Google Drive / disco externo) | Normalmente ya incluido en el correo del negocio o un disco existente | — |
 | Dominio `.mx` / `.com.mx` | Varía por registrador; cotizar | Anual |
 | Correo del personal (Microsoft 365 / Google Workspace / Zoho) | Por usuario al mes; solo oficina | Mensual o anual |
 | Envío de correos del sistema (Resend) | USD 0 dentro del plan gratuito (≈3,000 correos/mes; verificar) | Mensual |

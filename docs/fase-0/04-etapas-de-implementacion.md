@@ -4,35 +4,43 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 
 ## Cómo trabajamos en cada fase
 
-1. Yo programo en la rama `desarrollo` del repositorio.
-2. Cada cambio se publica solo en el ambiente de **pruebas** (`erp-pruebas`), que tiene datos ficticios.
-3. Te aviso: qué hice, cómo probarlo y con qué usuarios de prueba.
+1. Programo en la **carpeta del proyecto en tu computadora**, con Claude Code abierto ahí mismo.
+2. Todo se prueba primero en **local** (`netlify dev`), con datos ficticios.
+3. Te aviso qué hice, cómo probarlo y con qué usuarios de prueba. Hago commit en Git local.
 4. Tú pruebas y me das observaciones, o tu visto bueno.
-5. Con tu visto bueno paso los cambios a `main` y se publican en **producción** (`erp-produccion`).
-6. No empiezo la siguiente fase sin tu aprobación.
+5. Con tu visto bueno corremos el script **`publicar`**:
+   - verifica la cuenta de Netlify;
+   - corre las pruebas;
+   - hace commit con la versión;
+   - genera el borrador;
+   - y, solo si escribes **SI**, publica a producción.
+6. Al publicar se genera la **copia del código** (`respaldar-codigo`).
+7. No empiezo la siguiente fase sin tu aprobación.
 
 ---
 
 ## Etapa A · Preparativos (los haces tú, una sola vez)
 
-### A1. GitHub
-1. Crea una cuenta en github.com, si no tienes.
-2. Arriba a la derecha: **+ → New organization → Free**. Ponle el nombre del negocio.
-3. Dentro de la organización: **New repository**
-   - Nombre: `erp-panaderia`
-   - **Private**
-   - Sin README ni otros archivos (vacío)
-4. Pásame `organización/erp-panaderia`. Yo lo conecto a esta sesión y subo los documentos de la Fase 0.
+### A1. Computadora de desarrollo
+1. Elige la computadora donde vivirá el código (de preferencia no la de la caja).
+2. Instala:
+   - **Git para Windows** (git-scm.com)
+   - **Node.js LTS** (nodejs.org), versión 20.12.2 o más nueva
+   - **Netlify CLI**, con el comando `npm install -g netlify-cli` (versión 26 o más nueva)
+   - **Claude Code** (app de escritorio o terminal)
+3. Crea la carpeta del proyecto (ej. `C:\Proyectos\erp-panaderia`).
+4. Descomprime ahí el paquete de la Fase 0 que te envío (`erp-panaderia-fase0.zip`). Trae los documentos y el historial de Git.
+5. Elige dónde se guardará la copia del código fuera de esa computadora (OneDrive, Google Drive o disco externo).
 
-### A2. Netlify (después de que yo suba el esqueleto del proyecto)
-1. En app.netlify.com: **crear un team nuevo** para el negocio.
-2. Plan: **Pro, 10,000 créditos** (USD 63/mes) durante el desarrollo.
-3. **Billing → activar recarga automática** de créditos.
-4. **Add new project → Import from Git → GitHub** → el repositorio. Esto se hace **dos veces**:
-   - `erp-produccion`, rama `main`
-   - `erp-pruebas`, rama `desarrollo`
-5. Te mando la lista de variables de entorno. Las llaves secretas las capturas tú en Netlify; nunca me las pegues en el chat.
-6. Te indico dónde desactivar las *deploy previews* en el proyecto de producción.
+### A2. Cuenta de Netlify del negocio
+1. Crea una **cuenta nueva** en app.netlify.com con el correo del negocio. Si todavía no hay, abre un Gmail gratuito del negocio; el correo se puede cambiar después.
+2. Plan **Pro de 10,000 créditos** durante el desarrollo, con **recarga automática** activada.
+3. En la terminal de esa computadora:
+   - `netlify login` con la cuenta del negocio;
+   - `netlify status` para confirmar que aparece el correo y el team del negocio;
+   - si también tienes tu otra cuenta, con `netlify switch` cambias entre ellas.
+4. El proyecto de Netlify y su base los creamos juntos en la Fase 1A, con un despliegue de prueba vacío.
+5. Las llaves secretas las capturas tú en el panel de Netlify (variables de entorno). **Nunca** van en el chat ni en la carpeta.
 
 ### A3. Respuestas pendientes que bloquean la Fase 1
 - **P08:** sucursales (cuántas, nombre y clave de cada una)
@@ -40,6 +48,7 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 - **P11:** lista de almacenes
 - **P16:** matriz de puestos y permisos (o pídeme un borrador)
 - **P20:** autenticación propia con TOTP (recomendada) o Auth0
+- **P02, P03 y P66:** ruta de la carpeta, cuenta de Netlify del negocio y computadora de desarrollo
 - **Aprobación por escrito** del diseño de la Fase 0
 
 ### A4. Puede ir en paralelo (no bloquea)

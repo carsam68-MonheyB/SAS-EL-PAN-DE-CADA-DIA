@@ -3,6 +3,8 @@
 Sistema integral de control para panadería (ERP) — documento para aprobación.
 Fecha: 21/11/2026 · Estado: **borrador para revisión** · Sin código hasta tu aprobación por escrito.
 
+> **Revisión 2 (nuevo prompt):** el código vive en una **carpeta local con Git local** (sin GitHub) y se publica **manualmente con Netlify CLI** en una **cuenta nueva de Netlify del negocio**. Se actualizaron las secciones 1.2, 1.4, 1.8, 3.1, 3.3, 3.7, 5 y 6.
+
 Contenido:
 1. Validación de la plataforma Netlify contra el documento
 2. Autenticación y doble factor
@@ -29,18 +31,30 @@ Revisé la documentación vigente de Netlify (noviembre 2026). Resumen: **todo e
 | Archivos (XML, PDF, layouts originales) | Netlify Blobs. |
 | Límites del plan Pro para la base | 100 GB de almacenamiento, 100 GB de escritura y 100 GB de transferencia al mes por base, hasta 16 unidades de cómputo. Muy por encima de lo que necesita una panadería. |
 
-### 1.2 ⚠️ Punto 1 — Las *deploy previews* copian los datos de producción
+### 1.2 ⚠️ Punto 1 — Ambientes sin GitHub: local, borrador y producción
 
-En Netlify Database, cada deploy preview recibe una **rama de la base copiada de producción**. Eso choca con tu regla de "ambientes con datos separados", y además copiaría a pruebas datos reales: ventas, clientes y la e.firma cifrada.
+| Ambiente | Cómo se usa | Base de datos | Datos |
+|---|---|---|---|
+| **Local** | `netlify dev` en tu computadora | Postgres real que Netlify levanta en tu computadora mientras corre `netlify dev`. Las migraciones se aplican a mano: `netlify database migrations apply` | **Solo ficticios** (`PRUEBA-…`). Aquí se prueba todo primero |
+| **Borrador** | `netlify deploy` → URL de revisión | ⚠️ **Por verificar** (ver abajo) | — |
+| **Producción** | `netlify deploy --prod`, solo con tu aprobación | Base principal | Reales |
 
-**Propuesta:** dos proyectos de Netlify dentro del mismo team, cada uno con su propia base:
+**Lo que confirma la documentación vigente de Netlify:**
+- Las migraciones de `netlify/database/migrations/` se aplican **automáticamente al desplegar**. En producción se aplican **justo antes de publicar**, y si una migración falla **el despliegue no se publica**. La guía de la CLI dice que se aplican "como parte del ciclo de despliegue", sin exigir Git.
+- Cada vez que se publica un despliegue de producción se toma un **respaldo automático justo antes** (en Pro se guardan los de los últimos 10 despliegues).
+- La restauración se hace desde el panel de Netlify (Data & Storage → Database → Backups → Restore). Solo la puede hacer el **Team Owner**. Netlify crea antes una rama de seguridad con el contenido previo.
 
-| Proyecto | Rama | Base | PAC | Llave de cifrado |
-|---|---|---|---|---|
-| `erp-produccion` | `main` | Producción (datos reales) | Producción | Llave de producción |
-| `erp-pruebas` | `desarrollo` | Pruebas (solo datos ficticios) | Sandbox | Llave distinta |
+**Lo que la documentación NO aclara** y verificaré en la Fase 1A con un despliegue de prueba vacío, **antes de cargar cualquier dato real**:
+1. Si un borrador hecho con la CLI (`netlify deploy` sin `--prod`) recibe su propia rama de base (copia aislada, como las deploy previews) o se conecta a producción.
+2. Si el respaldo automático al publicar también ocurre con `netlify deploy --prod` desde la CLI. Por la redacción debería ocurrir, pero lo confirmo.
 
-En `erp-produccion` se **desactivan las deploy previews y los branch deploys**, así que ninguna rama puede tocar la base real. Los cambios se prueban en `erp-pruebas`. Al pasar a `main`, la migración se aplica sola. El Pro permite 50 bases, así que no hay problema de límite.
+Según el resultado:
+- **Si el borrador recibe una copia aislada:** se usa solo para revisar pantallas. Los datos ficticios se quedan en local.
+- **Si el borrador se conecta a producción:** los borradores no se usan con código que cambie la base. En su lugar, se crea en la misma cuenta del negocio un segundo proyecto **"pruebas"** con su propia base, y se publica ahí con `netlify deploy --site pruebas`.
+
+**Regla de migraciones:** como la migración se aplica un momento antes de publicar el código nuevo, las migraciones serán **compatibles hacia atrás**: primero se agregan columnas y tablas, y solo en una publicación posterior se retira lo viejo.
+
+**Dos cuentas en la misma computadora:** antes de cualquier `netlify deploy`, el script `publicar` ejecuta `netlify status` y compara el correo y el team activos con los del negocio, guardados en `config/netlify-cuenta.json` (no es secreto). También revisa que la carpeta esté enlazada al proyecto correcto. Si algo no coincide, **se detiene y avisa**; nunca publica. Para cambiar de cuenta se usa `netlify switch`.
 
 ### 1.3 ⚠️ Punto 2 — Costo de la base: se cobra mientras esté despierta
 
@@ -55,12 +69,20 @@ En `erp-produccion` se **desactivan las deploy previews y los branch deploys**, 
 
 En Pro, los respaldos programados se conservan **30 días**, más uno por cada uno de los últimos 10 despliegues publicados. No alcanza para el plazo legal de conservación de la contabilidad (el CFF, art. 30, habla en general de 5 años; confírmalo con tu contador). Por eso se necesita la copia externa que ya pediste. Diseño:
 
-1. Un flujo programado en **GitHub Actions** (fuera de Netlify) corre cada mes y al cierre contable. Usa `pg_dump` contra la base de producción, cifra el archivo y lo sube al almacenamiento externo (P06).
+1. Una **Scheduled Function** (el día 1 de cada mes) y el **cierre contable** disparan una **Background Function**. Esta exporta la base tabla por tabla, cifra el archivo y lo sube al almacenamiento externo (P06). El avance se ve en pantalla.
+   - Adicional, manual, desde tu computadora: el script `respaldar-base` hace un `pg_dump` si Netlify entrega la cadena de conexión de producción (`netlify database status --show-credentials`; lo verifico en la Fase 1A).
 2. El almacenamiento externo con **Object Lock (WORM)** y una credencial que **solo puede escribir, no borrar**. Así se cumple "ninguna función puede borrar respaldos".
 3. Los XML de CFDI se copian a ese almacenamiento organizados como `cfdi/{RFC}/{emitidos|recibidos}/{AAAA}/{MM}/{UUID}.xml`.
-4. Antes de producción: procedimiento de restauración documentado y una prueba real de restauración en el proyecto `erp-pruebas`.
+4. Antes de producción: procedimiento de restauración documentado y una prueba real de restauración (en la base local, o en el proyecto "pruebas" si se crea).
 
-Pendiente de verificar en Fase 1: que la base acepte conexión externa para `pg_dump`. Si no, el plan B es una Background Function que exporte tabla por tabla con `COPY`.
+Ya no hay GitHub Actions: todo el respaldo automático corre dentro de Netlify. Ninguna credencial del sistema puede borrar en el almacenamiento externo.
+
+### 1.4‑B Respaldo del código
+
+El código solo vive en tu computadora. Por eso:
+- El script **`respaldar-codigo`** genera un `.zip` de la carpeta con todo el historial de Git, pero **sin** `node_modules`, `.env`, `.netlify` ni carpetas de compilación. Lo guarda en el destino que indiques (P67) con nombre `erp-AAAAMMDD-HHMM-vX.Y.Z.zip`.
+- El script `publicar` lo ejecuta (o te lo recuerda) **cada vez que se publica a producción**.
+- Recomendación: que el destino **no sea el mismo disco** (por ejemplo OneDrive o Google Drive del negocio, o un disco externo).
 
 ### 1.5 ⚠️ Punto 4 — Netlify Identity no tiene doble factor
 
@@ -75,6 +97,13 @@ Netlify Database **no está certificada PCI‑DSS**, así que está prohibido gu
 - Funciones síncronas: el límite es de pocos segundos (el valor exacto lo confirmo en Fase 1). Toda operación de usuario se diseña para responder en menos de 5 s. Lo pesado va como **proceso en segundo plano** con registro de avance (`proceso_fondo`) visible en pantalla.
 - El pool de conexiones se configura con un tiempo de inactividad menor a 60 s, para que no reparta conexiones que ya se cerraron.
 - Descarga masiva del SAT: la versión vigente que encontré es la **1.5** (en producción desde el 30/05/2025). Fuentes de terceros reportan intermitencias. Lo vuelvo a verificar contra la documentación oficial del SAT al iniciar la Fase 8.
+
+### 1.8 Requisitos de la computadora de desarrollo
+
+- **Node.js 20.12.2 o más nuevo** y **Netlify CLI 26 o más nuevo** (`npm install -g netlify-cli`). La CLI de Netlify Database lo exige.
+- **Git para Windows**.
+- **Claude Code instalado en esa misma computadora** (app de escritorio o terminal), trabajando dentro de la carpeta del proyecto. La publicación usa tu sesión de Netlify CLI y tu cuenta local; por eso no se puede hacer desde una sesión en la nube.
+- El auto‑escalado y el tiempo para dormir la base **solo se configuran en el panel** de Netlify (no hay comando de la CLI). Te dejo los pasos en el README: mínimo 1 y máximo 2 unidades; dormir a los 5 minutos.
 
 ---
 
@@ -115,7 +144,7 @@ flowchart TB
     UI --- IMP
     UI --- OFF
   end
-  subgraph NET["Netlify · proyecto erp-produccion"]
+  subgraph NET["Netlify · cuenta del negocio"]
     API["Netlify Functions (TS)<br/>/api/* · sesión + permiso en cada función"]
     BG["Background Functions<br/>SAT, recálculos, cierres, reportes"]
     CRON["Scheduled Functions<br/>disparadores"]
@@ -132,15 +161,18 @@ flowchart TB
     SAT["SAT<br/>Descarga masiva 1.5 · Verificación"]
     MAIL["Proveedor de correo"]
     S3[("Almacenamiento externo<br/>Object Lock")]
-    GHA["GitHub Actions<br/>respaldo mensual pg_dump"]
   end
   UI -->|HTTPS + cookie de sesión| API
   API --> PAC
   BG --> SAT
   API --> MAIL
   BG -->|copia XML| S3
-  GHA --> DB
-  GHA --> S3
+  subgraph DEV["Computadora de desarrollo"]
+    PC["Carpeta del proyecto<br/>Git local · netlify dev"]
+    ZIP[("Copia del código<br/>respaldar-codigo")]
+    PC --> ZIP
+  end
+  PC -->|"publicar: netlify deploy --prod"| API
 ```
 
 ### 3.2 Tecnología propuesta
@@ -158,7 +190,7 @@ flowchart TB
 | Pruebas | **Vitest** para el dominio (cálculo puro) y `@netlify/database-dev` (Postgres real) para pruebas de API, permisos y transacciones | Regla 7. |
 | Zona horaria y formato | `timestamptz` en la base y presentación en `America/Mexico_City`. Fechas **DD/MM/AAAA**, números `1,250.75`. | |
 
-### 3.3 Estructura del repositorio
+### 3.3 Estructura de la carpeta del proyecto
 
 ```
 erp-panaderia/
@@ -174,7 +206,8 @@ erp-panaderia/
 │   └── esquemas/                # Zod compartido + definición de layouts
 ├── datos-prueba/                # SOLO FICTICIOS, con prefijo "PRUEBA-" (regla 8)
 ├── docs/                        # este diseño, manuales, restauración de respaldos
-└── .github/workflows/           # pruebas en cada push + respaldo externo mensual
+├── scripts/                     # publicar, respaldar-codigo, respaldar-base
+└── config/netlify-cuenta.json   # correo y team esperados de Netlify (sin secretos)
 ```
 
 ### 3.4 Reglas transversales (cómo se cumplen)
@@ -199,6 +232,15 @@ Hay una interfaz única, `Impresora { imprimir(ticket), abrirCajon(), estado() }
 - Cada caja recibe un **bloque de folios reservado**, y cada venta se identifica con un UUID generado en la caja. La sincronización es idempotente: reenviar una venta no la duplica.
 - Al volver el internet, la cola se envía en orden. Si un producto quedó con existencia negativa, se reporta para revisión; la venta no se rechaza.
 - Sin conexión no se puede facturar, cancelar ni autorizar nada que requiera validación del servidor.
+
+### 3.7 Script `publicar` (orden fijo)
+
+1. `netlify status`: verifica que la cuenta, el team y el proyecto sean los del negocio. Si no coinciden, **se detiene**.
+2. Corre **todas las pruebas automáticas**. Si alguna falla, se detiene.
+3. Verifica que no haya cambios sin guardar. Sube el número de versión y hace **commit en Git local** con etiqueta `vX.Y.Z`.
+4. `netlify deploy` → **borrador** y te muestra la URL para revisar.
+5. Te pregunta: *"¿Publicar a producción? (escribe SI)"*. Solo con tu confirmación ejecuta `netlify deploy --prod`. La migración y el respaldo automático los hace Netlify en ese momento.
+6. Ejecuta `respaldar-codigo` y te recuerda dónde quedó la copia.
 
 ---
 
@@ -1089,7 +1131,7 @@ Propongo dividir la Fase 1 en dos entregas (1A y 1B) porque es la más grande y 
 | Fase | Entregables concretos | Criterio de aceptación (tuyo) |
 |---|---|---|
 | **0** | Este documento + preguntas pendientes | Aprobación por escrito |
-| **1A. Base y seguridad** | Repo, CI (pruebas en cada push), proyectos `erp-produccion` y `erp-pruebas`, migraciones base, envoltorio de permisos y transacción, bitácora con cadena de hashes, autenticación con TOTP, PIN de cajero, usuarios, roles, matriz módulo × acción, alcance por sucursal/almacén, datos sensibles, límites por monto, incompatibilidades, bitácora de accesos, reporte "quién puede hacer qué" a Excel, `configuracion`, indicador de consumo, README | Cada puesto de prueba solo ve y hace lo de la matriz (probado también llamando directo a la API); las combinaciones incompatibles se bloquean; nadie puede editar la bitácora |
+| **1A. Base y seguridad** | Carpeta del proyecto con Git local, scripts `publicar`, `respaldar-codigo` y `respaldar-base`, **despliegue de prueba vacío para verificar borradores, migraciones y respaldo al publicar (sección 1.2)**, migraciones base, envoltorio de permisos y transacción, bitácora con cadena de hashes, autenticación con TOTP, PIN de cajero, usuarios, roles, matriz módulo × acción, alcance por sucursal/almacén, datos sensibles, límites por monto, incompatibilidades, bitácora de accesos, reporte "quién puede hacer qué" a Excel, `configuracion`, indicador de consumo, README | Cada puesto de prueba solo ve y hace lo de la matriz (probado también llamando directo a la API); las combinaciones incompatibles se bloquean; nadie puede editar la bitácora |
 | **1B. Catálogos y layouts** | Catálogos de 4.1, motor genérico de layouts (TXT pipe/tab, CSV, XLSX, UTF‑8/Win‑1252, DD/MM/AAAA, `1,250.75`), plantilla descargable con hoja de instrucciones y listas desplegables, simulación, reporte de errores en el mismo layout, aplicación en una transacción, exportación en el mismo layout, bitácora de cargas, autorización de cargas sensibles. Datos ficticios marcados `PRUEBA-` | Cargas tus 70 SKU, materias primas, masas y recetas en TXT y en Excel; se detectan los errores que metas a propósito; nada se guarda a medias |
 | **2. Recetas y explosión** | Recetas N1/N2 con versiones y % panadero, detección de ciclos, explosión N2→N1→N0, lotes según regla, requerimiento neto, aviso de piezas que alcanzan, requisición automática (en borrador hasta la Fase 4), costo estándar en cadena e impacto en margen | Kg de masa, lotes y requerimiento neto cuadran con tu Excel |
 | **3. Inventarios** | Movimientos, kárdex valuado (promedio/PEPS), lotes y caducidades, traspasos, conteos cíclicos con ajuste autorizado, alertas de mínimo/reorden | El kárdex cuadra con tu ejercicio |
@@ -1109,5 +1151,5 @@ Nota sobre el orden: el documento pone Contabilidad en la Fase 7, pero las fases
 ## 6. Qué necesito para empezar la Fase 1A
 
 1. Tu **aprobación** de este documento (o los cambios que quieras).
-2. Las respuestas marcadas **[Bloquea F1]** en `01-preguntas-pendientes.md`: P02 (repositorio), P03 (plan Netlify por créditos), P08, P09, P11 (sucursales, planta y almacenes), P16 (matriz de puestos) y P20 (opción de autenticación).
-3. El repositorio privado creado y conectado a esta sesión. Mientras tanto, estos documentos viven en esta sesión y serán el primer commit del repositorio.
+2. Las respuestas marcadas **[Bloquea F1]** en `01-preguntas-pendientes.md`: P02 (carpeta), P03 (cuenta de Netlify del negocio), P08, P09, P11 (sucursales, planta y almacenes), P16 (matriz de puestos), P20 (autenticación) y P66 (computadora de desarrollo).
+3. Claude Code abierto **en tu computadora**, dentro de la carpeta del proyecto, con estos documentos copiados en `docs/fase-0/`.
