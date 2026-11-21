@@ -96,7 +96,8 @@ Los roles y permisos viven siempre en nuestra base. La decisión es solo **quié
 
 Detalles de A:
 - La sesión vive en el servidor (tabla `sesion`) y viaja en una cookie con el identificador firmado. El cierre por inactividad se valida en el servidor.
-- Alta de usuario: el administrador lo da de alta y el sistema envía una invitación por correo con un enlace de un solo uso. El usuario fija su contraseña y, si su rol lo exige, registra el TOTP. Incluye códigos de recuperación.
+- El acceso es con **usuario** (clave) y contraseña; el correo es opcional, para que cajeros y panaderos no necesiten buzón.
+- Alta de usuario: el administrador lo da de alta y el sistema genera una invitación con un enlace de un solo uso. Se envía por correo si el usuario tiene uno; si no, el administrador la entrega impresa o en pantalla. El usuario fija su contraseña y, si su rol lo exige, registra el TOTP. Incluye códigos de recuperación.
 - El PIN de cajero solo sirve **en una caja ya abierta por una sesión completa**. Identifica al cajero para cada venta; no da acceso al resto del sistema.
 
 ---
@@ -224,7 +225,8 @@ erDiagram
   USUARIO {
     uuid id PK
     text nombre
-    text correo UK
+    text usuario UK "clave de acceso"
+    text correo "opcional"
     text puesto
     text estatus "activo, suspendido, baja"
     date fecha_alta
