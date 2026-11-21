@@ -32,15 +32,12 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 4. Descomprime ahí el paquete de la Fase 0 que te envío (`erp-panaderia-fase0.zip`). Trae los documentos y el historial de Git.
 5. Elige dónde se guardará la copia del código fuera de esa computadora (OneDrive, Google Drive o disco externo).
 
-### A2. Cuenta de Netlify del negocio
-1. Crea una **cuenta nueva** en app.netlify.com con el correo del negocio. Si todavía no hay, abre un Gmail gratuito del negocio; el correo se puede cambiar después.
-2. Plan **Pro de 10,000 créditos** durante el desarrollo, con **recarga automática** activada.
-3. En la terminal de esa computadora:
-   - `netlify login` con la cuenta del negocio;
-   - `netlify status` para confirmar que aparece el correo y el team del negocio;
-   - si también tienes tu otra cuenta, con `netlify switch` cambias entre ellas.
-4. El proyecto de Netlify y su base los creamos juntos en la Fase 1A, con un despliegue de prueba vacío.
-5. Las llaves secretas las capturas tú en el panel de Netlify (variables de entorno). **Nunca** van en el chat ni en la carpeta.
+### A2. Proyecto en tu cuenta de Netlify
+1. Usa **tu cuenta actual**. Verifica en *Billing* que el plan sea **Pro por créditos** y activa la **recarga automática**: los créditos se comparten con tus otros proyectos.
+2. Ajusta el nivel de créditos sumando tu consumo actual más unos 6,000 al mes del ERP.
+3. En la carpeta del proyecto: `netlify login` y `netlify status`.
+4. El proyecto nuevo y su base los creamos juntos en la Fase 1A (`netlify init` o `netlify link`), con un despliegue de prueba vacío. Su ID queda guardado para que `publicar` nunca publique en otro de tus proyectos.
+5. Las llaves secretas se capturan en el panel, **a nivel del proyecto del ERP** (no del team). **Nunca** van en el chat ni en la carpeta.
 
 ### A3. Respuestas pendientes que bloquean la Fase 1
 - **P08:** sucursales (cuántas, nombre y clave de cada una)

@@ -54,7 +54,11 @@ Según el resultado:
 
 **Regla de migraciones:** como la migración se aplica un momento antes de publicar el código nuevo, las migraciones serán **compatibles hacia atrás**: primero se agregan columnas y tablas, y solo en una publicación posterior se retira lo viejo.
 
-**Dos cuentas en la misma computadora:** antes de cualquier `netlify deploy`, el script `publicar` ejecuta `netlify status` y compara el correo y el team activos con los del negocio, guardados en `config/netlify-cuenta.json` (no es secreto). También revisa que la carpeta esté enlazada al proyecto correcto. Si algo no coincide, **se detiene y avisa**; nunca publica. Para cambiar de cuenta se usa `netlify switch`.
+**Cuenta de Netlify (decisión del 21/11/2026):** el sistema vive como **proyecto nuevo dentro de tu cuenta actual de Netlify**, no en una cuenta separada del negocio. Consecuencias:
+- Los **créditos se comparten** con tus otros proyectos. Si se agotan, Netlify **pausa todos los proyectos del team**, incluido el ERP. Por eso la recarga automática es obligatoria, y el plan se elige sumando el consumo actual más unos 6,000 créditos al mes del ERP.
+- Los datos del negocio (ventas, clientes, e.firma cifrada) quedan bajo tu cuenta personal. Cualquier miembro de tu team con acceso puede ver el proyecto. Revisa quién tiene acceso.
+- Si después el negocio necesita su propia cuenta, el proyecto se puede mover a otro team. Antes de hacerlo verificaré cómo se traslada la base.
+- Como tu cuenta tiene **otros proyectos**, el riesgo ya no es la cuenta equivocada sino **el proyecto equivocado**. El script `publicar` verifica con `netlify status` que la carpeta esté enlazada al **ID del proyecto del ERP**, guardado en `config/netlify-proyecto.json` (no es secreto). Si no coincide, se detiene. Además, ninguna variable de entorno del ERP se define a nivel team: todas van a nivel proyecto.
 
 ### 1.3 ⚠️ Punto 2 — Costo de la base: se cobra mientras esté despierta
 
@@ -207,7 +211,7 @@ erp-panaderia/
 ├── datos-prueba/                # SOLO FICTICIOS, con prefijo "PRUEBA-" (regla 8)
 ├── docs/                        # este diseño, manuales, restauración de respaldos
 ├── scripts/                     # publicar, respaldar-codigo, respaldar-base
-└── config/netlify-cuenta.json   # correo y team esperados de Netlify (sin secretos)
+└── config/netlify-proyecto.json # team e ID de proyecto esperados (sin secretos)
 ```
 
 ### 3.4 Reglas transversales (cómo se cumplen)
@@ -235,7 +239,7 @@ Hay una interfaz única, `Impresora { imprimir(ticket), abrirCajon(), estado() }
 
 ### 3.7 Script `publicar` (orden fijo)
 
-1. `netlify status`: verifica que la cuenta, el team y el proyecto sean los del negocio. Si no coinciden, **se detiene**.
+1. `netlify status`: verifica que el team y el **ID del proyecto** sean los del ERP. Si no coinciden, **se detiene**.
 2. Corre **todas las pruebas automáticas**. Si alguna falla, se detiene.
 3. Verifica que no haya cambios sin guardar. Sube el número de versión y hace **commit en Git local** con etiqueta `vX.Y.Z`.
 4. `netlify deploy` → **borrador** y te muestra la URL para revisar.
@@ -1151,5 +1155,5 @@ Nota sobre el orden: el documento pone Contabilidad en la Fase 7, pero las fases
 ## 6. Qué necesito para empezar la Fase 1A
 
 1. Tu **aprobación** de este documento (o los cambios que quieras).
-2. Las respuestas marcadas **[Bloquea F1]** en `01-preguntas-pendientes.md`: P02 (carpeta), P03 (cuenta de Netlify del negocio), P08, P09, P11 (sucursales, planta y almacenes), P16 (matriz de puestos), P20 (autenticación) y P66 (computadora de desarrollo).
+2. Las respuestas marcadas **[Bloquea F1]** en `01-preguntas-pendientes.md`: P02 (carpeta), P03 (proyecto de Netlify en tu cuenta), P08, P09, P11 (sucursales, planta y almacenes), P16 (matriz de puestos), P20 (autenticación) y P66 (computadora de desarrollo).
 3. Claude Code abierto **en tu computadora**, dentro de la carpeta del proyecto, con estos documentos copiados en `docs/fase-0/`.
