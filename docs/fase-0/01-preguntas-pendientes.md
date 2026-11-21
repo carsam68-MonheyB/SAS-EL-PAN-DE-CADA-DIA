@@ -13,7 +13,7 @@
 | P04 | ✅ **Respondida:** todavía no hay dominio. → Pruebas y Fase 1 con el subdominio gratuito de Netlify (`*.netlify.app`). Antes de producción: registrar dominio (`.mx` o `.com.mx`) y administrar su DNS en Netlify. Pendiente: nombre de dominio elegido. | No |
 | P05 | ✅ **Respondida:** todavía no hay correo. → Propuesta: buzones solo para el personal de oficina (Microsoft 365 o Google Workspace; Zoho Mail si se busca el menor costo) y **Resend** para los correos que envía el sistema. Cajeros y panaderos **no necesitan correo**: entran con usuario y contraseña. Pendiente: elegir proveedor de buzones. | No (en Fase 1 la invitación se puede mostrar como enlace para entregarlo en persona) |
 | P06 | Almacenamiento **fuera de Netlify** para respaldos y XML: Amazon S3, Backblaze B2, Google Cloud Storage, Azure, Google Drive… Recomiendo uno con **bloqueo de objetos (Object Lock / WORM)** para que ninguna credencial pueda borrar respaldos (S3 y B2 lo tienen). ¿Cuál prefieres o ya tienes cuenta? | F1 (diseño), F9 (operación) |
-| P07 | Fecha de arranque deseada y **sistema actual** (si hay uno) con el que se trabajará en paralelo. ¿Se migran datos de él? | No |
+| P07 | 🟡 **Parcial:** el sistema actual es **Soft Restaurant 7.0**, y el nuevo sistema lo reemplaza por completo. Falta: fecha de arranque deseada; desde cuándo lo usan; si factura (CFDI) desde ahí y con qué PAC; qué datos se migran (productos, precios, clientes, historial de ventas para sugerir el plan de producción); si se adelanta el POS (ver diseño, sección 5). | No |
 
 ## B. Estructura operativa
 

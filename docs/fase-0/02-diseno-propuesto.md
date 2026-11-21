@@ -1100,6 +1100,8 @@ Propongo dividir la Fase 1 en dos entregas (1A y 1B) porque es la más grande y 
 | **8. SAT y PAC** | Carga cifrada de e.firma/CSD, timbrado, cancelación, complemento de pago, factura nominativa y global, descarga masiva 1.5 en segundo plano, verificación de estatus, conciliaciones, Anexo 24, papeles de trabajo de IVA/IEPS/DIOT, archivo externo de XML | Timbrado exitoso en sandbox; descarga y conciliación de un mes real |
 | **9. Salida a producción** | Tablero y reportes de 4.10, manual de usuario, respaldo externo con Object Lock, **prueba de restauración**, revisión de permisos y secretos, operación en paralelo | Uso en paralelo el periodo que definas |
 
+**Reemplazo de Soft Restaurant:** el negocio quiere dar de baja Soft Restaurant. Opción a decidir: mantener el orden (Soft Restaurant opera hasta la Fase 6) o **adelantar el POS justo después de la Fase 3** (orden 1A → 1B → 2 → 3 → 6 → 4 → 5 → 7 → 8 → 9), para retirarlo antes. Al adelantarlo, las pólizas del POS se generan desde el inicio y quedan "pendientes de configuración" mientras no estén las reglas contables. La migración de datos de Soft Restaurant (catálogo, precios, clientes e historial de ventas) se hace con los layouts de la Fase 1B.
+
 Nota sobre el orden: el documento pone Contabilidad en la Fase 7, pero las fases 3 a 6 ya generan pólizas. Propongo crear en la **Fase 1B** el catálogo de cuentas y la tabla de reglas de contabilización (solo estructura y layout), para que cada movimiento genere su póliza desde que existe. Si una regla no está capturada, la póliza queda "pendiente de configuración" en lugar de suponer cuentas. La Fase 7 agrega reportes, pólizas manuales y cierre.
 
 ---
