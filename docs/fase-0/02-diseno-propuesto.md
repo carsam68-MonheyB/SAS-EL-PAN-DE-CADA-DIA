@@ -125,7 +125,7 @@ Los roles y permisos viven siempre en nuestra base. La decisión es solo **quié
 | Costo | Sin costo extra. | Por usuario activo al mes según el plan de Auth0 (verificar). |
 | Riesgo | El código de seguridad es nuestro. Lo mitigamos con librerías probadas (`argon2` para hashes, `otplib` para TOTP), cookies `HttpOnly`/`Secure`/`SameSite=Strict`, protección CSRF, límites de intentos y pruebas automáticas. | Dependencia de un tercero y dos lugares donde administrar usuarios. |
 
-**Recomendación: A.** El PIN de cajero, las políticas configurables y la bitácora de accesos ya obligan a tener casi todo el módulo en casa, y así no hay un segundo panel de usuarios. Si prefieres un proveedor externo por política de seguridad, B funciona: el diseño de roles y permisos no cambia (P20).
+**Decisión (21/11/2026): opción A, autenticación propia con TOTP.** Recomendación original: A. El PIN de cajero, las políticas configurables y la bitácora de accesos ya obligan a tener casi todo el módulo en casa, y así no hay un segundo panel de usuarios. Si prefieres un proveedor externo por política de seguridad, B funciona: el diseño de roles y permisos no cambia (P20).
 
 Detalles de A:
 - La sesión vive en el servidor (tabla `sesion`) y viaja en una cookie con el identificador firmado. El cierre por inactividad se valida en el servidor.

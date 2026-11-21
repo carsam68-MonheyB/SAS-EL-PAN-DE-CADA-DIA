@@ -37,7 +37,7 @@
 | P17 | Roles con doble factor obligatorio, además de administrador, autorizadores y quien maneje e.firma/PAC. | F1 |
 | P18 | Valores iniciales de seguridad: longitud mínima de contraseña, intentos fallidos antes de bloqueo, minutos de bloqueo, minutos de inactividad para cerrar sesión (oficina y POS por separado), dígitos del PIN de cajero. | F1 |
 | P19 | Lista inicial de **incompatibilidades** de segregación de funciones (además de las 4 del documento). | F1 |
-| P20 | Elección de autenticación (ver diseño, sección 2): **A) propia en la base de datos con TOTP** (recomendada) o **B) Auth0**. | **[Bloquea F1]** |
+| P20 | ✅ **Respondida:** **autenticación propia** con contraseña (argon2id) y **TOTP** (Google/Microsoft Authenticator), más PIN de cajero; sin proveedor externo (diseño, sección 2, opción A). | — |
 
 ## D. Catálogos, productos y recetas
 
