@@ -18,12 +18,17 @@ const manejador = ruta({ publica: true, metodos: ["GET", "POST"] }, async (ctx) 
     usuario: z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{3,40}$/, "Usuario: 3 a 40 caracteres (letras, números, punto, guion)."),
     nombre: z.string().trim().min(3).max(120),
   }));
-  const esperada = process.env.CLAVE_INSTALACION;
-  if (!esperada || esperada.length < 20) throw new ErrorApp(503, "sin_clave", "Falta configurar CLAVE_INSTALACION (mínimo 20 caracteres) en Netlify.");
+  const esperada = process.env.CLAVE_INSTALACION?.trim();
+  if (!esperada) {
+    throw new ErrorApp(503, "sin_clave", "El sistema no recibe la variable CLAVE_INSTALACION. Revisa que exista en Netlify con valor en «Production» y vuelve a publicar (Trigger deploy).");
+  }
+  if (esperada.length < 20) {
+    throw new ErrorApp(503, "clave_corta", "La variable CLAVE_INSTALACION sí llega, pero tiene menos de 20 caracteres. Edítala en Netlify con una más larga y vuelve a publicar (Trigger deploy).");
+  }
   return ctx.tx(async (c) => {
     await c.query("LOCK TABLE usuario IN EXCLUSIVE MODE");
     if ((await c.query("SELECT 1 FROM usuario LIMIT 1")).rowCount) throw new ErrorApp(409, "instalado", "El sistema ya tiene usuarios: la instalación ya no está disponible.");
-    if (!igualesSeguro(d.clave, esperada)) {
+    if (!igualesSeguro(d.clave.trim(), esperada)) {
       await registrarAcceso(c, { usuarioIntentado: d.usuario, evento: "instalacion", exito: false, ip: ctx.ip, agente: ctx.agente });
       return { error: true };
     }
