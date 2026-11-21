@@ -56,7 +56,7 @@
 | P31 | ¿Qué insumos manejan **lote y caducidad**? | F1 |
 | P32 | Criterio para **sugerir el plan de producción** (ej. promedio de ventas del mismo día de las últimas N semanas − existencia PT). | F2 |
 | P33a | 🟡 **Provisional desde la Fase 1B:** el aviso por cambio de costo o precio en los layouts está en **10 %** y el máximo por archivo en **5,000 renglones** (Configuración → Cargas por layout). Confírmalos o cámbialos. | — |
-| P33b | ¿El **precio de venta incluye impuestos** (precio al público con IVA/IEPS incluidos) o se le suman al cobrar? Se necesita para el POS y el CFDI. | F6 |
+| P33b | ✅ **Respondida (21/11/2026):** el precio de venta al público **ya incluye impuestos**. → Configuración `precios.incluyen_impuestos = si`; el POS y el CFDI desglosan los impuestos a partir del precio. | — |
 | P33c | Catálogos del SAT: el sistema **no trae claves del SAT precargadas**. El contador carga las que use el negocio (producto/servicio, unidad, objeto de impuesto, régimen, uso de CFDI, forma de pago, código agrupador), copiándolas del archivo oficial del SAT, con el layout "Catálogos del SAT". | F1B / F8 |
 | P33 | Tolerancias: diferencia aceptable en balance de masa (% o kg), en surtido vs. estándar, en cotejo a tres vías (cantidad, precio, impuestos), y % de cambio de costo que genera advertencia en layouts. | F2–F5 |
 

@@ -436,11 +436,11 @@ const precios: Layout = {
   tabla: "precio_venta", llave: ["ARTICULO", "SUCURSAL", "VIGENTE_DESDE"], autorizacion: { permiso: "catalogos.precios:autorizar" },
   orden: "(SELECT clave FROM articulo a WHERE a.id = t.articulo_id), (SELECT clave FROM sucursal s WHERE s.id = t.sucursal_id) NULLS FIRST, t.vigente_desde",
   permisos: { ver: ["catalogos.precios:ver"], crear: ["catalogos.precios:crear"], editar: ["catalogos.precios:editar"], exportar: ["catalogos.precios:exportar"] },
-  notas: ["Un precio ya vigente no se corrige: se captura uno nuevo con otra fecha de inicio.", "Pendiente de definir con el negocio si el precio incluye impuestos (P de la Fase 6)."],
+  notas: ["Un precio ya vigente no se corrige: se captura uno nuevo con otra fecha de inicio.", "El precio es el precio al público CON impuestos incluidos (decisión del negocio); al vender y facturar los impuestos se desglosan del precio."],
   campos: [
     { nombre: "ARTICULO", columna: "articulo_id", tipo: "ref", ref: { tabla: "articulo", etiqueta: "El producto", filtro: "r.tipo = 'SKU'" }, obligatorio: true, ejemplo: "PRUEBA-CONCHA", descripcion: "Clave del SKU." },
     { nombre: "SUCURSAL", columna: "sucursal_id", tipo: "ref", ref: { tabla: "sucursal", etiqueta: "La sucursal" }, ejemplo: "", descripcion: "Vacía = todas las sucursales." },
-    { nombre: "PRECIO", columna: "precio", tipo: "decimal", obligatorio: true, minimo: 0, decimales: 2, ejemplo: "14.50", descripcion: "Precio de venta." },
+    { nombre: "PRECIO", columna: "precio", tipo: "decimal", obligatorio: true, minimo: 0, decimales: 2, ejemplo: "14.50", descripcion: "Precio al público con impuestos incluidos." },
     { nombre: "VIGENTE_DESDE", columna: "vigente_desde", tipo: "fecha", obligatorio: true, ejemplo: "01/12/2026", descripcion: "Primer día en que aplica." },
   ],
   async preparar(c, filas) {
