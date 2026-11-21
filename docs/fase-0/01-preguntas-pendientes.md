@@ -3,18 +3,16 @@
 > Responde con el número de la pregunta (ej. "P07: 2 sucursales y una planta central"). Si aún no sabes alguna, escribe "pendiente": no bloquea la Fase 1 salvo las marcadas con **[Bloquea F1]**.
 > Ningún valor de esta lista se va a poner "en duro": todo queda en catálogos o configuración editable. Las preguntas sirven para diseñar la estructura y cargar los valores iniciales.
 
-## A. Empresa, carpeta del proyecto y cuentas
+## A. Empresa, repositorio y cuentas
 
 | # | Pregunta | Bloquea |
 |---|---|---|
 | P01 | Nombre comercial, razón social, RFC y régimen fiscal (clave SAT, ej. 601, 612, 626). | F1 (datos de configuración) |
-| P02 | **Carpeta del proyecto en tu computadora** (ruta completa, ej. `C:\Proyectos\erp-panaderia`). Ya no se usa GitHub: el repositorio `SAMAGAL76/EL-PAN-DE-CADA-DIA` no se necesita (lo puedes borrar o dejar vacío). | **[Bloquea F1]** |
-| P03 | ✅ **Respondida:** para **desarrollo y pruebas** se usa un **proyecto nuevo en tu cuenta actual de Netlify**, solo con datos ficticios. Falta confirmar que el team esté en plan **Pro por créditos** (Netlify Database no existe en planes anteriores). | **[Bloquea F1]** |
+| P02 | ✅ **Respondida:** repositorio privado temporal `SAMAGAL76/EL-PAN-DE-CADA-DIA`. Falta: dar acceso a la **aplicación de Claude para GitHub** (claude.ai/connect-github). | **[Bloquea F1]** |
+| P03 | ✅ **Respondida:** proyecto nuevo **temporal** en tu cuenta actual de Netlify, conectado al repositorio, solo con datos ficticios. Falta confirmar que el team esté en plan **Pro por créditos**. | **[Bloquea F1]** |
 | P04 | ✅ **Respondida:** todavía no hay dominio. → Pruebas y Fase 1 con el subdominio gratuito de Netlify (`*.netlify.app`). Antes de producción: registrar dominio (`.mx` o `.com.mx`) y administrar su DNS en Netlify. Pendiente: nombre de dominio elegido. | No |
 | P05 | ✅ **Respondida:** todavía no hay correo. → Propuesta: buzones solo para el personal de oficina (Microsoft 365 o Google Workspace; Zoho Mail si se busca el menor costo) y **Resend** para los correos que envía el sistema. Cajeros y panaderos **no necesitan correo**: entran con usuario y contraseña. Pendiente: elegir proveedor de buzones. | No (en Fase 1 la invitación se puede mostrar como enlace para entregarlo en persona) |
 | P06 | Almacenamiento **fuera de Netlify** para respaldos y XML: Amazon S3, Backblaze B2, Google Cloud Storage, Azure, Google Drive… Recomiendo uno con **bloqueo de objetos (Object Lock / WORM)** para que ninguna credencial pueda borrar respaldos (S3 y B2 lo tienen). ¿Cuál prefieres o ya tienes cuenta? | F1 (diseño), F9 (operación) |
-| P66 | **Computadora de desarrollo**: ¿cuál será (no recomiendo la de la caja)? ¿Windows? ¿Ya tiene Git, Node.js y Netlify CLI? ¿Ahí mismo está tu otra cuenta de Netlify? | **[Bloquea F1]** |
-| P67 | **Dónde guardar la copia del código** fuera de tu computadora (OneDrive, Google Drive, disco externo…). | F1A |
 | P68 | **Estructura definitiva de producción** (cuenta o team de Netlify del negocio, correo, plan). Se define antes de cargar datos reales. | F9 / antes de datos reales |
 | P07 | 🟡 **Parcial:** el sistema actual es **Soft Restaurant 7.0**, y el nuevo sistema lo reemplaza por completo. Falta: fecha de arranque deseada; desde cuándo lo usan; si factura (CFDI) desde ahí y con qué PAC; qué datos se migran (productos, precios, clientes, historial de ventas para sugerir el plan de producción); si se adelanta el POS (ver diseño, sección 5). | No |
 

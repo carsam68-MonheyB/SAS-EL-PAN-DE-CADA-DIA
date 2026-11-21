@@ -4,42 +4,27 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 
 ## Cómo trabajamos en cada fase
 
-1. Programo en la **carpeta del proyecto en tu computadora**, con Claude Code abierto ahí mismo.
-2. Todo se prueba primero en **local** (`netlify dev`), con datos ficticios.
-3. Te aviso qué hice, cómo probarlo y con qué usuarios de prueba. Hago commit en Git local.
-4. Tú pruebas y me das observaciones, o tu visto bueno.
-5. Con tu visto bueno corremos el script **`publicar`**:
-   - verifica la cuenta de Netlify;
-   - corre las pruebas;
-   - hace commit con la versión;
-   - genera el borrador;
-   - y, solo si escribes **SI**, publica a producción.
-6. Al publicar se genera la **copia del código** (`respaldar-codigo`).
+1. Programo en una sesión de Claude Code en la nube, en la rama `desarrollo` del repositorio `SAMAGAL76/EL-PAN-DE-CADA-DIA`. No se instala nada en tu computadora.
+2. En cada cambio corren las pruebas automáticas y Netlify genera una **deploy preview** con datos ficticios.
+3. Te paso la liga, qué hice y cómo probarlo.
+4. Tú pruebas y me das observaciones o tu visto bueno.
+5. Con tu visto bueno paso los cambios a `main` y se publican en el proyecto temporal de tu cuenta.
+6. Te mando el paquete `.zip` de la versión para tu copia en OneDrive.
 7. No empiezo la siguiente fase sin tu aprobación.
 
 ---
 
 ## Etapa A · Preparativos (los haces tú, una sola vez)
 
-### A1. Computadora de desarrollo
-1. Elige la computadora donde vivirá el código (de preferencia no la de la caja).
-2. Instala:
-   - **Git para Windows** (git-scm.com)
-   - **Node.js LTS** (nodejs.org), versión 20.12.2 o más nueva
-   - **Netlify CLI**, con el comando `npm install -g netlify-cli` (versión 26 o más nueva)
-   - **Claude Code** (app de escritorio o terminal)
-3. Crea la carpeta del proyecto (ej. `C:\Proyectos\erp-panaderia`).
-4. Descomprime ahí el paquete de la Fase 0 que te envío (`erp-panaderia-fase0.zip`). Trae los documentos y el historial de Git.
-5. Elige dónde se guardará la copia del código fuera de esa computadora (OneDrive, Google Drive o disco externo).
+### A1. Acceso de Claude al repositorio
+1. Entra a **claude.ai/connect-github** y conecta tu cuenta de GitHub.
+2. Instala la **aplicación de Claude para GitHub** con acceso a `EL-PAN-DE-CADA-DIA`.
+3. Avísame y lo conecto a la sesión.
 
-### A2. Proyecto en tu cuenta de Netlify (solo desarrollo)
-> Es temporal: antes de cargar datos reales se traslada a la estructura definitiva (diseño, sección 1.2).
-
-1. Usa **tu cuenta actual**. Verifica en *Billing* que el plan sea **Pro por créditos** y activa la **recarga automática**: los créditos se comparten con tus otros proyectos.
-2. En desarrollo el consumo del ERP es bajo. Revisa el consumo del mes en *Usage* durante las primeras semanas.
-3. En la carpeta del proyecto: `netlify login` y `netlify status`.
-4. El proyecto nuevo y su base los creamos juntos en la Fase 1A (`netlify init` o `netlify link`), con un despliegue de prueba vacío. Su ID queda guardado para que `publicar` nunca publique en otro de tus proyectos.
-5. Las llaves secretas se capturan en el panel, **a nivel del proyecto del ERP** (no del team). **Nunca** van en el chat ni en la carpeta.
+### A2. Proyecto en tu cuenta de Netlify (temporal)
+1. En *Billing*, confirma que tu plan sea **Pro por créditos** y activa la **recarga automática**.
+2. Después de que yo suba el esqueleto: **Add new project → Import from Git → GitHub → EL-PAN-DE-CADA-DIA**, rama de producción `main`.
+3. Las llaves secretas las capturas tú en el panel, **a nivel del proyecto**. Nunca van en el chat ni en el repositorio.
 
 ### A3. Respuestas pendientes que bloquean la Fase 1
 - **P08:** sucursales (cuántas, nombre y clave de cada una)
@@ -47,7 +32,7 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 - **P11:** lista de almacenes
 - **P16:** matriz de puestos y permisos (o pídeme un borrador)
 - **P20:** autenticación propia con TOTP (recomendada) o Auth0
-- **P02, P03 y P66:** ruta de la carpeta, cuenta de Netlify del negocio y computadora de desarrollo
+- **P03:** plan Pro por créditos en tu cuenta de Netlify
 - **Aprobación por escrito** del diseño de la Fase 0
 
 ### A4. Puede ir en paralelo (no bloquea)
