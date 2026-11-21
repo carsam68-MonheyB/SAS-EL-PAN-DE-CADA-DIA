@@ -54,11 +54,22 @@ Según el resultado:
 
 **Regla de migraciones:** como la migración se aplica un momento antes de publicar el código nuevo, las migraciones serán **compatibles hacia atrás**: primero se agregan columnas y tablas, y solo en una publicación posterior se retira lo viejo.
 
-**Cuenta de Netlify (decisión del 21/11/2026):** el sistema vive como **proyecto nuevo dentro de tu cuenta actual de Netlify**, no en una cuenta separada del negocio. Consecuencias:
-- Los **créditos se comparten** con tus otros proyectos. Si se agotan, Netlify **pausa todos los proyectos del team**, incluido el ERP. Por eso la recarga automática es obligatoria, y el plan se elige sumando el consumo actual más unos 6,000 créditos al mes del ERP.
-- Los datos del negocio (ventas, clientes, e.firma cifrada) quedan bajo tu cuenta personal. Cualquier miembro de tu team con acceso puede ver el proyecto. Revisa quién tiene acceso.
-- Si después el negocio necesita su propia cuenta, el proyecto se puede mover a otro team. Antes de hacerlo verificaré cómo se traslada la base.
-- Como tu cuenta tiene **otros proyectos**, el riesgo ya no es la cuenta equivocada sino **el proyecto equivocado**. El script `publicar` verifica con `netlify status` que la carpeta esté enlazada al **ID del proyecto del ERP**, guardado en `config/netlify-proyecto.json` (no es secreto). Si no coincide, se detiene. Además, ninguna variable de entorno del ERP se define a nivel team: todas van a nivel proyecto.
+**Cuenta de Netlify (decisión del 21/11/2026):** durante el **desarrollo y las pruebas**, el sistema vive como **proyecto nuevo dentro de tu cuenta actual de Netlify**. **No es la estructura definitiva:** antes de cargar datos reales se traslada a la estructura de producción que definas (P68). Reglas mientras tanto:
+- En tu cuenta solo hay **datos ficticios**. No se cargan ventas reales, clientes reales, la e.firma ni el CSD.
+- La Fase 8 se prueba con el **ambiente de pruebas del PAC**. La descarga y conciliación de **un mes real del SAT** (que usa la e.firma real) se hace ya en la estructura definitiva.
+- Los créditos se comparten con tus otros proyectos. En desarrollo el consumo es mucho menor que en operación, porque la base solo está despierta mientras se prueba. Aun así, activa la recarga automática.
+- Ninguna variable de entorno del ERP se define a nivel team: todas van a nivel proyecto.
+- El script `publicar` verifica que la carpeta esté enlazada al **ID del proyecto del ERP** guardado en `config/netlify-proyecto.json`, para no publicar nunca en otro de tus proyectos.
+
+**Traslado a la estructura definitiva** (antes de la carga de datos reales):
+1. Crear el proyecto en la cuenta o team definitivo y enlazar la carpeta (`netlify link`).
+2. Actualizar `config/netlify-proyecto.json`.
+3. Capturar las variables de entorno con **llaves nuevas**. La llave de cifrado de desarrollo nunca se usa en producción.
+4. Primer `netlify deploy --prod`: la base nueva se crea vacía y las migraciones construyen todas las tablas.
+5. No se trasladan datos: solo había datos ficticios. Los datos reales se cargan con los layouts.
+6. Configurar en el panel el auto‑escalado, el tiempo para dormir y la recarga automática.
+7. Dar de baja el proyecto de desarrollo en tu cuenta, o dejarlo como ambiente de pruebas.
+
 
 ### 1.3 ⚠️ Punto 2 — Costo de la base: se cobra mientras esté despierta
 

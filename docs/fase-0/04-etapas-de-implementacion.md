@@ -32,9 +32,11 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 4. Descomprime ahí el paquete de la Fase 0 que te envío (`erp-panaderia-fase0.zip`). Trae los documentos y el historial de Git.
 5. Elige dónde se guardará la copia del código fuera de esa computadora (OneDrive, Google Drive o disco externo).
 
-### A2. Proyecto en tu cuenta de Netlify
+### A2. Proyecto en tu cuenta de Netlify (solo desarrollo)
+> Es temporal: antes de cargar datos reales se traslada a la estructura definitiva (diseño, sección 1.2).
+
 1. Usa **tu cuenta actual**. Verifica en *Billing* que el plan sea **Pro por créditos** y activa la **recarga automática**: los créditos se comparten con tus otros proyectos.
-2. Ajusta el nivel de créditos sumando tu consumo actual más unos 6,000 al mes del ERP.
+2. En desarrollo el consumo del ERP es bajo. Revisa el consumo del mes en *Usage* durante las primeras semanas.
 3. En la carpeta del proyecto: `netlify login` y `netlify status`.
 4. El proyecto nuevo y su base los creamos juntos en la Fase 1A (`netlify init` o `netlify link`), con un despliegue de prueba vacío. Su ID queda guardado para que `publicar` nunca publique en otro de tus proyectos.
 5. Las llaves secretas se capturan en el panel, **a nivel del proyecto del ERP** (no del team). **Nunca** van en el chat ni en la carpeta.
@@ -77,6 +79,8 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 ---
 
 ## Etapa C · Arranque en producción
+
+0. **Traslado a la estructura definitiva de Netlify** (diseño, sección 1.2), con llaves nuevas.
 
 1. Carga de datos reales en producción: catálogos, recetas, existencias iniciales, saldos contables.
 2. Alta de los usuarios reales; cada uno activa su acceso y, si su puesto lo requiere, su doble factor.

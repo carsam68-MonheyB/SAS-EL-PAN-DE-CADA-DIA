@@ -4,7 +4,7 @@ Fecha: 21/11/2026. Precios consultados en fuentes públicas. **Confírmalos al c
 
 ## 1. Netlify (hosting + base de datos)
 
-> **Decisión:** el ERP va como proyecto nuevo en tu cuenta actual. Los créditos se **suman** a lo que ya consumen tus otros proyectos; elige el nivel con ese total.
+> **Decisión:** en desarrollo, el ERP va como proyecto nuevo en tu cuenta actual. El consumo es bajo porque la base solo despierta mientras se prueba, y se suma a lo que ya gastan tus otros proyectos. Las cifras de abajo son para la **operación real**, en la estructura definitiva.
 
 **Planes Pro por créditos (julio 2026):**
 
