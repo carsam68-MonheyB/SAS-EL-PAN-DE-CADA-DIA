@@ -4,7 +4,7 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 
 ## Cómo trabajamos en cada fase
 
-1. Programo en una sesión de Claude Code en la nube, en la rama `desarrollo` del repositorio `SAMAGAL76/EL-PAN-DE-CADA-DIA`. No se instala nada en tu computadora.
+1. Programo en una sesión de Claude Code en la nube, en la rama `desarrollo` del repositorio `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`. No se instala nada en tu computadora.
 2. En cada cambio corren las pruebas automáticas y Netlify genera una **deploy preview** con datos ficticios.
 3. Te paso la liga, qué hice y cómo probarlo.
 4. Tú pruebas y me das observaciones o tu visto bueno.
@@ -18,12 +18,12 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 
 ### A1. Acceso de Claude al repositorio
 1. Entra a **claude.ai/connect-github** y conecta tu cuenta de GitHub.
-2. Instala la **aplicación de Claude para GitHub** con acceso a `EL-PAN-DE-CADA-DIA`.
+2. Instala la **aplicación de Claude para GitHub** con acceso a `SAS-EL-PAN-DE-CADA-DIA`.
 3. Avísame y lo conecto a la sesión.
 
 ### A2. Proyecto en tu cuenta de Netlify (temporal)
 1. En *Billing*, confirma que tu plan sea **Pro por créditos** y activa la **recarga automática**.
-2. Después de que yo suba el esqueleto: **Add new project → Import from Git → GitHub → EL-PAN-DE-CADA-DIA**, rama de producción `main`.
+2. Después de que yo suba el esqueleto: **Add new project → Import from Git → GitHub → SAS-EL-PAN-DE-CADA-DIA**, rama de producción `main`.
 3. Las llaves secretas las capturas tú en el panel, **a nivel del proyecto**. Nunca van en el chat ni en el repositorio.
 
 ### A3. Respuestas pendientes que bloquean la Fase 1

@@ -3,7 +3,7 @@
 Sistema integral de control para panadería (ERP) — documento para aprobación.
 Fecha: 21/11/2026 · Estado: **borrador para revisión** · Sin código hasta tu aprobación por escrito.
 
-> **Revisión 3 (prompt versión 3):** el desarrollo se hace en un **repositorio temporal de GitHub** (`SAMAGAL76/EL-PAN-DE-CADA-DIA`) conectado a un **proyecto temporal en la cuenta actual de Netlify**, solo con datos ficticios. Antes de cargar datos reales se traslada a la estructura definitiva del negocio. No se instala nada en la computadora del dueño.
+> **Revisión 3 (prompt versión 3):** el desarrollo se hace en un **repositorio temporal de GitHub** (`carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`) conectado a un **proyecto temporal en la cuenta actual de Netlify**, solo con datos ficticios. Antes de cargar datos reales se traslada a la estructura definitiva del negocio. No se instala nada en la computadora del dueño.
 
 Contenido:
 1. Validación de la plataforma Netlify contra el documento
@@ -37,7 +37,7 @@ Revisé la documentación vigente de Netlify (noviembre 2026). Resumen: **todo e
 
 | Pieza | Dónde |
 |---|---|
-| Código | Repositorio privado `SAMAGAL76/EL-PAN-DE-CADA-DIA`. Yo trabajo en la rama `desarrollo`; `main` solo cambia con tu aprobación |
+| Código | Repositorio privado `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`. Yo trabajo en la rama `desarrollo`; `main` solo cambia con tu aprobación |
 | Despliegue | Proyecto nuevo en tu cuenta actual de Netlify, conectado al repositorio |
 | Pruebas de cada cambio | **Deploy previews**: cada una con su propia rama de base, copiada de la base de `main` |
 | Versión aprobada | Rama `main`, que se despliega sola |
@@ -1149,5 +1149,5 @@ Nota sobre el orden: el documento pone Contabilidad en la Fase 7, pero las fases
 ## 6. Qué necesito para empezar la Fase 1A
 
 1. Tu **aprobación** de este documento (o los cambios que quieras).
-2. **Acceso de Claude al repositorio** `SAMAGAL76/EL-PAN-DE-CADA-DIA` (aplicación de Claude para GitHub).
+2. **Acceso de Claude al repositorio** `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA` (aplicación de Claude para GitHub).
 3. Las respuestas marcadas **[Bloquea F1]** en `01-preguntas-pendientes.md`: P03 (plan Pro por créditos en tu cuenta de Netlify), P08, P09, P11 (sucursales, planta y almacenes), P16 (matriz de puestos) y P20 (autenticación).

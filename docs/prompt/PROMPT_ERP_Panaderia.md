@@ -55,7 +55,7 @@ Reglas de trabajo (obligatorias):
 | ¿Cajón de dinero conectado a la impresora? ¿Lector de código de barras? ¿Báscula? | [POR DEFINIR] |
 | Horario de operación del negocio (para estimar el consumo de la base de datos) | [POR DEFINIR] |
 | Dónde guardar la copia de respaldos fuera de Netlify | [POR DEFINIR] |
-| Repositorio de GitHub (temporal, para desarrollo) | `SAMAGAL76/EL-PAN-DE-CADA-DIA` (privado) |
+| Repositorio de GitHub (temporal, para desarrollo) | `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA` (privado) |
 | Netlify para desarrollo (temporal) | Proyecto nuevo en mi cuenta actual de Netlify (plan Pro por créditos) |
 | Estructura definitiva de producción (cuenta de GitHub/Netlify del negocio) | [POR DEFINIR — se decide antes de cargar datos reales] |
 | Hosting / base de datos | Netlify + Netlify Database (ver sección 3) |
@@ -68,7 +68,7 @@ El sistema es de **uso interno**: solo lo usan los empleados del negocio, pero d
 
 | Pieza | Qué se usa |
 |---|---|
-| Código | **Repositorio privado temporal en mi cuenta de GitHub** (`SAMAGAL76/EL-PAN-DE-CADA-DIA`). Claude Code trabaja en una sesión en la nube conectada a ese repositorio; no se instala nada en mi computadora |
+| Código | **Repositorio privado temporal en mi cuenta de GitHub** (`carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`). Claude Code trabaja en una sesión en la nube conectada a ese repositorio; no se instala nada en mi computadora |
 | Hosting y despliegue | **Proyecto nuevo en mi cuenta actual de Netlify**, conectado al repositorio de GitHub: despliegue automático de `main` y *deploy previews* de las ramas. Es temporal: solo para desarrollo y pruebas |
 | Estructura definitiva | Antes de cargar datos reales, el código y el despliegue se trasladan a la cuenta del negocio que yo defina (GitHub y Netlify), con llaves nuevas |
 | Backend | **Netlify Functions** (TypeScript) |
