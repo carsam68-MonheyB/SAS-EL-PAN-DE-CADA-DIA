@@ -852,6 +852,69 @@ erDiagram
   }
 ```
 
+### 4.7‑B Pedidos, anticipos y cuentas por cobrar
+
+El anticipo se registra como un **pasivo del cliente** (no es venta) y se aplica al entregar el pedido. Las cuentas por cobrar comparten la misma estructura de saldo de cliente. Por eso se diseñan desde ahora, aunque el crédito a clientes se active más adelante.
+
+```mermaid
+erDiagram
+  CLIENTE ||--o{ PEDIDO : encarga
+  PEDIDO ||--o{ PEDIDO_RENGLON : renglones
+  PEDIDO ||--o{ ANTICIPO : abonos
+  PEDIDO }o--o| ORDEN_PRODUCCION : produce
+  PEDIDO }o--o| VENTA : "se liquida en"
+  ANTICIPO }o--|| TURNO_CAJA : cobrado_en
+  ANTICIPO }o--o| CFDI : "CFDI de anticipo (si aplica)"
+  CLIENTE ||--o{ CXC_DOCUMENTO : saldo
+  CXC_DOCUMENTO ||--o{ CXC_APLICACION : abonos
+
+  PEDIDO {
+    uuid id PK
+    text folio
+    uuid cliente_id FK
+    uuid sucursal_entrega_id FK
+    timestamptz fecha_entrega
+    text estatus "registrado, en_produccion, listo, entregado, cancelado"
+    numeric total
+    numeric saldo
+    text notas_personalizacion
+    text foto_blob
+  }
+  PEDIDO_RENGLON {
+    uuid pedido_id FK
+    uuid articulo_id FK "SKU o producto especial"
+    numeric cantidad
+    numeric precio
+    text especificaciones
+  }
+  ANTICIPO {
+    uuid id PK
+    uuid pedido_id FK
+    text forma_pago_sat
+    numeric importe
+    text estatus "aplicado, pendiente, devuelto, perdido"
+    uuid autorizo_devolucion_id FK
+  }
+  CXC_DOCUMENTO {
+    uuid id PK
+    uuid cliente_id FK
+    text origen "venta_credito, pedido"
+    numeric importe
+    numeric saldo
+    date vencimiento
+  }
+  CXC_APLICACION {
+    uuid cxc_id FK
+    text tipo "pago, anticipo, nota_credito"
+    numeric importe
+  }
+```
+
+- Los pedidos con fecha de entrega entran automáticamente al **plan de producción** de su día.
+- Cobrar un anticipo es un movimiento de caja del turno (cuadra en el corte) y genera su póliza contra la cuenta de anticipos que configures.
+- El tratamiento fiscal del anticipo (CFDI de anticipo y relación 07, o factura al entregar) es configurable y lo decides con tu contador (P64).
+- El crédito a clientes (límite, días, bloqueo por saldo vencido, antigüedad de saldos) usa `CXC_DOCUMENTO` y queda **apagado** en `configuracion` hasta que lo pidas.
+
 ### 4.8 Contabilidad y fiscal
 
 ```mermaid
@@ -1028,7 +1091,7 @@ Propongo dividir la Fase 1 en dos entregas (1A y 1B) porque es la más grande y 
 | **3. Inventarios** | Movimientos, kárdex valuado (promedio/PEPS), lotes y caducidades, traspasos, conteos cíclicos con ajuste autorizado, alertas de mínimo/reorden | El kárdex cuadra con tu ejercicio |
 | **4. Compras** | Motor de autorizaciones por niveles, requisición → OC (PDF/correo) → recepción → XML del proveedor → cotejo a 3 vías → CxP, pagos, antigüedad de saldos, comparativo de precios | Ninguna OC sin autorización; el cotejo detecta diferencias |
 | **5. Producción y costos** | Vales de surtido, órdenes N1/N2 enlazadas, PEP con inventario de masas, avance por etapa, cierres, sobrantes, mermas, balance de masa y piezas, trazabilidad por lote, variaciones, estado de costo de producción y ventas, conciliación con contabilidad | Un día simulado cuadra masa y piezas; el estado de costos cuadra con MP, PEP, PT y contabilidad |
-| **6. POS** | POS táctil PWA, PIN y cambio de cajero, apertura, retiros, cortes X/Z, arqueo, devoluciones autorizadas, ticket con capa de impresión, modo sin conexión (si aplica), adaptador definitivo de impresora | Un día de ventas simulado cuadra caja, inventario y ventas |
+| **6. POS** | POS táctil PWA, pedidos con anticipo (toma, abonos, entrega, cancelación autorizada), PIN y cambio de cajero, apertura, retiros, cortes X/Z, arqueo, devoluciones autorizadas, ticket con capa de impresión, modo sin conexión (si aplica), adaptador definitivo de impresora | Un día de ventas simulado cuadra caja, inventario y ventas |
 | **7. Contabilidad** | Catálogo con código agrupador, reglas de contabilización, pólizas automáticas desde las fases 3–6 (ya se generan desde que existe cada módulo, contra reglas configurables), pólizas manuales, balanza, auxiliares, diario, estados financieros, cierre de periodo | La balanza cuadra y cada póliza tiene su documento origen |
 | **8. SAT y PAC** | Carga cifrada de e.firma/CSD, timbrado, cancelación, complemento de pago, factura nominativa y global, descarga masiva 1.5 en segundo plano, verificación de estatus, conciliaciones, Anexo 24, papeles de trabajo de IVA/IEPS/DIOT, archivo externo de XML | Timbrado exitoso en sandbox; descarga y conciliación de un mes real |
 | **9. Salida a producción** | Tablero y reportes de 4.10, manual de usuario, respaldo externo con Object Lock, **prueba de restauración**, revisión de permisos y secretos, operación en paralelo | Uso en paralelo el periodo que definas |

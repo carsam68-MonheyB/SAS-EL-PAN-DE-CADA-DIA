@@ -11,7 +11,7 @@
 | P02 | Organización de GitHub y nombre del repositorio privado. **Aún no está creado**: cuando lo tengas, dime `organización/repositorio` y lo conecto a esta sesión. | **[Bloquea F1]** |
 | P03 | ¿Ya existe el equipo (team) nuevo de Netlify con plan Pro? ¿Es plan **por créditos** (credit‑based)? Netlify Database solo existe en planes por créditos. ¿Cuántos créditos al mes incluye tu plan? | **[Bloquea F1]** |
 | P04 | Dominio que usará el sistema (ej. `erp.tupanaderia.mx`) o si de momento basta con el subdominio de Netlify. | No |
-| P05 | Proveedor de correo para enviar invitaciones de usuario, órdenes de compra y CFDI (Netlify no envía correos). Opciones: Amazon SES, Resend, Postmark, Mailgun, o el correo de Google Workspace/Microsoft 365 del negocio. ¿El negocio ya tiene alguno? | F1 (invitaciones) |
+| P05 | Correo. Netlify hospeda la app y el DNS, pero **no da buzones ni envía correos**. Se necesitan dos cosas: (a) **buzones** del personal con el dominio del negocio (Google Workspace, Microsoft 365 o Zoho Mail); (b) un **servicio de envío** para los correos que manda el sistema (Resend, Amazon SES o Postmark), o en su defecto el SMTP de los buzones de (a). ¿El negocio ya tiene dominio y/o correo con alguno? | F1 (invitaciones) |
 | P06 | Almacenamiento **fuera de Netlify** para respaldos y XML: Amazon S3, Backblaze B2, Google Cloud Storage, Azure, Google Drive… Recomiendo uno con **bloqueo de objetos (Object Lock / WORM)** para que ninguna credencial pueda borrar respaldos (S3 y B2 lo tienen). ¿Cuál prefieres o ya tienes cuenta? | F1 (diseño), F9 (operación) |
 | P07 | Fecha de arranque deseada y **sistema actual** (si hay uno) con el que se trabajará en paralelo. ¿Se migran datos de él? | No |
 
@@ -45,8 +45,8 @@
 | P21 | Familias de producto terminado. | F1 |
 | P22 | ¿Se vende por pieza, por peso o ambos? Si hay venta por peso, ¿qué SKU? | F1 |
 | P23 | ¿Hay **precios distintos por sucursal**? ¿Listas de precios de mayoreo? | F1 |
-| P24 | ¿Hay venta a mayoreo o clientes con crédito? Si sí: límite de crédito, días, ¿se requiere módulo de cuentas por cobrar? (no está en el documento original). | F1 (diseño) |
-| P25 | ¿Hay **pedidos especiales / pasteles por encargo** con anticipo y fecha de entrega? (no está en el documento; afecta POS, producción y contabilidad de anticipos). | F1 (diseño) |
+| P24 | ✅ **Respondida:** hoy no hay crédito, pero puede haberlo más adelante. → Se deja lista la estructura de cuentas por cobrar (cliente con límite y días de crédito, saldo por documento) y el módulo de crédito se activa cuando lo pidas. | — |
+| P25 | ✅ **Respondida:** sí hay pedidos con anticipo. → Se agrega el módulo de pedidos y anticipos (diseño 4.7‑B). Preguntas de detalle en la sección I. | — |
 | P26 | Masas base que se preparan (lista). | F2 |
 | P27 | Otros intermedios (cubiertas, rellenos, betunes, almíbares). ¿Hay masa madre / prefermentos? | F2 |
 | P28 | Etapas del proceso de producción y en cuáles se registra avance y merma. | F2 |
@@ -100,3 +100,15 @@
 | P56 | ¿Hay retenciones (ej. compras a personas físicas con actividad empresarial o fletes)? | F8 |
 | P57 | ¿La contabilidad electrónica (Anexo 24) se envía desde este sistema o el contador la sigue haciendo en su sistema con lo que este le exporte? | F7 |
 | P58 | ¿Quién custodia la e.firma? Además de la e.firma, ¿se tiene **CSD** (certificado de sello digital) para timbrar? (El timbrado usa el CSD, la descarga masiva usa la e.firma). | F8 |
+
+## I. Pedidos y anticipos (nuevo, por respuesta a P25)
+
+| # | Pregunta | Bloquea |
+|---|---|---|
+| P59 | ¿Dónde se toman los pedidos (mostrador de sucursal, teléfono, WhatsApp, oficina)? ¿Quién puede tomarlos? | F6 |
+| P60 | ¿Hay anticipo mínimo (porcentaje o monto)? ¿Puede haber varios abonos antes de la entrega? | F6 |
+| P61 | Si el cliente cancela o no recoge: ¿se devuelve el anticipo, se pierde o depende del plazo? ¿Quién lo autoriza? | F6 |
+| P62 | ¿Los pedidos llevan datos de personalización (texto, decoración, foto de referencia, número de personas)? ¿Son SKU del catálogo, variantes, o productos especiales con precio libre? | F2 / F6 |
+| P63 | ¿El pedido se produce en planta con su propia orden de producción o sale del producto normal del día? | F2 / F5 |
+| P64 | **Tratamiento fiscal del anticipo (con tu contador):** ¿se emite CFDI por el anticipo y después el CFDI del total relacionado con tipo de relación 07 (procedimiento de la Guía de llenado del Anexo 20), o se factura todo al entregar? Si el cliente no pide factura, ¿cómo entra a la factura global? | F8 (la estructura se crea antes) |
+| P65 | Cuenta contable de anticipos de clientes (pasivo): la defines en las reglas de contabilización. | F7 |
