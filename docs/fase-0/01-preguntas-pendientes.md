@@ -20,10 +20,10 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P08 | Número de sucursales y nombre/clave de cada una. | **[Bloquea F1]** |
-| P09 | ¿Hay **planta central** que produce y surte a sucursales, o cada sucursal produce lo suyo, o mixto? (Define almacenes, traspasos y en qué ubicación vive la PEP). | **[Bloquea F1]** |
+| P08 | 🟡 **Parcial:** **Matriz** (con la planta) y **1 sucursal**. El catálogo permite agregar más sucursales después. Falta: nombres y claves (provisionales: `MAT` y `SUC1`), y si la Matriz también vende al público. | **[Bloquea F1]** |
+| P09 | ✅ **Respondida:** **una sola planta de producción, en la Matriz**, que surte a la sucursal. Toda la PEP (masas e intermedios) vive en la Matriz. | — |
 | P10 | Cajas por sucursal. | F1 |
-| P11 | Lista de almacenes (ej. MP planta, PEP planta, PT planta, PT sucursal 1…). | **[Bloquea F1]** |
+| P11 | 🟡 **Propuesta:** `MP-MAT` materia prima · `PEP-MAT` producción en proceso (masas e intermedios) · `PT-MAT` producto terminado de planta · `PT-SUC1` producto terminado de la sucursal. Opcionales según respuestas: `PT-VTA-MAT` (si la Matriz vende) e `INS-SUC1` (bolsas y empaques en sucursal). | **[Bloquea F1]** |
 | P12 | ✅ **Respondida:** producción desde las **3:00** y venta de **7:00 a 21:00**, todos los días. El sistema se usa ~18 h al día (3:00–21:00). Los procesos programados (respaldos, descarga SAT, recálculos) se agrupan dentro de esa ventana, para no despertar la base de madrugada. | — |
 | P13 | Turnos de producción (nombre, horario). | F2 |
 | P14 | Número aproximado de usuarios del sistema y cuántos usarían el sistema al mismo tiempo en la hora pico. | No |
