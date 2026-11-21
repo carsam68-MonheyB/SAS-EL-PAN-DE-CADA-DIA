@@ -63,6 +63,7 @@ CREATE TABLE usuario (
   bloqueado_hasta       timestamptz,
   totp_secreto          text,           -- cifrado con AES-256-GCM (LLAVE_MAESTRA)
   totp_activo           boolean NOT NULL DEFAULT false,
+  totp_ultimo_paso      bigint,         -- evita reutilizar el mismo código TOTP
   pin_hash              text,
   intentos_pin          integer NOT NULL DEFAULT 0,
   pin_bloqueado_hasta   timestamptz,

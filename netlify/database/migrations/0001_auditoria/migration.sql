@@ -78,7 +78,7 @@ $$;
 -- Columnas que nunca se copian a la bitácora (secretos).
 CREATE FUNCTION auditoria_limpiar(datos jsonb) RETURNS jsonb
 LANGUAGE sql IMMUTABLE AS $$
-  SELECT datos - 'hash_password' - 'totp_secreto' - 'pin_hash' - 'token_hash' - 'codigo_hash'
+  SELECT datos - 'hash_password' - 'totp_secreto' - 'pin_hash' - 'token_hash' - 'codigo_hash' - 'totp_ultimo_paso' - 'intentos_fallidos' - 'intentos_pin'
 $$;
 
 -- Trigger genérico: se conecta a cada tabla de negocio con auditar_tabla().
@@ -95,10 +95,12 @@ BEGIN
   IF TG_OP IN ('INSERT', 'UPDATE') THEN
     v_despues := auditoria_limpiar(to_jsonb(NEW));
   END IF;
-  -- Un UPDATE que solo toca columnas secretas o de control no deja renglón vacío.
+  -- Un UPDATE que solo toca columnas secretas o contadores no se copia aquí:
+  -- esos eventos (cambio de contraseña, PIN, doble factor, intentos) quedan
+  -- en bitacora_acceso.
   IF TG_OP = 'UPDATE' AND (v_antes - 'actualizado_en' - 'actualizado_por')
                         = (v_despues - 'actualizado_en' - 'actualizado_por') THEN
-    v_antes := v_antes || jsonb_build_object('_cambio', 'dato protegido');
+    RETURN NEW;
   END IF;
   v_id := coalesce(v_despues ->> 'id', v_antes ->> 'id',
                    v_despues ->> 'clave', v_antes ->> 'clave');
