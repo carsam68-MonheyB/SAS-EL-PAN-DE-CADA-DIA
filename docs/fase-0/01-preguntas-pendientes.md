@@ -22,7 +22,7 @@
 |---|---|---|
 | P08 | ✅ **Respondida:** **Matriz** (planta + punto de venta) y **1 sucursal**; claves provisionales `MAT` y `SUC1` (nombres pendientes, no bloquean). El catálogo permite agregar sucursales después. | — |
 | P09 | ✅ **Respondida:** **una sola planta de producción, en la Matriz**, que surte a la sucursal. Toda la PEP (masas e intermedios) vive en la Matriz. | — |
-| P10 | Cajas: ¿cuántas en la **Matriz** y cuántas en la **sucursal 1**? (Provisional: 1 y 1). | F1 |
+| P10 | ✅ **Respondida:** **1 caja en la Matriz** (`CAJA-MAT-1`) y **1 caja en la Sucursal 1** (`CAJA-SUC1-1`). | — |
 | P11 | ✅ **Respondida:** `MP-MAT` materia prima · `PEP-MAT` producción en proceso · `PT-MAT` producto terminado de planta **y venta de la Matriz** (el mostrador de la Matriz vende directo de aquí) · `PT-SUC1` producto terminado de la sucursal. Pendiente opcional: `INS-SUC1` (empaques en sucursal). | — |
 | P12 | ✅ **Respondida:** producción desde las **3:00** y venta de **7:00 a 21:00**, todos los días. El sistema se usa ~18 h al día (3:00–21:00). Los procesos programados (respaldos, descarga SAT, recálculos) se agrupan dentro de esa ventana, para no despertar la base de madrugada. | — |
 | P13 | Turnos de producción (nombre, horario). | F2 |
