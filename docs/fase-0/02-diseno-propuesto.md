@@ -189,7 +189,9 @@ erp-panaderia/
 
 ### 3.5 Capa de impresión (POS)
 
-Hay una interfaz única, `Impresora { imprimir(ticket), abrirCajon(), estado() }`, y tres adaptadores: **Navegador**, **QZ Tray** y **Epson ePOS** (o el SDK del fabricante que toque). El ticket se arma como un documento neutro (renglones, totales, QR, folio) y cada adaptador lo convierte a HTML de 58/80 mm o a comandos ESC/POS. Así el POS completo se construye y prueba con el adaptador de navegador, y el definitivo se conecta cuando me des el modelo (P45). En ese momento te comparo las tres opciones con costos. Ojo: QZ Tray requiere un certificado o licencia de pago para imprimir sin el aviso de confirmación (verifico su precio vigente).
+Hay una interfaz única, `Impresora { imprimir(ticket), abrirCajon(), estado() }`, y tres adaptadores: **Navegador**, **QZ Tray** y **Epson ePOS** (o el SDK del fabricante que toque). El ticket se arma como un documento neutro (renglones, totales, QR, folio) y cada adaptador lo convierte a HTML de 58/80 mm o a comandos ESC/POS. Así el POS completo se construye y prueba con el adaptador de navegador, y el definitivo se conecta cuando me des el modelo (P45). En ese momento te comparo las tres opciones con costos.
+
+**Actualización (caja Windows + OFICHIDO por USB):** Epson ePOS queda descartado. Orden propuesto: (1) **Chrome en modo kiosco** (`--kiosk-printing`) con el controlador de Windows, sin costo. Si hace falta abrir el cajón o leer el estado de la impresora y el controlador no lo permite, (2) un **agente local propio y ligero**, sin licencia, que recibe ESC/POS desde el navegador por `localhost`, o (3) QZ Tray con Premium Support, de pago anual en USD. Ojo: QZ Tray requiere un certificado o licencia de pago para imprimir sin el aviso de confirmación (verifico su precio vigente).
 
 ### 3.6 POS sin conexión (solo si P43 = sí)
 

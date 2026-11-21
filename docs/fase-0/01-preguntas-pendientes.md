@@ -80,7 +80,7 @@
 | # | Pregunta | Bloquea |
 |---|---|---|
 | P43 | ¿El POS debe funcionar **sin internet**? (cambia el diseño del POS de forma importante: cola local, folios reservados, conflicto de existencias). | F1 (diseño) |
-| P44 | Equipo de cada caja (Windows, Mac, Android, iPad). | F6 |
+| P44 | ✅ **Respondida:** la caja es una computadora con **Windows** y la impresora va por **USB**. | — |
 | P45 | 🟡 **Parcial:** marca **OFICHIDO** (marca genérica de Mercado Libre/Amazon; su modelo más vendido es la OS443 de 58 mm). Falta: **modelo exacto, ancho de papel, conexión (USB / Bluetooth / red), si tiene puerto RJ11 para cajón y si tiene corte automático**. Lo más rápido es una foto de la etiqueta de abajo y de la **hoja de autoprueba** (apagada, mantener presionado FEED y encenderla). | F6 (el resto del POS se construye antes) |
 | P46 | ¿Cajón de dinero conectado a la impresora? ¿Lector de código de barras (modelo)? ¿Báscula (modelo y conexión)? | F6 |
 | P47 | Formas de pago aceptadas. Para tarjeta: ¿terminal bancaria independiente? (El sistema **no debe guardar datos de tarjetas**: Netlify Database no está certificada PCI‑DSS; solo registraríamos la referencia/autorización del voucher). | F6 |
