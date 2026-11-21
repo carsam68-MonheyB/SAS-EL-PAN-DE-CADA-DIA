@@ -33,7 +33,7 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P16 | 🟡 **Borrador v2:** `05-matriz-puestos-borrador.md` / `.xlsx` con tus respuestas (2 niveles de compras, maestro de masas y panadero separados, e.firma con el contador). Falta: otros puestos, quién es nivel 2 y montos límite. | **[Bloquea F1]** |
+| P16 | 🟡 **Borrador v3:** `05-matriz-puestos-borrador.md` / `.xlsx`. Nivel 2 de compras = dirección; montos límite **provisionales**. Falta: otros puestos (además de panaderos) y tu aprobación. | **[Bloquea F1]** |
 | P17 | Roles con doble factor obligatorio, además de administrador, autorizadores y quien maneje e.firma/PAC. | F1 |
 | P18 | Valores iniciales de seguridad: longitud mínima de contraseña, intentos fallidos antes de bloqueo, minutos de bloqueo, minutos de inactividad para cerrar sesión (oficina y POS por separado), dígitos del PIN de cajero. | F1 |
 | P19 | Lista inicial de **incompatibilidades** de segregación de funciones (además de las 4 del documento). | F1 |
@@ -66,13 +66,13 @@
 | P36 | **Gastos indirectos de fabricación**: base de prorrateo (kg de masa, horas de horno, minutos de mano de obra, piezas…) y si es tasa predeterminada (estándar) con ajuste al cierre por la variación real. | F2 |
 | P37 | Destinos del producto no vendido (merma, donación, reproceso, venta de segunda) y su tratamiento contable. | F5 |
 | P38 | Causas de merma (catálogo inicial). | F3 |
-| P39 | Límites por monto para autorizar ajustes de inventario, descuentos y devoluciones. | F3/F6 |
+| P39 | ✅ **Provisional:** montos límite en la matriz de puestos (sección 4), editables en configuración. | — |
 
 ## F. Compras
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P40 | Niveles y montos de autorización de compras (¿por monto, por categoría de insumo, por proveedor?). ¿Se autoriza el total de la requisición o por renglón? | F4 |
+| P40 | ✅ **Respondida:** dos niveles por monto: nivel 1 hasta $10,000.00 (provisional) y nivel 2 = dirección arriba de ese monto. Se autoriza el total de la requisición. | — |
 | P41 | ¿Las OC se envían por correo al proveedor desde el sistema? ¿Formato de OC (logo, leyendas)? | F4 |
 | P42 | ¿Quién autoriza y programa pagos? ¿Se registran pagos por transferencia desde el sistema o solo se registran los que ya se hicieron en el banco? Bancos y cuentas bancarias. | F4 |
 
