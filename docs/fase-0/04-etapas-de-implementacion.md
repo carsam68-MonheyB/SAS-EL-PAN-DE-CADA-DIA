@@ -22,7 +22,7 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 3. Avísame y lo conecto a la sesión.
 
 ### A2. Proyecto en tu cuenta de Netlify (temporal)
-1. En *Billing*, confirma que tu plan sea **Pro por créditos** y activa la **recarga automática**.
+1. En *Billing*, confirma que tu plan **Personal** muestre **créditos** (1,000 al mes). No hace falta Pro durante el desarrollo. Revisa *Usage* cada semana.
 2. Después de que yo suba el esqueleto: **Add new project → Import from Git → GitHub → SAS-EL-PAN-DE-CADA-DIA**, rama de producción `main`.
 3. Las llaves secretas las capturas tú en el panel, **a nivel del proyecto**. Nunca van en el chat ni en el repositorio.
 

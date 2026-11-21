@@ -50,6 +50,10 @@ Revisé la documentación vigente de Netlify (noviembre 2026). Resumen: **todo e
 Que las deploy previews copien la base de `main` no es problema aquí, porque `main` solo tiene datos ficticios.
 
 Reglas mientras tanto:
+- **Plan Personal por créditos** (decisión del 21/11/2026): 1,000 créditos al mes compartidos con tus otros proyectos; no se paga Pro durante el desarrollo. Netlify Database sí está disponible en Personal (5 bases, 100 ramas, respaldos de 7 días, la base duerme a los 5 minutos). Consumo esperado del ERP en desarrollo: unos 500 a 700 créditos al mes. Para cuidarlos:
+  - Las deploy previews no cuestan créditos de despliegue; cada publicación en `main` cuesta 15. Por eso se pasa a `main` solo al cerrar cada fase.
+  - La base solo despierta mientras alguien prueba.
+  - Si se agotan, Netlify pausa **todos** tus proyectos. Revisa *Usage* cada semana; la recarga en Personal es de 500 créditos por USD 5.
 - No se cargan ventas ni clientes reales, ni la e.firma o el CSD reales. La Fase 8 se prueba con el **ambiente de pruebas del PAC**. La descarga y conciliación de un mes real del SAT se hace ya en la estructura definitiva.
 - Los créditos se comparten con tus otros proyectos. En desarrollo el consumo es bajo, porque la base solo despierta mientras se prueba. Activa la recarga automática.
 - Las variables de entorno del ERP van **a nivel del proyecto**, nunca a nivel del team.
