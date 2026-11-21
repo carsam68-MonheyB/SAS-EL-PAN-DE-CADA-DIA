@@ -70,6 +70,18 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
 - **Matriz de puestos:** fuente en `datos-iniciales/matriz-puestos.json`; la migración `0003` se generó con `npm run generar:matriz`. Una migración ya aplicada no se edita: los cambios se hacen desde la pantalla de roles.
 - **Formato de México:** fechas DD/MM/AAAA y números `1,250.75`.
 
+## Catálogos y cargas por layout (Fase 1B)
+
+- **Catálogos:** SAT, unidades, conversiones, familias, centros de costo, sucursales, almacenes, cajas, tasas de impuesto, proveedores, clientes, insumos (N0), masas e intermedios (N1), productos (N2), unidades por artículo, artículos por proveedor, precios con vigencia y catálogo de cuentas.
+- **Una sola definición por catálogo** (`src/servidor/layouts/definiciones.ts`): de ahí salen la plantilla (Excel con instrucciones y listas desplegables, TXT o CSV), la validación, la carga, la exportación y el formulario de captura en pantalla.
+- **Motor** (`src/servidor/layouts/motor.ts`):
+  - primero valida sin guardar nada;
+  - si hay un solo error, no guarda nada y genera el reporte en el mismo layout con la columna `ERROR`;
+  - si no hay errores, aplica todo en una transacción;
+  - guarda el archivo original en `carga_archivo`.
+- **Precios:** quedan pendientes hasta que los autoriza otra persona (`catalogos.precios:autorizar`).
+- **Datos de ejemplo ficticios:** están en `datos-ejemplo/fase-1b` (ver su `LEEME.md`). La prueba `pruebas/ejemplos.test.ts` los carga en orden.
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

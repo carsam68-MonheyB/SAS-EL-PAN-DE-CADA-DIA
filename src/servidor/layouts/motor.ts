@@ -478,7 +478,7 @@ export function instruccionesTexto(layout: Layout, permisos: ReadonlySet<string>
   return new TextEncoder().encode("﻿" + lineas.join("\r\n") + "\r\n");
 }
 
-async function listasDeCatalogo(c: Cliente, campo: Campo): Promise<string[]> {
+export async function listasDeCatalogo(c: Cliente, campo: Campo): Promise<string[]> {
   if (campo.tipo === "opcion") return campo.opciones!;
   if (campo.tipo === "sino") return ["SI", "NO"];
   if (campo.tipo === "ref") {

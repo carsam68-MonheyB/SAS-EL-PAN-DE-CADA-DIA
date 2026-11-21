@@ -1,0 +1,2 @@
+CLAVE|IMPUESTO|TIPO_FACTOR|TASA|DESCRIPCION
+PRUEBA-IVA|IVA|Tasa|0.000000|PRUEBA tasa ficticia: la real la define el contador

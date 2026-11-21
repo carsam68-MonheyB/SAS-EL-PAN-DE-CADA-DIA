@@ -5,7 +5,7 @@ import { z } from "zod";
 import { invalido } from "../../src/servidor/errores";
 import { leerCuerpo, respuestaArchivo } from "../../src/servidor/http";
 import { LAYOUTS } from "../../src/servidor/layouts/definiciones";
-import { archivoLayout, camposVisibles, instruccionesTexto, leerRegistros, notasGenerales } from "../../src/servidor/layouts/motor";
+import { archivoLayout, camposVisibles, instruccionesTexto, leerRegistros, listasDeCatalogo, notasGenerales } from "../../src/servidor/layouts/motor";
 import { guardarRegistro, obtenerLayout, permisosDeLayout } from "../../src/servidor/layouts/servicio";
 import { ruta } from "../../src/servidor/ruta";
 
@@ -68,6 +68,19 @@ const manejador = ruta({}, async (ctx) => {
   if (ctx.req.method === "GET" && accion === "instrucciones") {
     const { layout } = obtenerLayout(clave!, permisos, "ver");
     return respuestaArchivo(instruccionesTexto(layout, permisos), `${layout.clave}-instrucciones.txt`, "txt");
+  }
+
+  if (ctx.req.method === "GET" && accion === "opciones") {
+    // Valores válidos para los campos de lista en el formulario de captura.
+    const { layout, puede } = obtenerLayout(clave!, permisos, "ver");
+    if (!puede.crear && !puede.editar) ctx.exigir("__sin_permiso__");
+    return ctx.tx(async (c) => {
+      const r: Record<string, string[]> = {};
+      for (const f of camposVisibles(layout, permisos)) {
+        if (["ref", "sat", "opcion", "sino"].includes(f.tipo)) r[f.nombre] = await listasDeCatalogo(c, f);
+      }
+      return r;
+    });
   }
 
   if (ctx.req.method === "POST" && accion === "registro") {

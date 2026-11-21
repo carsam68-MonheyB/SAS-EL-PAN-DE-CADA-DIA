@@ -12,9 +12,20 @@ import { Controles } from "./paginas/Controles";
 import { Bitacora } from "./paginas/Bitacora";
 import { Configuracion } from "./paginas/Configuracion";
 import { MiCuenta } from "./paginas/MiCuenta";
+import { Catalogos } from "./paginas/Catalogos";
+import { Cargas } from "./paginas/Cargas";
+
+// Permisos que dan acceso a algún catálogo (el detalle lo decide el servidor).
+const VER_CATALOGOS = [
+  "catalogos.estructura:ver", "catalogos.insumos:ver", "catalogos.sku:ver", "catalogos.proveedores:ver",
+  "catalogos.clientes:ver", "catalogos.precios:ver", "produccion.recetas:ver", "contabilidad.catalogo:ver",
+];
+const VER_CARGAS = ["cargas.layout:importar", "catalogos.precios:autorizar"];
 
 const MENU = [
   { ruta: "/", texto: "Inicio", permisos: [] as string[] },
+  { ruta: "/catalogos", texto: "Catálogos", permisos: VER_CATALOGOS },
+  { ruta: "/cargas", texto: "Cargas masivas", permisos: VER_CARGAS },
   { ruta: "/usuarios", texto: "Usuarios", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/controles", texto: "Segregación y límites", permisos: ["seguridad.usuarios:ver"] },
@@ -50,6 +61,9 @@ function Marco() {
       <AppShell.Main>
         <Routes>
           <Route path="/" element={<Inicio />} />
+          {puede(...VER_CATALOGOS) && <Route path="/catalogos" element={<Catalogos />} />}
+          {puede(...VER_CATALOGOS) && <Route path="/catalogos/:clave" element={<Catalogos />} />}
+          {puede(...VER_CARGAS) && <Route path="/cargas" element={<Cargas />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/usuarios/*" element={<Usuarios />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/roles" element={<Roles />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/controles" element={<Controles />} />}

@@ -1,0 +1,5 @@
+CATALOGO|CLAVE|DESCRIPCION
+c_ClaveUnidad|H87|PRUEBA Pieza (verificar contra el catálogo oficial)
+c_ClaveUnidad|KGM|PRUEBA Kilogramo (verificar contra el catálogo oficial)
+c_ObjetoImp|02|PRUEBA Sí objeto de impuesto (verificar)
+c_ClaveProdServ|50181900|PRUEBA Pan (verificar contra el catálogo oficial)
