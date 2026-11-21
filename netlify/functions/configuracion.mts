@@ -76,7 +76,7 @@ const manejador = ruta({}, async (ctx) => {
          ), t AS (
            SELECT min(minuto) AS ini, max(fin) AS fin FROM b GROUP BY bloque
          )
-         SELECT (ini AT TIME ZONE $2)::date AS dia, sum(extract(epoch FROM (fin - ini))) / 3600.0 AS horas
+         SELECT ((ini AT TIME ZONE $2)::date)::text AS dia, sum(extract(epoch FROM (fin - ini))) / 3600.0 AS horas
            FROM t GROUP BY 1 ORDER BY 1`,
         [sueno, zona],
       );

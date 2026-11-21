@@ -153,6 +153,8 @@ const yo = ruta({ metodos: ["GET"], etapas: ["completa", ...ETAPAS_INCOMPLETAS] 
   const u = ctx.usuario;
   return {
     etapa: ctx.sesion.etapa,
+    // Etiqueta visible del ambiente (ej. "Desarrollo · datos ficticios"); sin valor no se muestra.
+    ambiente: process.env.AMBIENTE_ETIQUETA ?? null,
     sesion: { tipo: ctx.sesion.tipo, caja_id: ctx.sesion.caja_id, cajero_actual_id: ctx.sesion.cajero_actual_id, expira_en: ctx.sesion.expira_en },
     usuario: { id: u.id, usuario: u.usuario, nombre: u.nombre, puesto: u.puesto, es_prueba: u.es_prueba, totp_activo: u.totp_activo, tiene_pin: u.tiene_pin, requiere2fa: u.requiere2fa },
     roles: u.roles,

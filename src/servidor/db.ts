@@ -1,5 +1,8 @@
 import { getDatabase } from "@netlify/database";
-import type pg from "pg";
+import pg from "pg";
+
+// Las columnas DATE se manejan como texto AAAA-MM-DD (sin corrimientos por zona horaria).
+pg.types.setTypeParser(1082, (v: string) => v);
 
 let pool: pg.Pool | undefined;
 

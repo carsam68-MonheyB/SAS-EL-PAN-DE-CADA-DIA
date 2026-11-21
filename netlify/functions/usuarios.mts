@@ -25,7 +25,7 @@ const esquemaAlta = esquemaDatos.extend({
 
 async function detalleUsuario(c: Cliente, id: string) {
   const { rows } = await c.query(
-    `SELECT u.id, u.usuario, u.nombre, u.puesto, u.correo, u.estatus, u.fecha_alta, u.fecha_baja,
+    `SELECT u.id, u.usuario, u.nombre, u.puesto, u.correo, u.estatus, u.fecha_alta::text AS fecha_alta, u.fecha_baja::text AS fecha_baja,
             u.totp_activo, u.pin_hash IS NOT NULL AS tiene_pin, u.hash_password IS NOT NULL AS activado,
             (u.bloqueado_hasta > now()) AS bloqueado, u.es_prueba, u.creado_en,
             coalesce((SELECT json_agg(r.clave ORDER BY r.clave) FROM usuario_rol ur JOIN rol r ON r.id = ur.rol_id WHERE ur.usuario_id = u.id), '[]') AS roles,

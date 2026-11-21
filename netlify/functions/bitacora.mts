@@ -4,7 +4,7 @@ import { noEncontrado } from "../../src/servidor/errores";
 import { libroExcel, respuestaExcel, fechaHoraMx } from "../../src/servidor/excel";
 import { ruta } from "../../src/servidor/ruta";
 
-const LIMITE = 200;
+const LIMITE = 100;
 
 const manejador = ruta({ permiso: "seguridad.bitacora:ver", metodos: ["GET"] }, async (ctx) => {
   const tipo = ctx.params.tipo;
