@@ -82,7 +82,7 @@
 | P43 | ¿El POS debe funcionar **sin internet**? (cambia el diseño del POS de forma importante: cola local, folios reservados, conflicto de existencias). | F1 (diseño) |
 | P44 | ✅ **Respondida:** la caja es una computadora con **Windows** y la impresora va por **USB**. | — |
 | P45 | 🟡 **Parcial:** marca **OFICHIDO** (marca genérica de Mercado Libre/Amazon; su modelo más vendido es la OS443 de 58 mm). Falta: **modelo exacto, ancho de papel, conexión (USB / Bluetooth / red), si tiene puerto RJ11 para cajón y si tiene corte automático**. Lo más rápido es una foto de la etiqueta de abajo y de la **hoja de autoprueba** (apagada, mantener presionado FEED y encenderla). | F6 (el resto del POS se construye antes) |
-| P46 | ¿Cajón de dinero conectado a la impresora? ¿Lector de código de barras (modelo)? ¿Báscula (modelo y conexión)? | F6 |
+| P46 | 🟡 **Parcial:** **sí hay cajón de dinero**, y la computadora de caja **solo imprime tickets** (la OFICHIDO puede ser la impresora predeterminada). Falta: cómo se conecta el cajón (cable RJ11 a la impresora, USB o solo con llave), si el controlador de Windows trae la opción de abrir el cajón al imprimir, y si hay lector de código de barras y báscula (modelos). | F6 |
 | P47 | Formas de pago aceptadas. Para tarjeta: ¿terminal bancaria independiente? (El sistema **no debe guardar datos de tarjetas**: Netlify Database no está certificada PCI‑DSS; solo registraríamos la referencia/autorización del voucher). | F6 |
 | P48 | Denominaciones para el arqueo (billetes y monedas que se cuentan). ¿Fondo de caja fijo por caja? | F6 |
 | P49 | Periodicidad de la **factura global** (diaria, semanal, mensual, bimestral según tu régimen). Plazo que tiene el cliente para pedir factura de su ticket. | F8 |
