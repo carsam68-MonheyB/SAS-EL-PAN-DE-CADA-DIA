@@ -33,7 +33,7 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P16 | 🟡 **Borrador v3:** `05-matriz-puestos-borrador.md` / `.xlsx`. Nivel 2 de compras = dirección; montos límite **provisionales**. Falta: otros puestos (además de panaderos) y tu aprobación. | **[Bloquea F1]** |
+| P16 | ✅ **Aprobada (21/11/2026):** matriz de puestos v3 (`05-matriz-puestos-borrador.md` / `.xlsx`), con montos límite provisionales. Los roles son plantillas editables: puestos nuevos (ej. auxiliar de producción, repartidor) se agregan desde la configuración sin programar. | — |
 | P17 | Roles con doble factor obligatorio, además de administrador, autorizadores y quien maneje e.firma/PAC. | F1 |
 | P18 | Valores iniciales de seguridad: longitud mínima de contraseña, intentos fallidos antes de bloqueo, minutos de bloqueo, minutos de inactividad para cerrar sesión (oficina y POS por separado), dígitos del PIN de cajero. | F1 |
 | P19 | Lista inicial de **incompatibilidades** de segregación de funciones (además de las 4 del documento). | F1 |

@@ -1,7 +1,7 @@
 # Fase 0 · Diseño propuesto
 
 Sistema integral de control para panadería (ERP) — documento para aprobación.
-Fecha: 21/11/2026 · Estado: ✅ **APROBADO por escrito el 21/11/2026** (secciones 1 a 5). Pendiente: decidir si se adelanta el POS (sección 5) y las respuestas que bloquean la Fase 1A.
+Fecha: 21/11/2026 · Estado: ✅ **APROBADO por escrito el 21/11/2026** (secciones 1 a 5). POS adelantado (sección 5). Pendiente: las respuestas que bloquean la Fase 1A.
 
 > **Revisión 3 (prompt versión 3):** el desarrollo se hace en un **repositorio temporal de GitHub** (`carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`) conectado a un **proyecto temporal en la cuenta actual de Netlify**, solo con datos ficticios. Antes de cargar datos reales se traslada a la estructura definitiva del negocio. No se instala nada en la computadora del dueño.
 
@@ -1159,6 +1159,8 @@ Propongo dividir la Fase 1 en dos entregas (1A y 1B) porque es la más grande y 
 | **7. Contabilidad** | Catálogo con código agrupador, reglas de contabilización, pólizas automáticas desde las fases 3–6 (ya se generan desde que existe cada módulo, contra reglas configurables), pólizas manuales, balanza, auxiliares, diario, estados financieros, cierre de periodo | La balanza cuadra y cada póliza tiene su documento origen |
 | **8. SAT y PAC** | Carga cifrada de e.firma/CSD, timbrado, cancelación, complemento de pago, factura nominativa y global, descarga masiva 1.5 en segundo plano, verificación de estatus, conciliaciones, Anexo 24, papeles de trabajo de IVA/IEPS/DIOT, archivo externo de XML | Timbrado exitoso en sandbox; descarga y conciliación de un mes real |
 | **9. Salida a producción** | Tablero y reportes de 4.10, manual de usuario, respaldo externo con Object Lock, **prueba de restauración**, revisión de permisos y secretos, operación en paralelo | Uso en paralelo el periodo que definas |
+
+> ✅ **Decisión (21/11/2026): se ADELANTA el POS.** Orden de construcción: **1A → 1B → 2 → 3 → 6 (POS) → 4 → 5 → 7 → 8 → 9**.
 
 **Reemplazo de Soft Restaurant:** el negocio quiere dar de baja Soft Restaurant. Opción a decidir: mantener el orden (Soft Restaurant opera hasta la Fase 6) o **adelantar el POS justo después de la Fase 3** (orden 1A → 1B → 2 → 3 → 6 → 4 → 5 → 7 → 8 → 9), para retirarlo antes. Al adelantarlo, las pólizas del POS se generan desde el inicio y quedan "pendientes de configuración" mientras no estén las reglas contables. La migración de datos de Soft Restaurant (catálogo, precios, clientes e historial de ventas) se hace con los layouts de la Fase 1B.
 

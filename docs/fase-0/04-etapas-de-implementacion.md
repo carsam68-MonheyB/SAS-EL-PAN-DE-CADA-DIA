@@ -59,7 +59,7 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 | **8. SAT y PAC** | Facturas, factura global, cancelaciones, complementos de pago, descarga masiva de XML, conciliaciones, contabilidad electrónica | e.firma y CSD vigentes; contrato con el PAC | Timbrado exitoso en el ambiente de pruebas del PAC; descarga y conciliación de un mes real |
 | **9. Arranque** | Tableros, manual de usuario, respaldo externo y prueba de restauración, revisión final de permisos | Capacitar al personal; definir la fecha de corte | Operación en paralelo con Soft Restaurant el tiempo que decidas; después se apaga |
 
-**Decisión pendiente:** si quieres dejar Soft Restaurant antes, el POS (Fase 6) se adelanta y va justo después de la Fase 3.
+✅ **Decisión (21/11/2026): el POS se adelanta.** Orden real: **1A → 1B → 2 → 3 → 6 (POS) → 4 → 5 → 7 → 8 → 9**. Así Soft Restaurant se puede retirar al terminar la Fase 6. La facturación de tickets llega en la Fase 8; mientras tanto, o se sigue facturando en Soft Restaurant, o se adelanta también esa parte (se decide al llegar).
 
 ---
 

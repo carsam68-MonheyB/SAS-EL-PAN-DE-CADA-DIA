@@ -1,4 +1,6 @@
-# Borrador · Matriz de puestos y permisos
+# Matriz de puestos y permisos
+
+> ✅ **APROBADA el 21/11/2026** (versión 3). Los montos límite siguen siendo provisionales.
 
 > **Borrador para que lo corrijas** (respuesta a P16). Nada de esto se programa hasta que lo apruebes. Se basa en los 11 puestos de referencia del prompt. Los montos límite son **provisionales** (los pidió el dueño) y se ajustan en la configuración.
 
