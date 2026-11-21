@@ -1,0 +1,1251 @@
+{
+  "version": 3,
+  "aprobada": "2026-11-21",
+  "roles": [
+    {
+      "clave": "ADM",
+      "nombre": "Administrador del sistema",
+      "alcance": "todas",
+      "alcance_texto": "Todas",
+      "requiere_2fa": true
+    },
+    {
+      "clave": "DIR",
+      "nombre": "Dirección (autorizador de compras nivel 2)",
+      "alcance": "todas",
+      "alcance_texto": "Todas",
+      "requiere_2fa": true
+    },
+    {
+      "clave": "CON",
+      "nombre": "Contralor",
+      "alcance": "todas",
+      "alcance_texto": "Todas",
+      "requiere_2fa": true
+    },
+    {
+      "clave": "CNT",
+      "nombre": "Contador / auxiliar contable",
+      "alcance": "todas",
+      "alcance_texto": "Todas",
+      "requiere_2fa": true
+    },
+    {
+      "clave": "COM",
+      "nombre": "Compras",
+      "alcance": "todas",
+      "alcance_texto": "Todas",
+      "requiere_2fa": false
+    },
+    {
+      "clave": "AUT1",
+      "nombre": "Autorizador de compras nivel 1",
+      "alcance": "todas",
+      "alcance_texto": "Todas (hasta su límite)",
+      "requiere_2fa": true
+    },
+    {
+      "clave": "ALM",
+      "nombre": "Almacenista de MP",
+      "alcance": "almacen",
+      "alcance_texto": "Su(s) almacén(es)",
+      "requiere_2fa": false
+    },
+    {
+      "clave": "JPR",
+      "nombre": "Jefe de producción",
+      "alcance": "sucursal",
+      "alcance_texto": "Planta",
+      "requiere_2fa": false
+    },
+    {
+      "clave": "MAE",
+      "nombre": "Maestro de masas",
+      "alcance": "sucursal",
+      "alcance_texto": "Planta",
+      "requiere_2fa": false
+    },
+    {
+      "clave": "PAN",
+      "nombre": "Panadero",
+      "alcance": "sucursal",
+      "alcance_texto": "Planta",
+      "requiere_2fa": false
+    },
+    {
+      "clave": "ENC",
+      "nombre": "Encargado de sucursal",
+      "alcance": "sucursal",
+      "alcance_texto": "Su sucursal",
+      "requiere_2fa": false
+    },
+    {
+      "clave": "CAJ",
+      "nombre": "Cajero",
+      "alcance": "sucursal",
+      "alcance_texto": "Su sucursal y caja",
+      "requiere_2fa": false
+    }
+  ],
+  "modulos": [
+    {
+      "grupo": "Seguridad",
+      "clave": "seguridad.usuarios",
+      "nombre": "Usuarios, roles y permisos",
+      "nota": "El administrador no puede asignarse roles a sí mismo; el contralor revisa el reporte \"quién puede hacer qué\".",
+      "roles": {
+        "ADM": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "exportar"
+        ],
+        "DIR": [
+          "ver",
+          "exportar"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Seguridad",
+      "clave": "seguridad.bitacora",
+      "nombre": "Bitácora de auditoría y de accesos",
+      "nota": "Nadie edita ni borra la bitácora.",
+      "roles": {
+        "ADM": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver",
+          "exportar"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Seguridad",
+      "clave": "seguridad.configuracion",
+      "nombre": "Configuración de seguridad (contraseñas, bloqueo, inactividad, PIN)",
+      "nota": "",
+      "roles": {
+        "ADM": [
+          "ver",
+          "editar"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Configuración",
+      "clave": "configuracion.parametros",
+      "nombre": "Parámetros de negocio (tolerancias, redondeo, montos límite, incompatibilidades)",
+      "nota": "Los propone el contralor y los autoriza dirección; el administrador del sistema no los cambia.",
+      "roles": {
+        "DIR": [
+          "ver",
+          "autorizar"
+        ],
+        "CON": [
+          "ver",
+          "editar"
+        ],
+        "ADM": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Catálogos",
+      "clave": "catalogos.estructura",
+      "nombre": "Sucursales, almacenes, cajas y centros de costo",
+      "nota": "",
+      "roles": {
+        "ADM": [
+          "ver",
+          "crear",
+          "editar"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ],
+        "ENC": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Catálogos",
+      "clave": "catalogos.insumos",
+      "nombre": "Materias primas, insumos y empaques",
+      "nota": "",
+      "roles": {
+        "COM": [
+          "ver",
+          "crear",
+          "editar",
+          "exportar"
+        ],
+        "ALM": [
+          "ver"
+        ],
+        "JPR": [
+          "ver"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CNT": [
+          "ver"
+        ],
+        "AUT1": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Catálogos",
+      "clave": "catalogos.sku",
+      "nombre": "Productos terminados (SKU)",
+      "nota": "El contador solo edita los datos fiscales SAT.",
+      "roles": {
+        "JPR": [
+          "ver",
+          "crear",
+          "editar"
+        ],
+        "CNT": [
+          "ver",
+          "editar"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "ENC": [
+          "ver"
+        ],
+        "CAJ": [
+          "ver"
+        ],
+        "MAE": [
+          "ver"
+        ],
+        "PAN": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Catálogos",
+      "clave": "catalogos.proveedores",
+      "nombre": "Proveedores",
+      "nota": "El contador edita datos fiscales y cuentas bancarias.",
+      "roles": {
+        "COM": [
+          "ver",
+          "crear",
+          "editar",
+          "exportar"
+        ],
+        "CNT": [
+          "ver",
+          "editar"
+        ],
+        "CON": [
+          "ver"
+        ],
+        "AUT1": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Catálogos",
+      "clave": "catalogos.clientes",
+      "nombre": "Clientes",
+      "nota": "",
+      "roles": {
+        "ENC": [
+          "ver",
+          "crear",
+          "editar"
+        ],
+        "CAJ": [
+          "ver",
+          "crear"
+        ],
+        "CNT": [
+          "ver",
+          "crear",
+          "editar"
+        ],
+        "CON": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Catálogos",
+      "clave": "catalogos.precios",
+      "nombre": "Precios de venta",
+      "nota": "Todo cambio de precio requiere autorización de dirección.",
+      "roles": {
+        "CON": [
+          "ver",
+          "crear",
+          "editar",
+          "exportar"
+        ],
+        "DIR": [
+          "ver",
+          "autorizar"
+        ],
+        "ENC": [
+          "ver"
+        ],
+        "CAJ": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Producción",
+      "clave": "produccion.recetas",
+      "nombre": "Recetas de masas, intermedios y SKU",
+      "nota": "El maestro de masas y los panaderos no ven recetas completas: solo su orden de producción.",
+      "roles": {
+        "JPR": [
+          "ver",
+          "crear",
+          "editar",
+          "exportar",
+          "imprimir"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Producción",
+      "clave": "produccion.plan",
+      "nombre": "Plan de producción",
+      "nota": "El encargado captura lo que necesita su sucursal; el jefe de producción aprueba el plan.",
+      "roles": {
+        "JPR": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "autorizar"
+        ],
+        "ENC": [
+          "ver",
+          "crear"
+        ],
+        "MAE": [
+          "ver"
+        ],
+        "PAN": [
+          "ver"
+        ],
+        "ALM": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Producción",
+      "clave": "produccion.ordenes",
+      "nombre": "Órdenes de producción (masa y SKU)",
+      "nota": "El maestro de masas registra los kg reales y cierra las órdenes de masa. El panadero registra piezas formadas, avance por etapa y piezas buenas; el jefe de producción cierra las órdenes de SKU.",
+      "roles": {
+        "JPR": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "cerrar",
+          "imprimir"
+        ],
+        "MAE": [
+          "ver",
+          "editar",
+          "cerrar",
+          "imprimir"
+        ],
+        "PAN": [
+          "ver",
+          "editar",
+          "imprimir"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Producción",
+      "clave": "produccion.mermas",
+      "nombre": "Mermas de producción",
+      "nota": "Arriba del límite del jefe de producción autoriza el contralor.",
+      "roles": {
+        "MAE": [
+          "ver",
+          "crear"
+        ],
+        "PAN": [
+          "ver",
+          "crear"
+        ],
+        "JPR": [
+          "ver",
+          "crear",
+          "autorizar"
+        ],
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Inventarios",
+      "clave": "inventarios.surtido",
+      "nombre": "Vales de surtido a producción",
+      "nota": "",
+      "roles": {
+        "ALM": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "JPR": [
+          "ver",
+          "crear"
+        ],
+        "MAE": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Inventarios",
+      "clave": "inventarios.traspasos",
+      "nombre": "Traspasos entre almacenes y sucursales",
+      "nota": "El encargado confirma la recepción en su sucursal.",
+      "roles": {
+        "ALM": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "JPR": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "ENC": [
+          "ver",
+          "editar"
+        ],
+        "CON": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Inventarios",
+      "clave": "inventarios.existencias",
+      "nombre": "Existencias y kárdex",
+      "nota": "Valores en pesos solo para quien tiene \"ver costos\".",
+      "roles": {
+        "ALM": [
+          "ver",
+          "exportar"
+        ],
+        "JPR": [
+          "ver",
+          "exportar"
+        ],
+        "ENC": [
+          "ver"
+        ],
+        "COM": [
+          "ver"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "CNT": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Inventarios",
+      "clave": "inventarios.conteos",
+      "nombre": "Conteos físicos",
+      "nota": "",
+      "roles": {
+        "ALM": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "ENC": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "JPR": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Inventarios",
+      "clave": "inventarios.ajustes",
+      "nombre": "Ajustes de inventario",
+      "nota": "Quien contó no autoriza su ajuste. Arriba del límite del contralor autoriza dirección.",
+      "roles": {
+        "ALM": [
+          "ver",
+          "crear"
+        ],
+        "ENC": [
+          "ver",
+          "crear"
+        ],
+        "JPR": [
+          "ver",
+          "crear"
+        ],
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "DIR": [
+          "ver",
+          "autorizar"
+        ]
+      }
+    },
+    {
+      "grupo": "Inventarios",
+      "clave": "inventarios.merma_sucursal",
+      "nombre": "Merma de producto no vendido (sucursal)",
+      "nota": "",
+      "roles": {
+        "ENC": [
+          "ver",
+          "crear"
+        ],
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Compras",
+      "clave": "compras.requisiciones",
+      "nombre": "Requisiciones",
+      "nota": "Nadie autoriza sus propias requisiciones. Nivel 1 hasta su límite; arriba autoriza dirección (nivel 2).",
+      "roles": {
+        "COM": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar"
+        ],
+        "JPR": [
+          "ver",
+          "crear"
+        ],
+        "ALM": [
+          "ver",
+          "crear"
+        ],
+        "ENC": [
+          "ver",
+          "crear"
+        ],
+        "AUT1": [
+          "ver",
+          "autorizar"
+        ],
+        "DIR": [
+          "ver",
+          "autorizar"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Compras",
+      "clave": "compras.ordenes",
+      "nombre": "Órdenes de compra",
+      "nota": "Solo se emiten con requisición autorizada vigente.",
+      "roles": {
+        "COM": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "imprimir",
+          "exportar"
+        ],
+        "AUT1": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Compras",
+      "clave": "compras.recepcion",
+      "nombre": "Recepción de mercancía",
+      "nota": "",
+      "roles": {
+        "ALM": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "COM": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Compras",
+      "clave": "compras.facturas",
+      "nombre": "Facturas de proveedor (XML) y cotejo a 3 vías",
+      "nota": "Diferencias fuera de tolerancia las autoriza el contralor.",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear"
+        ],
+        "COM": [
+          "ver",
+          "crear"
+        ],
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Compras",
+      "clave": "compras.cxp",
+      "nombre": "Cuentas por pagar y pagos",
+      "nota": "Quien recibió la mercancía no autoriza el pago.",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "exportar"
+        ],
+        "CON": [
+          "ver",
+          "autorizar",
+          "exportar"
+        ],
+        "DIR": [
+          "ver",
+          "autorizar"
+        ]
+      }
+    },
+    {
+      "grupo": "Punto de venta",
+      "clave": "pos.ventas",
+      "nombre": "Ventas",
+      "nota": "Reimpresión de ticket solo con permiso del encargado.",
+      "roles": {
+        "CAJ": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "ENC": [
+          "ver",
+          "crear",
+          "cancelar",
+          "imprimir"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Punto de venta",
+      "clave": "pos.caja",
+      "nombre": "Caja: apertura, retiros, corte X y corte Z, arqueo",
+      "nota": "El cajero abre caja y hace corte X; el encargado autoriza retiros y cierra el corte Z.",
+      "roles": {
+        "CAJ": [
+          "ver",
+          "crear"
+        ],
+        "ENC": [
+          "ver",
+          "autorizar",
+          "cerrar",
+          "imprimir"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Punto de venta",
+      "clave": "pos.devoluciones",
+      "nombre": "Devoluciones, cancelaciones y descuentos",
+      "nota": "El cajero solicita; autoriza el encargado hasta su límite y arriba el contralor.",
+      "roles": {
+        "CAJ": [
+          "ver",
+          "crear"
+        ],
+        "ENC": [
+          "ver",
+          "autorizar"
+        ],
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Punto de venta",
+      "clave": "pos.pedidos",
+      "nombre": "Pedidos y anticipos",
+      "nota": "Cancelar un pedido o devolver un anticipo lo autoriza el encargado.",
+      "roles": {
+        "CAJ": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "ENC": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "autorizar",
+          "imprimir"
+        ],
+        "JPR": [
+          "ver"
+        ],
+        "CON": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Fiscal",
+      "clave": "fiscal.cfdi",
+      "nombre": "Facturación CFDI (nominativa, global, notas de crédito, pagos)",
+      "nota": "El encargado solo factura tickets de su sucursal. Cancelaciones: las autoriza el contralor.",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear",
+          "cancelar",
+          "exportar",
+          "imprimir"
+        ],
+        "ENC": [
+          "ver",
+          "crear",
+          "imprimir"
+        ],
+        "CON": [
+          "ver",
+          "autorizar",
+          "exportar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Fiscal",
+      "clave": "fiscal.efirma",
+      "nombre": "e.firma y CSD (cargar y reemplazar)",
+      "nota": "Las custodia y carga el contador. Nadie puede ver ni descargar las llaves; el sistema solo las usa cifradas. El contralor solo ve la vigencia.",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear",
+          "editar"
+        ],
+        "CON": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Fiscal",
+      "clave": "fiscal.sat",
+      "nombre": "Descarga masiva SAT y conciliaciones",
+      "nota": "",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear",
+          "exportar"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Contabilidad",
+      "clave": "contabilidad.catalogo",
+      "nombre": "Catálogo de cuentas y reglas de contabilización",
+      "nota": "",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear",
+          "editar",
+          "exportar"
+        ],
+        "CON": [
+          "ver",
+          "autorizar",
+          "exportar"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Contabilidad",
+      "clave": "contabilidad.polizas",
+      "nombre": "Pólizas (automáticas y manuales)",
+      "nota": "Las pólizas manuales requieren autorización del contralor.",
+      "roles": {
+        "CNT": [
+          "ver",
+          "crear",
+          "editar",
+          "cancelar",
+          "exportar",
+          "imprimir"
+        ],
+        "CON": [
+          "ver",
+          "autorizar",
+          "exportar",
+          "imprimir"
+        ],
+        "DIR": [
+          "ver",
+          "exportar"
+        ]
+      }
+    },
+    {
+      "grupo": "Contabilidad",
+      "clave": "contabilidad.cierre",
+      "nombre": "Cierre de periodo",
+      "nota": "",
+      "roles": {
+        "CON": [
+          "ver",
+          "cerrar"
+        ],
+        "CNT": [
+          "ver"
+        ],
+        "DIR": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Contabilidad",
+      "clave": "contabilidad.reportes",
+      "nombre": "Reportes financieros y contabilidad electrónica",
+      "nota": "",
+      "roles": {
+        "CNT": [
+          "ver",
+          "exportar",
+          "imprimir"
+        ],
+        "CON": [
+          "ver",
+          "exportar",
+          "imprimir"
+        ],
+        "DIR": [
+          "ver",
+          "exportar",
+          "imprimir"
+        ]
+      }
+    },
+    {
+      "grupo": "Reportes",
+      "clave": "reportes.tablero",
+      "nombre": "Tablero y reportes de gestión",
+      "nota": "Cada quien ve solo los reportes de sus módulos y su alcance.",
+      "roles": {
+        "DIR": [
+          "ver",
+          "exportar"
+        ],
+        "CON": [
+          "ver",
+          "exportar"
+        ],
+        "CNT": [
+          "ver",
+          "exportar"
+        ],
+        "JPR": [
+          "ver",
+          "exportar"
+        ],
+        "COM": [
+          "ver",
+          "exportar"
+        ],
+        "ENC": [
+          "ver"
+        ]
+      }
+    },
+    {
+      "grupo": "Cargas",
+      "clave": "cargas.layout",
+      "nombre": "Carga masiva por layout (importar)",
+      "nota": "Cada rol importa solo los layouts de sus catálogos. Existencias, precios y saldos iniciales requieren autorización.",
+      "roles": {
+        "ADM": [
+          "importar"
+        ],
+        "JPR": [
+          "importar"
+        ],
+        "COM": [
+          "importar"
+        ],
+        "CNT": [
+          "importar"
+        ],
+        "CON": [
+          "importar"
+        ]
+      }
+    }
+  ],
+  "sensibles": [
+    {
+      "clave": "datos.costos:ver",
+      "nombre": "Ver costos y márgenes",
+      "roles": [
+        "DIR",
+        "CON",
+        "CNT",
+        "COM",
+        "JPR"
+      ],
+      "nota": "El jefe de producción sí ve y revisa costos. Compras ve costos de insumos, no márgenes de venta."
+    },
+    {
+      "clave": "datos.receta_completa:ver",
+      "nombre": "Ver la receta completa (fórmula y cantidades)",
+      "roles": [
+        "DIR",
+        "CON",
+        "JPR"
+      ],
+      "nota": "Maestro de masas y panaderos solo ven su orden de producción con lo que deben preparar."
+    },
+    {
+      "clave": "datos.precios:modificar",
+      "nombre": "Modificar precios de venta",
+      "roles": [
+        "CON",
+        "DIR"
+      ],
+      "nota": "El contralor propone y dirección autoriza."
+    },
+    {
+      "clave": "fiscal.cfdi:timbrar",
+      "nombre": "Timbrar CFDI",
+      "roles": [
+        "CNT",
+        "ENC"
+      ],
+      "nota": "El encargado solo timbra facturas de tickets de su sucursal."
+    },
+    {
+      "clave": "fiscal.cfdi:cancelar",
+      "nombre": "Cancelar CFDI",
+      "roles": [
+        "CNT"
+      ],
+      "nota": "La captura el contador; el contralor la autoriza (permiso fiscal.cfdi:autorizar)."
+    },
+    {
+      "clave": "fiscal.efirma:cargar",
+      "nombre": "Cargar e.firma / CSD",
+      "roles": [
+        "CNT"
+      ],
+      "nota": "Custodia del contador."
+    }
+  ],
+  "limites": [
+    {
+      "operacion": "compras.requisicion",
+      "operacion_nombre": "Autorizar requisiciones de compra (por requisición)",
+      "rol": "AUT1",
+      "monto_hasta": "10000.00"
+    },
+    {
+      "operacion": "compras.requisicion",
+      "operacion_nombre": "Autorizar requisiciones de compra (por requisición)",
+      "rol": "DIR",
+      "monto_hasta": null
+    },
+    {
+      "operacion": "inventarios.ajuste",
+      "operacion_nombre": "Autorizar ajustes de inventario (por ajuste, valor absoluto de la diferencia)",
+      "rol": "CON",
+      "monto_hasta": "2000.00"
+    },
+    {
+      "operacion": "inventarios.ajuste",
+      "operacion_nombre": "Autorizar ajustes de inventario (por ajuste, valor absoluto de la diferencia)",
+      "rol": "DIR",
+      "monto_hasta": null
+    },
+    {
+      "operacion": "produccion.merma",
+      "operacion_nombre": "Autorizar mermas de producción (por registro)",
+      "rol": "JPR",
+      "monto_hasta": "1000.00"
+    },
+    {
+      "operacion": "produccion.merma",
+      "operacion_nombre": "Autorizar mermas de producción (por registro)",
+      "rol": "CON",
+      "monto_hasta": null
+    },
+    {
+      "operacion": "pos.devolucion_descuento",
+      "operacion_nombre": "Autorizar devoluciones y descuentos en POS (por ticket)",
+      "rol": "ENC",
+      "monto_hasta": "500.00"
+    },
+    {
+      "operacion": "pos.devolucion_descuento",
+      "operacion_nombre": "Autorizar devoluciones y descuentos en POS (por ticket)",
+      "rol": "CON",
+      "monto_hasta": null
+    },
+    {
+      "operacion": "compras.pago",
+      "operacion_nombre": "Autorizar pagos a proveedores (por pago)",
+      "rol": "CON",
+      "monto_hasta": "20000.00"
+    },
+    {
+      "operacion": "compras.pago",
+      "operacion_nombre": "Autorizar pagos a proveedores (por pago)",
+      "rol": "DIR",
+      "monto_hasta": null
+    }
+  ],
+  "incompatibilidades": [
+    {
+      "clave": "requisicion_solicita_autoriza",
+      "nivel": "documento",
+      "patron_a": "compras.requisiciones:crear",
+      "patron_b": "compras.requisiciones:autorizar",
+      "descripcion": "Solicitar requisición → no puede: Autorizar esa misma requisición"
+    },
+    {
+      "clave": "recibe_autoriza_pago",
+      "nivel": "asignacion",
+      "patron_a": "compras.recepcion:crear",
+      "patron_b": "compras.cxp:autorizar",
+      "descripcion": "Recibir mercancía → no puede: Autorizar el pago de esa compra"
+    },
+    {
+      "clave": "cuenta_autoriza_ajuste",
+      "nivel": "documento",
+      "patron_a": "inventarios.conteos:crear",
+      "patron_b": "inventarios.ajustes:autorizar",
+      "descripcion": "Hacer el conteo físico → no puede: Autorizar el ajuste de ese conteo"
+    },
+    {
+      "clave": "cajero_autoriza_propias",
+      "nivel": "documento",
+      "patron_a": "pos.ventas:crear",
+      "patron_b": "pos.devoluciones:autorizar",
+      "descripcion": "Cajero de un turno → no puede: Autorizar sus propias devoluciones o su corte"
+    },
+    {
+      "clave": "usuarios_vs_operacion",
+      "nivel": "asignacion",
+      "patron_a": "seguridad.usuarios:crear|seguridad.usuarios:editar|seguridad.usuarios:cancelar",
+      "patron_b": "compras.%|inventarios.%|produccion.%|pos.%|fiscal.%|contabilidad.%",
+      "descripcion": "Crear o editar usuarios y roles → no puede: Cualquier permiso operativo (compras, inventarios, caja, contabilidad)"
+    },
+    {
+      "clave": "registra_autoriza_pago",
+      "nivel": "documento",
+      "patron_a": "compras.cxp:crear",
+      "patron_b": "compras.cxp:autorizar",
+      "descripcion": "Registrar pagos a proveedores → no puede: Autorizar esos pagos"
+    },
+    {
+      "clave": "captura_autoriza_poliza",
+      "nivel": "documento",
+      "patron_a": "contabilidad.polizas:crear",
+      "patron_b": "contabilidad.polizas:autorizar",
+      "descripcion": "Capturar pólizas manuales → no puede: Autorizar esas pólizas"
+    },
+    {
+      "clave": "propone_autoriza_precio",
+      "nivel": "documento",
+      "patron_a": "catalogos.precios:crear",
+      "patron_b": "catalogos.precios:autorizar",
+      "descripcion": "Proponer precios de venta → no puede: Autorizar esos precios"
+    },
+    {
+      "clave": "alta_proveedor_autoriza_pago",
+      "nivel": "asignacion",
+      "patron_a": "catalogos.proveedores:crear",
+      "patron_b": "compras.cxp:autorizar",
+      "descripcion": "Dar de alta proveedores → no puede: Autorizar pagos a esos proveedores"
+    },
+    {
+      "clave": "captura_autoriza_cancelacion_cfdi",
+      "nivel": "documento",
+      "patron_a": "fiscal.cfdi:cancelar",
+      "patron_b": "fiscal.cfdi:autorizar",
+      "descripcion": "Capturar cancelación de CFDI → no puede: Autorizar esa cancelación"
+    }
+  ]
+}
