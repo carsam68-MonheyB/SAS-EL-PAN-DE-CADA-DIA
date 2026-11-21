@@ -18,7 +18,7 @@ Fecha: 21/11/2026. Precios consultados en fuentes públicas. **Confírmalos al c
 - ⚠️ **Si se acaban los créditos, Netlify pausa el sitio** ("Site not available"). Hay que activar la **recarga automática**.
 - Usuarios del team: ilimitados sin costo adicional.
 
-**Consumo estimado del ERP** (supuesto: 14 h de operación diaria; se ajusta con P12):
+**Consumo estimado del ERP** (horario confirmado: 7:00 a 21:00 todos los días = 14 h; si producción usa el sistema antes de las 7:00, sumar 300 créditos por cada hora extra diaria):
 
 | Concepto | Tarifa | Estimación mensual |
 |---|---|---|
