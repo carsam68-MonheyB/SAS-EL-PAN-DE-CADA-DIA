@@ -33,7 +33,7 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P16 | 🟡 **Borrador entregado:** `05-matriz-puestos-borrador.md` / `.xlsx`. Falta tu revisión y las preguntas de su sección 6. | **[Bloquea F1]** |
+| P16 | 🟡 **Borrador v2:** `05-matriz-puestos-borrador.md` / `.xlsx` con tus respuestas (2 niveles de compras, maestro de masas y panadero separados, e.firma con el contador). Falta: otros puestos, quién es nivel 2 y montos límite. | **[Bloquea F1]** |
 | P17 | Roles con doble factor obligatorio, además de administrador, autorizadores y quien maneje e.firma/PAC. | F1 |
 | P18 | Valores iniciales de seguridad: longitud mínima de contraseña, intentos fallidos antes de bloqueo, minutos de bloqueo, minutos de inactividad para cerrar sesión (oficina y POS por separado), dígitos del PIN de cajero. | F1 |
 | P19 | Lista inicial de **incompatibilidades** de segregación de funciones (además de las 4 del documento). | F1 |
