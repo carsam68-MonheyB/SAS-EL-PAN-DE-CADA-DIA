@@ -91,9 +91,13 @@ El código vive en GitHub con todo su historial. Además, en cada versión aprob
 
 ### 1.5 ⚠️ Punto 4 — Netlify Identity no tiene doble factor
 
+> ✅ **Aceptado (21/11/2026):** se usa la autenticación propia con TOTP (sección 2).
+
 Netlify revirtió en febrero 2026 la baja de Netlify Identity y sigue dándole soporte, pero **no ofrece doble factor (MFA) para los usuarios del sitio**. Por eso no cumple la sección 4.0. Las opciones están en la sección 2 de este documento.
 
 ### 1.6 ⚠️ Punto 5 — Pagos con tarjeta
+
+> ✅ **Aceptado (21/11/2026):** el sistema **nunca guarda números de tarjeta**; solo la referencia o el número de autorización del voucher de la terminal bancaria.
 
 Netlify Database **no está certificada PCI‑DSS**, así que está prohibido guardar en ella números de tarjeta. El POS registra el cobro con tarjeta hecho en la **terminal bancaria** y guarda solo la referencia o el número de autorización del voucher.
 
