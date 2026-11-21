@@ -1149,5 +1149,5 @@ Nota sobre el orden: el documento pone Contabilidad en la Fase 7, pero las fases
 ## 6. Qué necesito para empezar la Fase 1A
 
 1. Tu **aprobación** de este documento (o los cambios que quieras).
-2. **Acceso de Claude al repositorio** `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA` (aplicación de Claude para GitHub).
+2. ~~Acceso de Claude al repositorio~~ ✅ listo.
 3. Las respuestas marcadas **[Bloquea F1]** en `01-preguntas-pendientes.md`: P03 (plan Pro por créditos en tu cuenta de Netlify), P08, P09, P11 (sucursales, planta y almacenes), P16 (matriz de puestos) y P20 (autenticación).

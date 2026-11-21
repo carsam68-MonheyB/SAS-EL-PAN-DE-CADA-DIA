@@ -8,7 +8,7 @@
 | # | Pregunta | Bloquea |
 |---|---|---|
 | P01 | Nombre comercial, razón social, RFC y régimen fiscal (clave SAT, ej. 601, 612, 626). | F1 (datos de configuración) |
-| P02 | ✅ **Respondida:** repositorio privado temporal `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`. Falta: dar acceso a la **aplicación de Claude para GitHub** (claude.ai/connect-github). | **[Bloquea F1]** |
+| P02 | ✅ **Respondida:** repositorio privado temporal `carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`, ya conectado a la sesión de Claude. | — |
 | P03 | ✅ **Respondida:** proyecto nuevo **temporal** en tu cuenta actual de Netlify, conectado al repositorio, solo con datos ficticios. Falta confirmar que el team esté en plan **Pro por créditos**. | **[Bloquea F1]** |
 | P04 | ✅ **Respondida:** todavía no hay dominio. → Pruebas y Fase 1 con el subdominio gratuito de Netlify (`*.netlify.app`). Antes de producción: registrar dominio (`.mx` o `.com.mx`) y administrar su DNS en Netlify. Pendiente: nombre de dominio elegido. | No |
 | P05 | ✅ **Respondida:** todavía no hay correo. → Propuesta: buzones solo para el personal de oficina (Microsoft 365 o Google Workspace; Zoho Mail si se busca el menor costo) y **Resend** para los correos que envía el sistema. Cajeros y panaderos **no necesitan correo**: entran con usuario y contraseña. Pendiente: elegir proveedor de buzones. | No (en Fase 1 la invitación se puede mostrar como enlace para entregarlo en persona) |
