@@ -18,19 +18,19 @@ Fecha: 21/11/2026. Precios consultados en fuentes públicas. **Confírmalos al c
 - ⚠️ **Si se acaban los créditos, Netlify pausa el sitio** ("Site not available"). Hay que activar la **recarga automática**.
 - Usuarios del team: ilimitados sin costo adicional.
 
-**Consumo estimado del ERP** (horario confirmado: 7:00 a 21:00 todos los días = 14 h; si producción usa el sistema antes de las 7:00, sumar 300 créditos por cada hora extra diaria):
+**Consumo estimado del ERP** (horario confirmado: producción desde las 3:00 y venta de 7:00 a 21:00, todos los días = 18 h de uso):
 
 | Concepto | Tarifa | Estimación mensual |
 |---|---|---|
-| Base de producción despierta en horario (1 unidad de cómputo) | 10 créditos por hora | 14 h × 30 días ≈ **4,200** |
+| Base de producción despierta en horario (1 unidad de cómputo) | 10 créditos por hora | 18 h × 30 días ≈ **5,400** |
 | Base de pruebas (solo cuando se usa) | 10 créditos por hora | ~30 h ≈ 300 |
 | Funciones (cómputo) | 10 créditos por GB‑hora | < 100 |
 | Peticiones web | 2 créditos por 10,000 | < 50 |
 | Transferencia (app + base) | 20 créditos por GB | ~100 |
 | Despliegues a producción | 15 créditos c/u | 60 (mantenimiento) a 300 (desarrollo) |
-| **Total** | | **≈ 4,800 – 5,000** |
+| **Total** | | **≈ 6,000 – 6,200** |
 
-**Recomendación:** plan de **10,000 créditos (USD 63/mes)** mientras se desarrolla y en los primeros meses de operación, con recarga automática. Si el consumo real se mantiene debajo de 5,000, bajar al plan de **5,000 créditos (USD 33/mes)**. La base es una sola, así que el costo **no se multiplica por sucursal**: depende de cuántas horas al día hay al menos una sucursal operando.
+**Recomendación:** plan de **10,000 créditos (USD 63/mes)** mientras se desarrolla. En operación normal: plan de **5,000 créditos (USD 33) + una recarga de 1,500 (USD 10) ≈ USD 43 al mes**, con recarga automática activada. La base es una sola, así que el costo **no se multiplica por sucursal**: depende de cuántas horas al día hay al menos una sucursal operando.
 
 ## 2. Otros servicios
 
