@@ -50,3 +50,20 @@ export function respuestaDeError(e: unknown, requestId?: string): Response {
   console.error("Error no controlado", requestId, e);
   return json({ error: "interno", mensaje: "Ocurrió un error inesperado. Intenta de nuevo; si persiste, reporta el folio.", folio: requestId }, 500);
 }
+
+const TIPOS_ARCHIVO: Record<string, string> = {
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  csv: "text/csv; charset=utf-8",
+  txt: "text/plain; charset=utf-8",
+};
+
+/** Respuesta de descarga (layouts, reportes de errores, archivos originales). */
+export function respuestaArchivo(datos: Uint8Array, nombre: string, formato: string): Response {
+  return new Response(datos as BodyInit, {
+    headers: {
+      "content-type": TIPOS_ARCHIVO[formato] ?? "application/octet-stream",
+      "content-disposition": `attachment; filename="${nombre.replace(/[^\w.-]/g, "_")}"`,
+      "cache-control": "no-store",
+    },
+  });
+}
