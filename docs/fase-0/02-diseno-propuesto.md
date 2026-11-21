@@ -17,6 +17,8 @@ Contenido:
 
 ## 1. Validación de la plataforma Netlify
 
+> ✅ **Sección 1 aprobada completa (puntos 1 a 5) el 21/11/2026.**
+
 Revisé la documentación vigente de Netlify (noviembre 2026). Resumen: **todo el documento cabe en la plataforma**, con cinco puntos que cambian el diseño o que debes revisar en tu plan.
 
 ### 1.1 Lo que sí cabe tal como lo pediste
@@ -32,6 +34,8 @@ Revisé la documentación vigente de Netlify (noviembre 2026). Resumen: **todo e
 | Límites del plan Pro para la base | 100 GB de almacenamiento, 100 GB de escritura y 100 GB de transferencia al mes por base, hasta 16 unidades de cómputo. Muy por encima de lo que necesita una panadería. |
 
 ### 1.2 ⚠️ Punto 1 — Ambientes: temporal de desarrollo y estructura definitiva
+
+> ✅ **Aprobado (21/11/2026).**
 
 **Durante el desarrollo (temporal):**
 
@@ -67,6 +71,8 @@ Reglas mientras tanto:
 
 ### 1.3 ⚠️ Punto 2 — Costo de la base: se cobra mientras esté despierta
 
+> ✅ **Aprobado (21/11/2026).**
+
 - La base consume **10 créditos por unidad de cómputo por hora** activa, más 20 créditos por GB transferido.
 - Se duerme tras **5 minutos sin consultas** (es el mínimo configurable). El mínimo de cómputo es 1 unidad.
 - Con el POS vendiendo, la base no se va a dormir en horario de operación. Estimación: si la operación es de 14 h diarias, todos los días, son 14 × 30 = 420 horas, es decir unos **4,200 créditos al mes solo de cómputo de base** a 1 unidad (sin contar funciones ni transferencia).
@@ -75,6 +81,8 @@ Reglas mientras tanto:
 - **Indicador de consumo en administración:** no encontré en la documentación un endpoint público que dé los créditos consumidos. Propongo: (a) registrar nosotros las horas activas estimadas (primera y última consulta de cada bloque) y mostrar la estimación; y (b) en Fase 1 verificar si la API de Netlify expone el consumo para mostrar el dato oficial. Te lo confirmo antes de construirlo.
 
 ### 1.4 ⚠️ Punto 3 — Respaldos de Netlify: 30 días en Pro
+
+> ✅ **Aprobado (21/11/2026).**
 
 En Pro, los respaldos programados se conservan **30 días**, más uno por cada uno de los últimos 10 despliegues publicados. No alcanza para el plazo legal de conservación de la contabilidad (el CFF, art. 30, habla en general de 5 años; confírmalo con tu contador). Por eso se necesita la copia externa que ya pediste. Diseño:
 
