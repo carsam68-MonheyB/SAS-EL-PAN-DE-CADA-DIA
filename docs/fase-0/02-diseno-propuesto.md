@@ -1,7 +1,7 @@
 # Fase 0 · Diseño propuesto
 
 Sistema integral de control para panadería (ERP) — documento para aprobación.
-Fecha: 21/11/2026 · Estado: **borrador para revisión** · Sin código hasta tu aprobación por escrito.
+Fecha: 21/11/2026 · Estado: ✅ **APROBADO por escrito el 21/11/2026** (secciones 1 a 5). Pendiente: decidir si se adelanta el POS (sección 5) y las respuestas que bloquean la Fase 1A.
 
 > **Revisión 3 (prompt versión 3):** el desarrollo se hace en un **repositorio temporal de GitHub** (`carsam68-MonheyB/SAS-EL-PAN-DE-CADA-DIA`) conectado a un **proyecto temporal en la cuenta actual de Netlify**, solo con datos ficticios. Antes de cargar datos reales se traslada a la estructura definitiva del negocio. No se instala nada en la computadora del dueño.
 
@@ -125,6 +125,8 @@ Netlify Database **no está certificada PCI‑DSS**, así que está prohibido gu
 
 ## 2. Autenticación y doble factor
 
+> ✅ **Aprobado (21/11/2026).**
+
 Los roles y permisos viven siempre en nuestra base. La decisión es solo **quién valida contraseña y segundo factor**.
 
 | | **A) Autenticación propia (recomendada)** | **B) Auth0 (extensión de Netlify)** |
@@ -148,6 +150,8 @@ Detalles de A:
 ---
 
 ## 3. Arquitectura
+
+> ✅ **Aprobado (21/11/2026).**
 
 ### 3.1 Vista general
 
@@ -255,6 +259,8 @@ Hay una interfaz única, `Impresora { imprimir(ticket), abrirCajon(), estado() }
 ---
 
 ## 4. Modelo de datos
+
+> ✅ **Aprobado (21/11/2026).**
 
 Convenciones:
 - Todas las tablas de negocio tienen `id uuid`, `creado_en`, `creado_por`, `actualizado_en`, `actualizado_por`, y están cubiertas por la bitácora.
@@ -1135,6 +1141,8 @@ erDiagram
 ---
 
 ## 5. Plan de fases detallado
+
+> ✅ **Aprobado (21/11/2026).**
 
 Propongo dividir la Fase 1 en dos entregas (1A y 1B) porque es la más grande y todo depende de ella. Cada fase termina con: demostración, instrucciones de prueba, pruebas automáticas en verde, commits en español y **tu visto bueno**.
 
