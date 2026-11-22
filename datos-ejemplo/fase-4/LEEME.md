@@ -45,8 +45,8 @@ Para ver el nivel 2: haz una requisición de 30 BULTO de harina ($13,875). El au
 
 ## 3. Lo que todavía no hace
 
-- **Enviar la orden de compra por correo** (P41): se imprime o se guarda en PDF desde el navegador.
-- **Pagar directo desde el banco** (P42): el sistema programa y autoriza el pago, y después se registra el que ya se hizo en el banco.
+- **Enviar la orden de compra por correo** (P41): decidido que no; se imprime o se guarda en PDF desde el navegador.
+- **Pagar directo desde el banco** (P42): el pago se hace en BBVA y después se registra en el sistema con su referencia.
 - **Verificar la factura ante el SAT y el complemento de pago:** Fase 8.
 - **Pólizas contables:** Fase 7.
 - **Devoluciones al proveedor y notas de crédito:** se agregan cuando las necesites.

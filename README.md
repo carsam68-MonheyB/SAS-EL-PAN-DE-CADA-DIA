@@ -207,6 +207,7 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   5. **Cotejo a 3 vías** (`src/dominio/compras.ts`): cantidad contra lo recibido, precio contra la OC, IVA y total, con tolerancias de Configuración → Compras. Si todo está dentro, se genera la cuenta por pagar; si no, autoriza el contralor.
   6. **Pago:** el contador lo programa, se autoriza y se marca pagado con la referencia bancaria.
 - **Reportes:** antigüedad de saldos (exportable a Excel) y comparativo de precios por proveedor.
+- **Decisiones (migración 0014):** tolerancias confirmadas (editables), OC sin envío por correo y un solo banco (BBVA).
 - **Desde esta fase** la "entrada por compra" directa de la Fase 3 queda desactivada (`compras.permitir_entrada_sin_oc` = NO).
 - **Pruebas:**
   - `pruebas/compras-dominio.test.ts`: cotejo, antigüedad y CFDI.
