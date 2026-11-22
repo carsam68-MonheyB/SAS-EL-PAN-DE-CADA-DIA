@@ -71,7 +71,7 @@
 | P67 | **Mermas de un SKU:** el sistema aplica la merma de **horneado** a todo lo que se consume al formar (masa, cubiertas, insumos) y no al empaque; la de **formado** (recortes) solo a la masa. ¿Así lo calculas tú? | No (confirmar) |
 | P68 | **Rendimiento de la masa:** si no capturas RENDIMIENTO_LOTE, se calcula tamaño del lote × (1 − merma de proceso). ¿Prefieres capturar siempre el rendimiento real de tu Excel? | No (confirmar) |
 | P69 | **Costo de los insumos en la Fase 2:** se usa el COSTO_REFERENCIA del catálogo de insumos hasta que existan compras (Fase 3–4 usarán costo promedio o PEPS, P34). | No |
-| P37 | ✅ **Respondida:** el pan no vendido **se vende en oferta**. 🟡 Falta definir cómo se registra en caja (precio de oferta o descuento, quién lo autoriza) y su tratamiento contable (Fase 7). | F7 |
+| P37 | ✅ **Respondida:** el pan no vendido **se vende en oferta, con descuento, antes de terminar el día** (22/11/2026). 🟡 Falta definir: de cuánto es el descuento (igual para todo o por producto/familia), a partir de qué hora aplica y quién lo activa en la caja. Hoy un descuento en caja lo autoriza el contador o el contralor con su PIN en cada venta. | F6 |
 | P38 | Causas de merma. ✅ **Decidido:** catálogo inicial CADUCADO, QUEMADO, DEFORME, NO-VENDIDO (solo producto terminado) y DANADO (migración 0010). Se agregan o dan de baja en Catálogos → Causas de merma. | — |
 | P70 | Quién cancela movimientos de inventario. ✅ **Decidido:** el **contralor** y el **contador** (compras recibidas, vales de surtido, traspasos en tránsito, mermas, ajustes, inventario inicial y entradas de producción). Matriz y migración 0010 actualizadas. | — |
 | P71 | Venta sin existencia. ✅ **Decidido:** **no se vende sin existencia** de producto terminado en el almacén de la sucursal. El POS (Fase 6) bloqueará la venta; el pan que sale del horno debe registrarse como entrada antes de venderse. | — |
@@ -97,7 +97,7 @@
 | P46 | ✅ Cajón Ghia RJ11 en la impresora; sin lector de código de barras (un lector USB posterior funciona sin cambios). **No se vende pan por peso** (sin báscula): las piezas van en números enteros. | — |
 | P47 | ✅ **Decidido:** se aceptan efectivo, tarjeta de crédito, tarjeta de débito (terminal bancaria aparte) y transferencia. Solo se guarda la referencia del voucher. | — |
 | P48 | ✅ Denominaciones de Banco de México para el arqueo. **El fondo de caja se define cada día** al abrir el turno (no es fijo). | — |
-| P49 | ✅ **Respondida (22/11/2026):** la **factura global es diaria**. Como se factura cada día, el cliente que quiera factura de su ticket la pide **el mismo día**, antes de hacer la global (un ticket incluido en la global ya no se factura aparte). | — |
+| P49 | ✅ **Respondida (22/11/2026):** la **factura global es diaria**. Al cliente que quiere factura **se le piden sus datos el día de la compra** (con su correo) y **la factura le llega por correo al día siguiente**. Su ticket no entra en la global. El sistema registra cuándo se envió y marca como atrasadas las que pasan del plazo (`fiscal.dias_entrega_factura` = 1). | — |
 | P50 | ✅ **Decidido:** se permiten descuentos y los autoriza con su PIN el **contador o el contralor** (permiso `pos.descuentos:autorizar`), sin límite por monto. El encargado ya no autoriza descuentos. | — |
 
 ## H. Contabilidad y fiscal

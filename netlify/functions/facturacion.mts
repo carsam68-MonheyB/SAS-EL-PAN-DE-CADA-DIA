@@ -66,9 +66,13 @@ const manejador = ruta({ permiso: "fiscal.cfdi:ver" }, async (ctx) => {
         regimen_fiscal: z.string().regex(/^\d{3}$/, "Régimen fiscal: clave de 3 dígitos."),
         codigo_postal: z.string().regex(/^\d{5}$/, "Código postal de 5 dígitos."),
         uso_cfdi: z.string().trim().toUpperCase().regex(/^[A-Z]\d{2}$/, "Uso de CFDI no válido (ej. G03)."),
-        correo: z.string().trim().email("Correo no válido.").max(200).optional().nullable().or(z.literal("")),
+        correo: z.string().trim().min(1, "Escribe el correo del cliente: ahí le llega su factura.").email("Correo no válido.").max(200),
       }));
       return ctx.tx((c) => f.crearSolicitud(c, u, d));
+    }
+    if (id && accion === "enviada" && m === "POST") {
+      ctx.exigir(["fiscal.cfdi:timbrar", "fiscal.cfdi:crear"]);
+      return ctx.tx((c) => f.marcarEnviada(c, u, id));
     }
     if (id && accion === "cancelar" && m === "POST") {
       ctx.exigir("fiscal.cfdi:crear");

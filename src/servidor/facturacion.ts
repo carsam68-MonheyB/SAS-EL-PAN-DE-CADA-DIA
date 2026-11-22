@@ -128,7 +128,7 @@ async function validarCatalogo(c: Cliente, catalogo: string, clave: string, nomb
   if (n.n > 0 && !n.hay) throw invalido(`${nombre} ${clave} no está en el catálogo ${catalogo} del SAT.`);
 }
 
-export interface DatosSolicitud { venta: string; rfc: string; razon_social: string; regimen_fiscal: string; codigo_postal: string; uso_cfdi: string; correo?: string | null }
+export interface DatosSolicitud { venta: string; rfc: string; razon_social: string; regimen_fiscal: string; codigo_postal: string; uso_cfdi: string; correo: string }
 
 export async function crearSolicitud(c: Cliente, u: UsuarioActual, d: DatosSolicitud) {
   const rfc = d.rfc.trim().toUpperCase();
@@ -136,13 +136,15 @@ export async function crearSolicitud(c: Cliente, u: UsuarioActual, d: DatosSolic
   await c.query("SELECT id FROM venta WHERE folio = upper($1) OR id::text = $1 FOR UPDATE", [d.venta.trim()]);
   const t = await consultarTicket(c, u, d.venta);
   if (!t.se_puede_solicitar) throw new ErrorApp(409, "no_facturable", t.motivo!);
+  // La factura le llega al cliente por correo al día siguiente: el correo es obligatorio.
+  if (!d.correo?.trim()) throw invalido("Escribe el correo del cliente: ahí le llega su factura.");
   await validarCatalogo(c, "c_RegimenFiscal", d.regimen_fiscal, "El régimen fiscal");
   await validarCatalogo(c, "c_UsoCFDI", d.uso_cfdi, "El uso de CFDI");
   const cliente = (await c.query("SELECT id FROM cliente WHERE rfc = $1 AND activo ORDER BY clave LIMIT 1", [rfc])).rows[0];
   const s = (await c.query(
     `INSERT INTO solicitud_factura (venta_id, sucursal_id, cliente_id, rfc, razon_social, regimen_fiscal, codigo_postal, uso_cfdi, correo, registrado_por)
      SELECT v.id, v.sucursal_id, $2, $3, $4, $5, $6, $7, $8, $9 FROM venta v WHERE v.id = $1 RETURNING id, folio`,
-    [t.id, cliente?.id ?? null, rfc, d.razon_social.trim().toUpperCase(), d.regimen_fiscal, d.codigo_postal, d.uso_cfdi.toUpperCase(), d.correo?.trim() || null, u.id],
+    [t.id, cliente?.id ?? null, rfc, d.razon_social.trim().toUpperCase(), d.regimen_fiscal, d.codigo_postal, d.uso_cfdi.toUpperCase(), d.correo.trim().toLowerCase(), u.id],
   )).rows[0];
   return { ...s, ticket: t.folio, total: t.neto.total };
 }
@@ -166,16 +168,30 @@ export async function cancelarSolicitud(c: Cliente, u: UsuarioActual, id: string
 }
 
 export async function listarSolicitudes(c: Cliente, u: UsuarioActual, f: { estatus?: string | null; desde: string; hasta: string }) {
+  const hoy = await hoyNegocio(c);
+  const plazo = Number((await config(c, "fiscal.dias_entrega_factura")) ?? "1");
   return (await c.query(
-    `SELECT sf.id, sf.folio, sf.estatus, sf.rfc, sf.razon_social, sf.regimen_fiscal, sf.codigo_postal, sf.uso_cfdi, sf.correo, v.folio AS ticket, v.fecha_negocio::text AS fecha,
+    `SELECT sf.id, sf.folio, sf.estatus, sf.enviada_en, ue.usuario AS envio,
+            (sf.estatus = 'PENDIENTE' OR sf.estatus = 'FACTURADA' AND sf.enviada_en IS NULL) AND $6::date - v.fecha_negocio > $7 AS atrasada, sf.rfc, sf.razon_social, sf.regimen_fiscal, sf.codigo_postal, sf.uso_cfdi, sf.correo, v.folio AS ticket, v.fecha_negocio::text AS fecha,
             (v.total - v.devuelto)::text AS total, s.clave AS sucursal, e.uuid_cfdi AS uuid, us.usuario AS registro, sf.creado_en
        FROM solicitud_factura sf JOIN venta v ON v.id = sf.venta_id JOIN sucursal s ON s.id = sf.sucursal_id LEFT JOIN cfdi_emitido e ON e.id = sf.cfdi_id
-       JOIN usuario us ON us.id = sf.registrado_por
-      WHERE ($1::boolean OR sf.sucursal_id = ANY($2::uuid[])) AND ($3::text IS NULL OR sf.estatus = $3)
-        AND (sf.estatus = 'PENDIENTE' OR v.fecha_negocio BETWEEN $4 AND $5)
-      ORDER BY sf.estatus = 'PENDIENTE' DESC, sf.creado_en DESC`,
-    [u.alcance.todas, u.alcance.sucursales, f.estatus || null, f.desde, f.hasta],
+       JOIN usuario us ON us.id = sf.registrado_por LEFT JOIN usuario ue ON ue.id = sf.enviada_por
+      WHERE ($1::boolean OR sf.sucursal_id = ANY($2::uuid[])) AND ($3::text IS NULL OR sf.estatus = $3 OR $3 = 'POR_ENVIAR' AND sf.estatus = 'FACTURADA' AND sf.enviada_en IS NULL)
+        AND (sf.estatus = 'PENDIENTE' OR sf.estatus = 'FACTURADA' AND sf.enviada_en IS NULL OR v.fecha_negocio BETWEEN $4 AND $5)
+      ORDER BY sf.estatus = 'PENDIENTE' DESC, sf.enviada_en IS NULL DESC, sf.creado_en DESC`,
+    [u.alcance.todas, u.alcance.sucursales, f.estatus || null, f.desde, f.hasta, hoy, plazo],
   )).rows;
+}
+
+/** Registra que la factura ya se le envió al cliente por correo (con su PDF y XML). */
+export async function marcarEnviada(c: Cliente, u: UsuarioActual, id: string) {
+  const s = (await c.query("SELECT * FROM solicitud_factura WHERE (id::text = $1 OR folio = upper($1)) FOR UPDATE", [id])).rows[0];
+  if (!s) throw noEncontrado("No existe esa solicitud.");
+  exigirAlcance(u.alcance, s.sucursal_id);
+  if (s.estatus !== "FACTURADA") throw new ErrorApp(409, "estatus", "Primero registra la factura de la solicitud.");
+  if (s.enviada_en) throw new ErrorApp(409, "estatus", "La factura ya se marcó como enviada.");
+  await c.query("UPDATE solicitud_factura SET enviada_en = now(), enviada_por = $2 WHERE id = $1", [s.id, u.id]);
+  return { folio: s.folio, correo: s.correo, enviada: true };
 }
 
 async function solicitudesPendientes(c: Cliente, u: UsuarioActual, ids: string[]) {
@@ -485,7 +501,7 @@ export async function resolverCancelacion(c: Cliente, u: UsuarioActual, id: stri
   await c.query("UPDATE cfdi_emitido SET estatus = 'CANCELADA', cancelacion_autorizo_id = $2, cancelado_en = now() WHERE id = $1", [e.id, u.id]);
   await c.query("UPDATE cfdi_venta SET vigente = false WHERE cfdi_id = $1 AND vigente", [e.id]);
   // Las solicitudes vuelven a pendientes: se factura otra vez (normalmente con la factura que sustituye).
-  const ss = (await c.query("UPDATE solicitud_factura SET estatus = 'PENDIENTE', cfdi_id = NULL WHERE cfdi_id = $1 RETURNING folio", [e.id])).rows;
+  const ss = (await c.query("UPDATE solicitud_factura SET estatus = 'PENDIENTE', cfdi_id = NULL, enviada_en = NULL, enviada_por = NULL WHERE cfdi_id = $1 RETURNING folio", [e.id])).rows;
   return { uuid: e.uuid_cfdi, estatus: "CANCELADA", solicitudes_pendientes: ss.map((s) => s.folio) };
 }
 
@@ -500,7 +516,9 @@ export async function conciliacion(c: Cliente, u: UsuarioActual, desde: string, 
             coalesce(sum(cv.total) FILTER (WHERE e.clase = 'GLOBAL'), 0)::text AS global,
             count(*) FILTER (WHERE cv.venta_id IS NULL AND v.total - v.devuelto > 0)::int AS sin_facturar,
             coalesce(sum(v.total - v.devuelto) FILTER (WHERE cv.venta_id IS NULL), 0)::text AS importe_sin_facturar,
-            count(*) FILTER (WHERE sf.estatus = 'PENDIENTE')::int AS solicitudes_pendientes
+            count(*) FILTER (WHERE sf.estatus = 'PENDIENTE')::int AS solicitudes_pendientes,
+            count(*) FILTER (WHERE cv.venta_id IS NULL AND v.total - v.devuelto > 0 AND sf.id IS NULL)::int AS para_global,
+            coalesce(sum(v.total - v.devuelto) FILTER (WHERE cv.venta_id IS NULL AND sf.id IS NULL), 0)::text AS importe_para_global
        FROM venta v JOIN sucursal s ON s.id = v.sucursal_id
        LEFT JOIN cfdi_venta cv ON cv.venta_id = v.id AND cv.vigente LEFT JOIN cfdi_emitido e ON e.id = cv.cfdi_id
        LEFT JOIN solicitud_factura sf ON sf.venta_id = v.id AND sf.estatus = 'PENDIENTE'
@@ -528,7 +546,8 @@ export async function conciliacion(c: Cliente, u: UsuarioActual, desde: string, 
     desde, hasta, dias,
     totales: { vendido: t("vendido"), individual: t("individual"), global: t("global"), importe_sin_facturar: t("importe_sin_facturar") },
     alertas: {
-      dias_sin_global: dias.filter((r) => r.sin_facturar > 0 && !r.pendiente_del_dia).map((r) => ({ fecha: r.fecha, sucursal: r.sucursal, tickets: r.sin_facturar, importe: r.importe_sin_facturar })),
+      dias_sin_global: dias.filter((r) => r.para_global > 0 && !r.pendiente_del_dia).map((r) => ({ fecha: r.fecha, sucursal: r.sucursal, tickets: r.para_global, importe: r.importe_para_global })),
+      solicitudes_atrasadas: (await listarSolicitudes(c, u, { desde, hasta })).filter((s) => s.atrasada).map((s) => ({ folio: s.folio, ticket: s.ticket, fecha: s.fecha, rfc: s.rfc, correo: s.correo, estatus: s.estatus })),
       devoluciones_sin_nota: devoluciones.filter((x) => new D(x.notas).lt(x.por_acreditar)),
       cancelaciones_por_autorizar: cancelaciones,
     },

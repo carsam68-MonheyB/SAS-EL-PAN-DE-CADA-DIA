@@ -254,3 +254,35 @@ describe("contabilidad", () => {
     expect(d.datos.cfdis).toEqual([expect.objectContaining({ uuid, clase: "NOMINATIVA", rfc: CLIENTE.rfc })]);
   });
 });
+
+describe("decisión: los datos se piden el día de la compra y la factura llega por correo al día siguiente", () => {
+  it("el correo es obligatorio en la solicitud", async () => {
+    const { correo: _c, ...sinCorreo } = CLIENTE;
+    const r = await e.nav.enc!.post("/api/facturacion/solicitudes", { ...sinCorreo, venta: t.v3 });
+    expect(r.estado).toBe(400);
+  });
+
+  it("se registra cuándo se envió la factura; solo si ya está facturada y una sola vez", async () => {
+    expect((await e.nav.cnt!.post("/api/facturacion/solicitudes/SOL-000002/enviada")).datos.mensaje).toMatch(/Primero registra la factura/);
+    const r = await e.nav.cnt!.post("/api/facturacion/solicitudes/SOL-000001/enviada");
+    expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+    expect(r.datos).toMatchObject({ correo: "prueba@example.com", enviada: true });
+    expect((await e.nav.cnt!.post("/api/facturacion/solicitudes/SOL-000001/enviada")).estado).toBe(409);
+    const l = await e.nav.cnt!.get("/api/facturacion/solicitudes");
+    expect(l.datos.solicitudes.find((x: any) => x.folio === "SOL-000001")).toMatchObject({ envio: "prueba.cnt", atrasada: false });
+  });
+
+  it("un ticket con solicitud no cuenta para la global; pasado el plazo, la solicitud sale atrasada", async () => {
+    await e.pool.query("UPDATE configuracion SET valor = '1' WHERE clave = 'fiscal.dias_solicitud'");
+    const s = await e.nav.enc!.post("/api/facturacion/solicitudes", { ...CLIENTE, venta: t.v3 });
+    expect(s.estado, JSON.stringify(s.datos)).toBe(200);
+    await e.pool.query("UPDATE configuracion SET valor = '0' WHERE clave = 'fiscal.dias_solicitud'");
+    let r = await e.nav.con!.get(`/api/facturacion/conciliacion?desde=${ayer}&hasta=${hoy}`);
+    expect(r.datos.alertas.dias_sin_global).toEqual([]);
+    expect(r.datos.alertas.solicitudes_atrasadas).toEqual([]);
+    await e.pool.query("UPDATE configuracion SET valor = '0' WHERE clave = 'fiscal.dias_entrega_factura'");
+    r = await e.nav.con!.get(`/api/facturacion/conciliacion?desde=${ayer}&hasta=${hoy}`);
+    expect(r.datos.alertas.solicitudes_atrasadas.map((x: any) => [x.folio, x.estatus])).toEqual([[s.datos.folio, "PENDIENTE"]]);
+    await e.pool.query("UPDATE configuracion SET valor = '1' WHERE clave = 'fiscal.dias_entrega_factura'");
+  });
+});

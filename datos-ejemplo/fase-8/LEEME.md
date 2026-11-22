@@ -20,11 +20,12 @@ Usuarios de **Datos de prueba**:
 | Paso | Quién | Qué hacer | Resultado esperado |
 |---|---|---|---|
 | 1 | encargado | **Solicitar factura** → folio `CAJA-SUC1-1-000001` → **Buscar** | Muestra el ticket y el total a facturar. |
-| 2 | encargado | RFC `PEGJ800101AB1`, nombre `PRUEBA Juan Pérez`, régimen 612, C.P. 06000, uso G03 → **Registrar solicitud** | Queda la solicitud `SOL-000001`. Si buscas el ticket otra vez, dice que ya tiene solicitud. |
+| 2 | encargado | RFC `PEGJ800101AB1`, nombre `PRUEBA Juan Pérez`, régimen 612, C.P. 06000, uso G03, correo `prueba@example.com` → **Registrar solicitud** | Queda la solicitud `SOL-000001`. Sin correo no deja (la factura le llega por correo al día siguiente). Si buscas el ticket otra vez, dice que ya tiene solicitud. |
 | 3 | encargado | Intenta con RFC `XAXX010101000` o régimen `999` | No deja: el RFC genérico va en la global; el régimen no está en el catálogo. |
 | 4 | contador | **Solicitudes** → **Facturar** en `SOL-000001` | Aparecen los datos para capturar en el portal: receptor, un concepto por producto, forma de pago y totales. |
 | 5 | contador | **Generar XML de PRUEBA** (en la vida real: **Elegir archivo XML** con el que bajaste del portal) | La revisión muestra el UUID y los importes en verde. Si el XML no cuadra con el ticket o es de otro RFC, sale en rojo con la razón. |
-| 6 | contador | **Registrar factura** | La solicitud queda **Facturada** con su UUID. El ticket ya no se puede facturar otra vez. |
+| 6 | contador | **Registrar factura** | La solicitud queda **Facturada · Por enviar** con su UUID. El ticket ya no se puede facturar otra vez. |
+| 6b | contador | En **Solicitudes**: **Correo** (abre tu correo con el cliente y el asunto; adjunta el PDF y el XML del portal) → **Marcar enviada** | Queda **Enviada** con fecha y quién la envió. Si al día siguiente no se ha enviado, sale **Atrasada**. |
 | 7 | contador | **Factura global diaria** → día de hoy, Sucursal 1 | Lista los tickets del día que no se facturaron aparte: uno por concepto, con su folio, clave 01010101, unidad ACT y periodicidad 01. Se exporta a Excel. |
 | 8 | contador | **Generar XML de PRUEBA** → **Registrar factura** | Se registra la global. Si ahora el encargado busca uno de esos tickets, dice que va en la factura global. |
 | 9 | caja + encargado | Devuelve 1 concha del ticket `CAJA-SUC1-1-000001` (ya facturado) | En **Vendido vs. facturado** aparece el aviso: hace falta una nota de crédito. |

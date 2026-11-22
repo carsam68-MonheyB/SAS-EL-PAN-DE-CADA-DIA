@@ -43,7 +43,7 @@ function htmlTicket(t: Ticket): string {
       ${pagos}
       <tr><td>Cambio</td><td class="d">${$(t.cambio)}</td></tr>
     </table>
-    <hr><div class="c">¡Gracias por su compra!<br><small>Si requiere factura, solicítela hoy mismo con este ticket.</small></div>`;
+    <hr><div class="c">¡Gracias por su compra!<br><small>Si requiere factura, dé hoy mismo sus datos fiscales y su correo con este ticket: la factura le llega por correo al día siguiente.</small></div>`;
 }
 
 function htmlSimple(d: { titulo: string; lineas: [string, string][]; nota?: string }) {

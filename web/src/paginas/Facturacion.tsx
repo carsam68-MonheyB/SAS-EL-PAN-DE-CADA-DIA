@@ -146,7 +146,7 @@ function Solicitar() {
     : campo(k, `${label} (clave)`, { placeholder: k === "uso_cfdi" ? "G03" : "612" });
   return (
     <Stack maw={760}>
-      <Text size="sm" c="dimmed">El cliente pide su factura <b>el mismo día</b> de la compra, antes de la factura global diaria. Usa los datos de su constancia de situación fiscal.</Text>
+      <Text size="sm" c="dimmed">Los datos se piden <b>el mismo día</b> de la compra (usa los de su constancia de situación fiscal) y la factura le llega al cliente <b>por correo al día siguiente</b>. Ese ticket ya no entra en la factura global.</Text>
       <Group align="flex-end">
         <TextInput label="Folio del ticket" w={260} value={folio} onChange={(e) => setFolio(e.currentTarget.value)} placeholder="CAJA-SUC1-1-000001" onKeyDown={(e) => e.key === "Enter" && setBuscar(folio.trim())} />
         <Button variant="default" onClick={() => { crear.reset(); setBuscar(folio.trim()); }}>Buscar</Button>
@@ -171,13 +171,13 @@ function Solicitar() {
               {campo("codigo_postal", "Código postal fiscal")}
               {catalogo("uso_cfdi", "Uso del CFDI", op.data?.usos)}
             </SimpleGrid>
-            {campo("correo", "Correo para enviarle la factura (opcional)")}
+            {campo("correo", "Correo del cliente (ahí le llega su factura al día siguiente)")}
             {crear.error && <Alert color="red">{textoError(crear.error)}</Alert>}
-            <Button w={220} loading={crear.isPending} disabled={!d.rfc || !d.razon_social || !d.regimen_fiscal || !d.codigo_postal || !d.uso_cfdi} onClick={() => crear.mutate()}>Registrar solicitud</Button>
+            <Button w={220} loading={crear.isPending} disabled={!d.rfc || !d.razon_social || !d.regimen_fiscal || !d.codigo_postal || !d.uso_cfdi || !d.correo.includes("@")} onClick={() => crear.mutate()}>Registrar solicitud</Button>
           </Stack>
         </Card>
       )}
-      {crear.data && <Alert color="green">Solicitud <b>{crear.data.folio}</b> registrada para el ticket {crear.data.ticket} ({$(crear.data.total)}). El contador la factura en el portal del SAT.</Alert>}
+      {crear.data && <Alert color="green">Solicitud <b>{crear.data.folio}</b> registrada para el ticket {crear.data.ticket} ({$(crear.data.total)}). La factura le llega al cliente por correo al día siguiente.</Alert>}
     </Stack>
   );
 }
@@ -194,17 +194,31 @@ function Solicitudes() {
   const l = useQuery({ queryKey: ["f-solicitudes", estatus], queryFn: () => GET(`/api/facturacion/solicitudes?desde=${primeroDeMes()}${estatus ? `&estatus=${estatus}` : ""}`) });
   const portal = useQuery({ queryKey: ["f-portal", abierta?.folio], queryFn: () => GET(`/api/facturacion/portal/individual?solicitudes=${abierta.folio}`), enabled: !!abierta && abierta.estatus === "PENDIENTE" });
   const cancelar = useMutation({ mutationFn: () => POST(`/api/facturacion/solicitudes/${abierta.folio}/cancelar`, { motivo }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["f-solicitudes"] }); setAbierta(null); } });
+  const enviada = useMutation({ mutationFn: (folio: string) => POST(`/api/facturacion/solicitudes/${folio}/enviada`), onSuccess: () => qc.invalidateQueries({ queryKey: ["f-solicitudes"] }) });
   return (
     <Stack>
-      <Group><Select label="Estatus" w={180} clearable data={[{ value: "PENDIENTE", label: "Pendientes" }, { value: "FACTURADA", label: "Facturadas" }, { value: "CANCELADA", label: "Canceladas" }]} value={estatus} onChange={setEstatus} /></Group>
+      <Group><Select label="Estatus" w={180} clearable data={[{ value: "PENDIENTE", label: "Por facturar" }, { value: "POR_ENVIAR", label: "Facturadas por enviar" }, { value: "FACTURADA", label: "Facturadas" }, { value: "CANCELADA", label: "Canceladas" }]} value={estatus} onChange={setEstatus} /></Group>
+      {enviada.error && <Alert color="red">{textoError(enviada.error)}</Alert>}
       <Table striped withTableBorder fz="sm">
         <Table.Thead><Table.Tr><Table.Th>Folio</Table.Th><Table.Th>Ticket</Table.Th><Table.Th>Día</Table.Th><Table.Th>Sucursal</Table.Th><Table.Th>RFC</Table.Th><Table.Th>Nombre</Table.Th><Table.Th ta="right">Total</Table.Th><Table.Th>Estatus</Table.Th><Table.Th /></Table.Tr></Table.Thead>
         <Table.Tbody>
           {l.data?.solicitudes.map((s: any) => (
             <Table.Tr key={s.id}>
               <Table.Td>{s.folio}</Table.Td><Table.Td>{s.ticket}</Table.Td><Table.Td>{fecha(s.fecha)}</Table.Td><Table.Td>{s.sucursal}</Table.Td><Table.Td>{s.rfc}</Table.Td><Table.Td>{s.razon_social}</Table.Td>
-              <Table.Td ta="right">{$(s.total)}</Table.Td><Table.Td><Est e={s.estatus} />{s.uuid && <Text size="xs" c="dimmed">{s.uuid}</Text>}</Table.Td>
-              <Table.Td><Button size="xs" variant="light" onClick={() => { setMotivo(""); setAbierta(s); }}>{s.estatus === "PENDIENTE" ? "Facturar" : "Ver"}</Button></Table.Td>
+              <Table.Td ta="right">{$(s.total)}</Table.Td>
+              <Table.Td>
+                <Group gap={4}><Est e={s.estatus} />{s.estatus === "FACTURADA" && <Badge variant="light" color={s.enviada_en ? "teal" : "orange"}>{s.enviada_en ? "Enviada" : "Por enviar"}</Badge>}{s.atrasada && <Badge color="red">Atrasada</Badge>}</Group>
+                {s.uuid && <Text size="xs" c="dimmed">{s.uuid}</Text>}
+                {s.enviada_en && <Text size="xs" c="dimmed">Enviada {fechaHora(s.enviada_en)} por {s.envio}</Text>}
+              </Table.Td>
+              <Table.Td>
+                {s.estatus === "FACTURADA" && !s.enviada_en ? (
+                  <Group gap={4} wrap="nowrap">
+                    <Button size="xs" variant="default" component="a" href={`mailto:${s.correo}?subject=${encodeURIComponent(`Factura de su compra ${s.ticket}`)}&body=${encodeURIComponent(`Le enviamos adjuntos el PDF y el XML de la factura de su compra del ${fecha(s.fecha)} (ticket ${s.ticket}).\nFolio fiscal: ${s.uuid}`)}`}>Correo</Button>
+                    <Button size="xs" variant="light" color="teal" loading={enviada.isPending} onClick={() => enviada.mutate(s.folio)}>Marcar enviada</Button>
+                  </Group>
+                ) : <Button size="xs" variant="light" onClick={() => { setMotivo(""); setAbierta(s); }}>{s.estatus === "PENDIENTE" ? "Facturar" : "Ver"}</Button>}
+              </Table.Td>
             </Table.Tr>
           ))}
           {l.data && !l.data.solicitudes.length && <Table.Tr><Table.Td colSpan={9}><Text c="dimmed" size="sm">Sin solicitudes.</Text></Table.Td></Table.Tr>}
@@ -377,6 +391,7 @@ function Conciliacion() {
             ))}
           </SimpleGrid>
           {!!d.alertas.dias_sin_global.length && <Alert color="red" title="Días con tickets sin facturar">{d.alertas.dias_sin_global.map((x: any) => `${fecha(x.fecha)} ${x.sucursal}: ${x.tickets} tickets, ${$(x.importe)}`).join(" · ")}. Falta su factura global.</Alert>}
+          {!!d.alertas.solicitudes_atrasadas.length && <Alert color="red" title="Facturas que ya debieron llegar al cliente">{d.alertas.solicitudes_atrasadas.map((x: any) => `${x.folio} (ticket ${x.ticket} del ${fecha(x.fecha)}, ${x.correo}): ${x.estatus === "PENDIENTE" ? "falta facturar" : "falta enviar"}`).join(" · ")}</Alert>}
           {!!d.alertas.devoluciones_sin_nota.length && <Alert color="orange" title="Devoluciones de tickets ya facturados">{d.alertas.devoluciones_sin_nota.map((x: any) => `${x.folio}: ${$(x.por_acreditar)} (factura ${x.uuid})`).join(" · ")}. Haz la nota de crédito en el portal del SAT y súbela en la factura.</Alert>}
           {!!d.alertas.cancelaciones_por_autorizar.length && <Alert color="orange" title="Cancelaciones por autorizar">{d.alertas.cancelaciones_por_autorizar.map((x: any) => `${x.uuid} (${$(x.total)}, registró ${x.solicito})`).join(" · ")}</Alert>}
           <Table striped withTableBorder fz="sm">

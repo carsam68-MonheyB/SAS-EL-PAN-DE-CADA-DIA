@@ -269,7 +269,8 @@ Decisiones del negocio (P49, P53, P54, P56, P58, P64): las facturas se hacen y s
 
 - **Solicitud de factura** (`solicitud_factura`):
   - Lleva los datos fiscales del cliente (RFC, nombre, régimen, C.P., uso del CFDI) ligados a un ticket.
-  - Se pide **el mismo día** (`fiscal.dias_solicitud` = 0) y antes de la global de ese día.
+  - Se pide **el mismo día** (`fiscal.dias_solicitud` = 0), con el **correo** del cliente (obligatorio). Su ticket no entra en la global.
+  - La factura **le llega por correo al día siguiente** (`fiscal.dias_entrega_factura` = 1): se registra quién la envió y cuándo; las que pasan del plazo salen atrasadas en la conciliación.
   - Régimen y uso se validan contra el catálogo del SAT cargado (`c_RegimenFiscal`, `c_UsoCFDI`).
   - Los datos no se modifican: se cancela la solicitud y se captura otra.
 - **Datos para el portal** (`src/dominio/facturacion.ts`, con pruebas):
