@@ -165,7 +165,8 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
 
   | Operación | Permiso | Límite |
   |---|---|---|
-  | Descuentos | `pos.devoluciones:autorizar` | `pos.devolucion_descuento` |
+  | Descuentos (contador o contralor, P50) | `pos.descuentos:autorizar` | — |
+  | Pedido sin anticipo (contador o contralor, P60) | `pos.pedidos_sin_anticipo:autorizar` | — |
   | Devoluciones (no las autoriza quien vendió) | `pos.devoluciones:autorizar` | `pos.devolucion_descuento` |
   | Retiros e ingresos de efectivo | `pos.caja:autorizar` | — |
   | Cancelación de pedidos | `pos.pedidos:autorizar` | — |
@@ -175,6 +176,7 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - X: parcial, no cierra el turno.
   - Z: arqueo por denominación, efectivo esperado contra contado y diferencia. Si la diferencia pasa de `pos.diferencia_corte_maxima`, exige comentario y autorización.
 - **Pedidos:**
+  - Se toman en la caja (mostrador) o desde oficina por WhatsApp o teléfono, para la sucursal que entrega. Los de oficina van sin anticipo y con autorización.
   - Se registran con anticipo y abonos, que son un pasivo del cliente (`movimiento_caja` ANTICIPO).
   - La entrega es una venta a los precios pactados que aplica lo anticipado.
   - Al cancelar, el anticipo se devuelve o se retiene.
@@ -184,7 +186,12 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - `pruebas/pos.test.ts`: flujo completo.
 - **Pendiente:**
   - Pólizas (Fase 7) y factura y factura global (Fase 8).
-  - Modo sin conexión (P43) y báscula (P46).
+  - Abrir el cajón por ESC/POS, solo si el controlador de la Ghia no lo hace (P45).
+- **Sin internet (P43):**
+  - La caja sigue vendiendo. `web/src/sinConexion.ts` guarda una copia de productos y existencias, la cola de ventas y el folio provisional.
+  - `web/public/sw.js` guarda la aplicación para que abra sin red.
+  - Al reconectar se envía cada venta con `sin_conexion` (hora real y folio provisional). El servidor no la duplica y la valida igual que cualquier venta.
+  - Si una venta ya no tiene existencia, queda marcada para que el encargado corrija el inventario y la reenvíe. No se borra.
 
 ## Traslado a la estructura definitiva
 

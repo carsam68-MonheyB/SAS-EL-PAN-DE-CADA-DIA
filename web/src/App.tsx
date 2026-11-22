@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, NavLink as RouterLink, Route, Routes } from "r
 import { AppShell, Badge, Burger, Center, Group, Loader, NavLink, ScrollArea, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { GET, POST } from "./api";
+import { copia, esErrorDeRed } from "./sinConexion";
 import { ContextoSesion, useSesion, type Yo } from "./sesion";
 import { ActivarCuenta, Entrar, EtapaAcceso, Instalacion } from "./paginas/Acceso";
 import { Inicio } from "./paginas/Inicio";
@@ -106,7 +107,11 @@ function Marco() {
 export function App() {
   const [yo, setYo] = useState<Yo | null | undefined>(undefined);
   const recargar = useCallback(() => {
-    GET<Yo>("/api/auth/yo").then(setYo).catch(() => setYo(null));
+    // En la caja, si se cae el internet se sigue con la última sesión conocida (P43); el servidor valida al reconectar.
+    const enCaja = window.location.pathname.startsWith("/pos");
+    GET<Yo>("/api/auth/yo")
+      .then((y) => { if (enCaja) copia.guardar("yo", y); setYo(y); })
+      .catch((e) => setYo(enCaja && esErrorDeRed(e) ? copia.leer<Yo>("yo")?.datos ?? null : null));
   }, []);
   useEffect(() => {
     recargar();

@@ -256,7 +256,8 @@ const activar = ruta({ publica: true, metodos: ["POST"] }, async (ctx) => {
 
 // ---------------------------------------------------------------------------
 // PIN de cajero: lo define el propio usuario confirmando su contraseña.
-const miPin = ruta({ metodos: ["POST"], permiso: "pos.ventas:crear" }, async (ctx) => {
+// Lo definen cajeros y quienes autorizan en caja con su PIN (encargado, contralor, contador).
+const miPin = ruta({ metodos: ["POST"], permiso: ["pos.ventas:crear", "pos.devoluciones:autorizar", "pos.caja:autorizar", "pos.caja:cerrar", "pos.pedidos:autorizar", "pos.descuentos:autorizar", "pos.pedidos_sin_anticipo:autorizar"] }, async (ctx) => {
   const datos = await leerCuerpo(ctx.req, z.object({ password: z.string().min(1).max(200), pin: z.string().regex(/^\d+$/, "El PIN solo lleva números.") }));
   await ctx.tx(async (c) => {
     const digitos = await configEntero(c, "seguridad.pin_digitos");

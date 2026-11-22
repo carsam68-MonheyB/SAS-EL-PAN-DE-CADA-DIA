@@ -91,14 +91,14 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P43 | ¿El POS debe funcionar **sin internet**? 🟡 **Fase 6:** se construyó **con internet**. Ya quedó preparado lo principal para trabajar sin conexión: cada venta lleva un identificador generado en la caja, así que reenviarla no la duplica. Si lo necesitas, se agrega la cola local (diseño 3.6). Ojo: sin conexión no se puede garantizar la regla P71 de no vender sin existencia. | F6 (confirmar) |
+| P43 | POS sin internet. ✅ **Decidido (22/11/2026):** en una urgencia la caja **sigue vendiendo sin internet**. Las ventas se guardan en la computadora con folio provisional (`SC-…`), sin desglose de impuestos en el ticket, y se envían solas al volver la conexión; no se duplican. Para no vender lo que no hay (P71) se usa la última existencia conocida. Sin conexión **no** se hacen devoluciones, retiros, pedidos, descuentos ni cortes, y el corte Z espera a que se envíen las ventas pendientes. | — |
 | P44 | ✅ **Respondida (cotización Ordenadores BXC, 18/08/2026):** HP usada Core i3, 8 GB RAM, SSD 128 GB, WiFi; monitor táctil Hostech 18.5" Full HD (1920×1080); regulador Ghia de 8 contactos. Falta: generación del i3 y versión de Windows (Windows 10 ya no recibe parches de seguridad desde oct‑2025). | — |
-| P45 | 🟡 **Por aclarar:** la cotización trae una **Ghia de 80 mm con autocorte, USB**, no la OFICHIDO. Los modelos Ghia de 80 mm (GTP801/GTP802) aceptan ESC/POS y tienen puerto de cajón. ¿Cuál queda en la caja y qué modelo exacto es? | F6 |
-| P46 | 🟡 **Parcial:** cajón **Ghia RJ11** conectado a la impresora; la computadora solo imprime tickets; **no hay lector de código de barras** (el POS se opera con botones táctiles por familia y con búsqueda; el código de barras queda como campo opcional del SKU, y un lector USB que se compre después funciona sin cambios). Falta: ¿hay **báscula** / venta por peso? | F6 |
-| P47 | Formas de pago. 🟡 **Fase 6 (provisional):** Efectivo (01), Tarjeta de crédito (04), Tarjeta de débito (28) y Transferencia (03), con terminal bancaria independiente. Solo se guarda la referencia o autorización del voucher; si alguien escribe un número de tarjeta, el sistema lo rechaza. Confirma cuáles aceptas. | No |
-| P48 | Denominaciones para el arqueo. ✅ Billetes de $1,000 a $20 y monedas de $10 a $0.50 (vigentes de Banco de México). 🟡 El fondo se captura al abrir cada turno; el campo "fondo sugerido" por caja es opcional. ¿El fondo es fijo por caja? ¿De cuánto? | No |
+| P45 | Impresora. ✅ **Ghia de 80 mm con autocorte, USB** (cotización Ordenadores BXC) y cajón Ghia RJ11 conectado a la impresora. Se imprime con Chrome en modo kiosco (`--kiosk-printing`) y el controlador de Windows de la Ghia. El cajón se abre desde la configuración del controlador ("abrir cajón al imprimir"). Si ese controlador no lo permite, se agrega el agente ESC/POS local (sección 3.5). Al instalar se anota el modelo de la etiqueta (GTP801 o GTP802). | — |
+| P46 | ✅ Cajón Ghia RJ11 en la impresora; sin lector de código de barras (un lector USB posterior funciona sin cambios). **No se vende pan por peso** (sin báscula): las piezas van en números enteros. | — |
+| P47 | ✅ **Decidido:** se aceptan efectivo, tarjeta de crédito, tarjeta de débito (terminal bancaria aparte) y transferencia. Solo se guarda la referencia del voucher. | — |
+| P48 | ✅ Denominaciones de Banco de México para el arqueo. **El fondo de caja se define cada día** al abrir el turno (no es fijo). | — |
 | P49 | Periodicidad de la **factura global** (diaria, semanal, mensual, bimestral según tu régimen). Plazo que tiene el cliente para pedir factura de su ticket. | F8 |
-| P50 | Descuentos en POS. 🟡 **Fase 6:** se permiten en pesos por renglón y los autoriza con su PIN un encargado (no el cajero), con el límite "devoluciones y descuentos" de la matriz: encargado hasta $500, contralor sin límite (provisional). ¿Está bien así? | No |
+| P50 | ✅ **Decidido:** se permiten descuentos y los autoriza con su PIN el **contador o el contralor** (permiso `pos.descuentos:autorizar`), sin límite por monto. El encargado ya no autoriza descuentos. | — |
 
 ## H. Contabilidad y fiscal
 
@@ -117,8 +117,8 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P59 | ¿Dónde se toman los pedidos? 🟡 **Fase 6:** en la caja de la sucursal (cajero o encargado). Si también se toman por teléfono o WhatsApp en oficina, dime quién los captura. | No |
-| P60 | Anticipo mínimo. 🟡 **Fase 6:** configurable (`pos.anticipo_minimo_pct`, hoy **0 %**, provisional). Se permiten varios abonos antes de la entrega. | No |
+| P59 | ✅ **Decidido:** pedidos en el mostrador (caja) y por **WhatsApp o teléfono** desde oficina (pantalla Ventas y cortes → Pedidos), para la sucursal que entrega. Quién los captura: quien tenga `pos.pedidos:crear` (hoy cajero y encargado; se puede asignar a otro puesto). | — |
+| P60 | ✅ **Decidido:** no hay anticipo mínimo; un pedido **sin anticipo** lo autoriza el **contador o el contralor** con su PIN (`pos.pedidos_sin_anticipo:autorizar`). Se permiten varios abonos. | — |
 | P61 | Cancelación de pedidos. 🟡 **Fase 6:** la autoriza con PIN un encargado, que decide si el anticipo **se devuelve** (sale efectivo de la caja) o **se retiene**. ¿Hay plazo o regla fija? | No |
 | P62 | Personalización de pedidos. 🟡 **Fase 6:** cada renglón lleva especificaciones (texto) y el pedido lleva notas. Solo productos del catálogo, al precio vigente (que queda fijo al registrar el pedido). Faltan la foto de referencia y los productos especiales con precio libre. | No |
 | P63 | ¿El pedido se produce en planta con su propia orden de producción o sale del producto normal del día? | F2 / F5 |

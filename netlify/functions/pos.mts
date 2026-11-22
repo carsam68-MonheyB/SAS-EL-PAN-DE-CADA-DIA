@@ -9,7 +9,7 @@ import { libroExcel, respuestaExcel } from "../../src/servidor/excel";
 import { hoyNegocio } from "../../src/servidor/fechas";
 import { leerCuerpo } from "../../src/servidor/http";
 import {
-  abonarPedido, abrirTurno, cancelarPedido, contextoCaja, corteX, corteZ, crearPedido, devolver, entregarPedido, movimientoEfectivo,
+  abonarPedido, abrirTurno, cancelarPedido, contextoCaja, contextoOficina, corteX, corteZ, crearPedido, devolver, entregarPedido, movimientoEfectivo,
   productosCaja, resumenTurno, ticket, vender, verificarSupervisor, type Autorizacion, type ContextoCaja,
 } from "../../src/servidor/pos";
 import { ruta, type ContextoAutenticado } from "../../src/servidor/ruta";
@@ -44,7 +44,11 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
             WHERE c.activo AND ($1::boolean OR c.sucursal_id = ANY($2::uuid[])) ORDER BY s.clave, c.clave`,
           [ctx.usuario.alcance.todas, ctx.usuario.alcance.sucursales],
         )).rows;
-        return { sin_caja: true, cajas, puede_abrir: ctx.puede(["pos.caja:crear", "pos.caja:autorizar"]) };
+        const sucursales = (await c.query(
+          "SELECT s.clave, s.nombre FROM sucursal s WHERE s.activo AND ($1::boolean OR s.id = ANY($2::uuid[])) ORDER BY s.clave",
+          [ctx.usuario.alcance.todas, ctx.usuario.alcance.sucursales],
+        )).rows;
+        return { sin_caja: true, cajas, sucursales, puede_abrir: ctx.puede(["pos.caja:crear", "pos.caja:autorizar"]) };
       }
       const k = await caja()(c);
       return {
@@ -57,7 +61,11 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
       };
     });
   }
-  if (recurso === "productos" && m === "GET") return ctx.tx(async (c) => ({ productos: await productosCaja(c, await caja()(c)) }));
+  if (recurso === "productos" && m === "GET") {
+    // En oficina (pedidos por teléfono o WhatsApp) se consultan los precios de la sucursal que entrega.
+    if (ctx.sesion.tipo !== "pos" && sp.get("sucursal")) return ctx.tx(async (c) => ({ productos: await productosCaja(c, await contextoOficina(c, ctx.usuario, sp.get("sucursal")!)) }));
+    return ctx.tx(async (c) => ({ productos: await productosCaja(c, await caja()(c)) }));
+  }
 
   if (recurso === "turno" && m === "POST") {
     const d = await leerCuerpo(ctx.req, z.object({ fondo: NUM }));
@@ -71,11 +79,12 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
       renglones: z.array(z.object({ articulo: z.string().max(30), cantidad: NUM, descuento: NUM.optional().nullable() })).min(1).max(200),
       pagos: z.array(PAGO).max(10),
       autorizacion: AUT.optional().nullable(),
+      sin_conexion: z.object({ fecha_caja: z.string().datetime({ offset: true }), folio_local: z.string().regex(/^[A-Z0-9-]{1,40}$/) }).optional().nullable(),
     }));
     const k0 = await ctx.tx(caja());
     const hayDescuento = d.renglones.some((r) => r.descuento && Number(r.descuento.replaceAll(",", "")) > 0);
-    const autorizo = hayDescuento ? await supervisor(ctx, k0, d.autorizacion, "pos.devoluciones:autorizar", "descuento en venta") : null;
-    return ctx.tx(async (c) => vender(c, await caja(true)(c), { ...d, autorizoDescuento: autorizo }));
+    const autorizo = hayDescuento ? await supervisor(ctx, k0, d.autorizacion, "pos.descuentos:autorizar", "descuento en venta") : null;
+    return ctx.tx(async (c) => vender(c, await caja(true)(c), { ...d, autorizoDescuento: autorizo, sinConexion: d.sin_conexion ?? null }));
   }
   if (recurso === "ventas" && !id && m === "GET") {
     return ctx.tx(async (c) => {
@@ -178,7 +187,7 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
       ctx.exigir("pos.pedidos:ver");
       return ctx.tx(async (c) => ({ pedidos: (await c.query(
         `SELECT p.id, p.folio, p.estatus, p.cliente_nombre, p.telefono, p.fecha_entrega::text, p.total::text, p.anticipado::text, (p.total - p.anticipado)::text AS saldo,
-                p.notas, s.clave AS sucursal, u.usuario AS registro, p.creado_en, p.destino_anticipo, v.folio AS venta,
+                p.notas, p.origen, s.clave AS sucursal, u.usuario AS registro, p.creado_en, p.destino_anticipo, v.folio AS venta,
                 (SELECT json_agg(json_build_object('articulo', a.clave, 'nombre', a.nombre, 'cantidad', r.cantidad::text, 'precio', r.precio::text, 'importe', r.importe::text, 'especificaciones', r.especificaciones) ORDER BY r.creado_en)
                    FROM pedido_renglon r JOIN articulo a ON a.id = r.articulo_id WHERE r.pedido_id = p.id) AS renglones
            FROM pedido p JOIN sucursal s ON s.id = p.sucursal_id JOIN usuario u ON u.id = p.registrado_por LEFT JOIN venta v ON v.id = p.venta_id
@@ -191,9 +200,17 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
         cliente_nombre: z.string().trim().min(2, "Escribe el nombre del cliente.").max(120), telefono: z.string().trim().max(20).optional().nullable(),
         cliente: z.string().max(30).optional().nullable(), fecha_entrega: FECHA, notas: z.string().trim().max(500).optional().nullable(),
         renglones: z.array(z.object({ articulo: z.string().max(30), cantidad: NUM, especificaciones: z.string().trim().max(300).optional().nullable() })).min(1).max(100),
-        anticipo: PAGO.optional().nullable(),
+        anticipo: PAGO.optional().nullable(), origen: z.enum(["MOSTRADOR", "TELEFONO", "WHATSAPP"]).optional(),
+        sucursal: z.string().max(20).optional().nullable(), autorizacion: AUT.optional().nullable(),
       }));
-      return ctx.tx(async (c) => crearPedido(c, await caja(true)(c), d));
+      // En la caja: sucursal de la caja. En oficina (teléfono o WhatsApp): la sucursal que entrega.
+      const contexto = (bloquear: boolean) => (c: Parameters<typeof contextoCaja>[0]) =>
+        ctx.sesion.tipo === "pos" ? contextoCaja(c, ctx.sesion, bloquear) : contextoOficina(c, ctx.usuario, d.sucursal ?? "");
+      if (ctx.sesion.tipo !== "pos" && !d.sucursal) throw invalido("Indica la sucursal que entrega el pedido.");
+      const k0 = await ctx.tx(contexto(false));
+      const sinAnticipo = !d.anticipo || Number(d.anticipo.importe.replaceAll(",", "")) <= 0;
+      const autorizo = sinAnticipo ? await supervisor(ctx, k0, d.autorizacion, "pos.pedidos_sin_anticipo:autorizar", "pedido sin anticipo") : null;
+      return ctx.tx(async (c) => crearPedido(c, await contexto(true)(c), { ...d, origen: d.origen ?? (ctx.sesion.tipo === "pos" ? "MOSTRADOR" : "TELEFONO"), autorizoSinAnticipo: autorizo }));
     }
     if (id && accion === "abonar" && m === "POST") {
       const d = await leerCuerpo(ctx.req, PAGO);

@@ -16,7 +16,7 @@ describe("migraciones", () => {
     const est = await c.query("SELECT string_agg(clave, ',' ORDER BY clave) c FROM almacen");
     await c.end();
     expect(roles.rows[0].n).toBe(12);
-    expect(asign.rows[0].n).toBe(365); // 350 aprobadas + 15 de la migración 0010 (cancelaciones de inventario, P70)
+    expect(asign.rows[0].n).toBe(373); // 350 aprobadas + 15 de la 0010 (cancelaciones, P70) + 8 de la 0012 (descuentos y pedidos sin anticipo)
     expect(est.rows[0].c).toBe("MP-MAT,PEP-MAT,PT-MAT,PT-SUC1");
   });
 });

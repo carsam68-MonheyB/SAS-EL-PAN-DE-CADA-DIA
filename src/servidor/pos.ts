@@ -50,6 +50,16 @@ export async function contextoCaja(c: Cliente, sesion: Sesion, bloquearTurno = f
   return { caja, cajero, turno };
 }
 
+/** Pedidos tomados en oficina (teléfono o WhatsApp): sin caja ni turno, para la sucursal que entrega. */
+export async function contextoOficina(c: Cliente, usuario: UsuarioActual, sucursal: string): Promise<ContextoCaja> {
+  const s = (await c.query("SELECT id, clave, nombre FROM sucursal WHERE clave = upper($1) AND activo", [sucursal])).rows[0];
+  if (!s) throw invalido(`No existe la sucursal ${sucursal}.`);
+  if (!dentroDeAlcanceSucursal(usuario.alcance, s.id)) throw prohibido("Esa sucursal no está dentro de tus sucursales asignadas.");
+  // Sin caja: no hay almacén (la existencia se ve en la sucursal al entregar).
+  const caja = { id: "", clave: "OFICINA", nombre: "Oficina", sucursal_id: s.id, sucursal: s.clave, sucursal_nombre: s.nombre, almacen_id: null as unknown as string, almacen: "", fondo_sugerido: null };
+  return { caja, cajero: usuario, turno: null };
+}
+
 function exigirCajero(k: ContextoCaja, permiso: string | string[]) {
   if (!tieneAlguno(k.cajero.permisos, permiso)) throw prohibido(`${k.cajero.nombre} no tiene permiso para esta operación en caja.`);
   if (!dentroDeAlcanceSucursal(k.cajero.alcance, k.caja.sucursal_id)) throw prohibido(`${k.cajero.nombre} no está asignado a esta sucursal.`);
@@ -132,7 +142,7 @@ export async function productosCaja(c: Cliente, k: ContextoCaja) {
             a.tasa_iva_id IS NOT NULL AS tiene_iva
        FROM articulo a JOIN unidad u ON u.id = a.unidad_base_id LEFT JOIN familia f ON f.id = a.familia_id
       WHERE a.tipo = 'SKU' AND a.activo ORDER BY f.nombre NULLS LAST, a.nombre`,
-    [k.caja.sucursal_id, hoy, k.caja.almacen_id],
+    [k.caja.sucursal_id, hoy, k.caja.almacen_id ?? null],
   );
   return rows;
 }
@@ -193,7 +203,8 @@ async function prepararPagos(c: Cliente, porCobrar: Dec, pagos: PagoCaptura[]) {
 export interface RenglonVenta { articulo: string; cantidad: string; descuento?: string | null }
 export interface PedidoVenta { id: string; anticipado: Dec; renglones: { articulo: string; cantidad: string; precio: string }[] }
 
-export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; renglones: RenglonVenta[]; pagos: PagoCaptura[]; autorizoDescuento?: string | null }, pedido?: PedidoVenta) {
+export interface SinConexion { fecha_caja: string; folio_local: string }
+export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; renglones: RenglonVenta[]; pagos: PagoCaptura[]; autorizoDescuento?: string | null; sinConexion?: SinConexion | null }, pedido?: PedidoVenta) {
   exigirCajero(k, "pos.ventas:crear");
   const turno = exigirTurno(k);
   const ya = (await c.query("SELECT id, folio, total::text, cambio::text FROM venta WHERE id = $1", [d.id])).rows[0];
@@ -222,7 +233,6 @@ export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; rengl
     return { orden: i + 1, a, cantidad, precio, desc, importe, imp };
   });
   if (descuento.gt(0) && !d.autorizoDescuento) throw new ErrorApp(403, "requiere_autorizacion", "El descuento requiere la autorización de un encargado.");
-  if (descuento.gt(0)) await dentroDeLimite(c, d.autorizoDescuento!, "pos.devolucion_descuento", descuento);
   const anticipo = pedido?.anticipado ?? new D(0);
   const cobro = await prepararPagos(c, total.minus(anticipo), d.pagos);
   // Folio consecutivo por caja (provisional, P54).
@@ -231,10 +241,11 @@ export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; rengl
   const salida = await salidaPorVenta(c, k.cajero.id, k.caja.almacen_id, d.id, folio, renglones.map((r) => ({ articulo_id: r.a.id, cantidad: r.cantidad })));
   await c.query(
     `INSERT INTO venta (id, folio, caja_id, turno_id, sucursal_id, almacen_id, cajero_id, fecha_negocio, subtotal, ieps, iva, descuento, total, recibido, cambio,
-                        pedido_id, anticipo_aplicado, movimiento_id, autorizo_descuento_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+                        pedido_id, anticipo_aplicado, movimiento_id, autorizo_descuento_id, sin_conexion, fecha_caja, folio_local)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
     [d.id, folio, k.caja.id, turno.id, k.caja.sucursal_id, k.caja.almacen_id, k.cajero.id, await hoyNegocio(c), m2(base), m2(ieps), m2(iva), m2(descuento), m2(total),
-      m2(cobro.recibido.plus(anticipo)), m2(cobro.cambio), pedido?.id ?? null, m2(anticipo), salida.movimientoId, descuento.gt(0) ? d.autorizoDescuento : null],
+      m2(cobro.recibido.plus(anticipo)), m2(cobro.cambio), pedido?.id ?? null, m2(anticipo), salida.movimientoId, descuento.gt(0) ? d.autorizoDescuento : null,
+      !!d.sinConexion, d.sinConexion?.fecha_caja ?? null, d.sinConexion?.folio_local ?? null],
   );
   for (const [i, r] of renglones.entries()) {
     const costo = salida.costos[i]!;
@@ -250,7 +261,7 @@ export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; rengl
     if (aplicado.gt(0)) await c.query("INSERT INTO venta_pago (venta_id, forma_pago_id, importe, referencia) VALUES ($1, $2, $3, $4)", [d.id, p.forma.id, m2(aplicado), p.referencia]);
   }
   if (anticipo.gt(0)) await c.query("INSERT INTO venta_pago (venta_id, forma_pago_id, importe, referencia) VALUES ($1, NULL, $2, $3)", [d.id, m2(anticipo), "Anticipo del pedido"]);
-  return { id: d.id, folio, total: m2(total), cambio: m2(cobro.cambio) };
+  return { id: d.id, folio, total: m2(total), cambio: m2(cobro.cambio), folio_local: d.sinConexion?.folio_local ?? null };
 }
 
 // ---------------------------------------------------------------------------
@@ -414,7 +425,7 @@ async function registrarAnticipo(c: Cliente, k: ContextoCaja, pedidoId: string, 
   return { importe: m2(pagos.aplicados[0]!), cambio: m2(pagos.cambio) };
 }
 
-export async function crearPedido(c: Cliente, k: ContextoCaja, d: { cliente_nombre: string; telefono?: string | null; cliente?: string | null; fecha_entrega: string; notas?: string | null; renglones: { articulo: string; cantidad: string; especificaciones?: string | null }[]; anticipo?: PagoCaptura | null }) {
+export async function crearPedido(c: Cliente, k: ContextoCaja, d: { cliente_nombre: string; telefono?: string | null; cliente?: string | null; fecha_entrega: string; notas?: string | null; origen?: "MOSTRADOR" | "TELEFONO" | "WHATSAPP"; renglones: { articulo: string; cantidad: string; especificaciones?: string | null }[]; anticipo?: PagoCaptura | null; autorizoSinAnticipo?: string | null }) {
   exigirCajero(k, "pos.pedidos:crear");
   const hoy = await hoyNegocio(c);
   if (d.fecha_entrega < hoy) throw invalido("La fecha de entrega no puede ser anterior a hoy.");
@@ -438,9 +449,12 @@ export async function crearPedido(c: Cliente, k: ContextoCaja, d: { cliente_nomb
   const minimo = total.mul(await configEntero(c, "pos.anticipo_minimo_pct")).div(100).toDecimalPlaces(2, D.ROUND_HALF_UP);
   const anticipo = d.anticipo ? dec(d.anticipo.importe, "Anticipo") : new D(0);
   if (anticipo.lt(minimo)) throw invalido(`El anticipo mínimo es $${m2(minimo)}.`);
+  // P60: sin anticipo, el pedido lo autoriza el contador o el contralor.
+  if (anticipo.lte(0) && !d.autorizoSinAnticipo) throw new ErrorApp(403, "requiere_autorizacion", "Un pedido sin anticipo lo autoriza el contador o el contralor con su PIN.");
+  if (anticipo.gt(0) && !k.turno) throw invalido("El anticipo se cobra en la caja: registra el pedido sin anticipo (con autorización) o cóbralo en la sucursal.");
   const p = (await c.query(
-    "INSERT INTO pedido (sucursal_id, cliente_id, cliente_nombre, telefono, fecha_entrega, notas, total, registrado_por) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, folio",
-    [k.caja.sucursal_id, clienteId, d.cliente_nombre, d.telefono ?? null, d.fecha_entrega, d.notas ?? null, m2(total), k.cajero.id],
+    "INSERT INTO pedido (sucursal_id, cliente_id, cliente_nombre, telefono, fecha_entrega, notas, total, registrado_por, origen, autorizo_sin_anticipo_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, folio",
+    [k.caja.sucursal_id, clienteId, d.cliente_nombre, d.telefono ?? null, d.fecha_entrega, d.notas ?? null, m2(total), k.cajero.id, d.origen ?? "MOSTRADOR", anticipo.lte(0) ? d.autorizoSinAnticipo : null],
   )).rows[0];
   for (const r of rs) {
     await c.query("INSERT INTO pedido_renglon (pedido_id, articulo_id, cantidad, precio, importe, especificaciones) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -504,7 +518,7 @@ export async function cancelarPedido(c: Cliente, k: ContextoCaja, id: string, d:
 export async function ticket(c: Cliente, ventaId: string) {
   const v = (await c.query(
     `SELECT v.id, v.folio, v.fecha, v.subtotal::text, v.ieps::text, v.iva::text, v.descuento::text, v.total::text, v.recibido::text, v.cambio::text,
-            v.devuelto::text, v.estatus, v.anticipo_aplicado::text, s.nombre AS sucursal, cj.nombre AS caja, u.nombre AS cajero, pe.folio AS pedido, v.sucursal_id
+            v.devuelto::text, v.estatus, v.anticipo_aplicado::text, v.sin_conexion, v.folio_local, v.fecha_caja, s.nombre AS sucursal, cj.nombre AS caja, u.nombre AS cajero, pe.folio AS pedido, v.sucursal_id
        FROM venta v JOIN sucursal s ON s.id = v.sucursal_id JOIN caja cj ON cj.id = v.caja_id JOIN usuario u ON u.id = v.cajero_id
        LEFT JOIN pedido pe ON pe.id = v.pedido_id WHERE v.id::text = $1 OR v.folio = upper($1)`,
     [ventaId],

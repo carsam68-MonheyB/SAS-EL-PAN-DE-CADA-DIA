@@ -11,6 +11,7 @@ import {
 import { GET, POST, textoError } from "../api";
 import { fecha, fechaHora, fechaIso, numero } from "../formato";
 import { impresoraNavegador } from "../impresion";
+import { cola, copia, esErrorDeRed, folioLocal, type VentaPendiente } from "../sinConexion";
 import { useSesion } from "../sesion";
 
 const $ = (v: string | number | null | undefined) => (v === null || v === undefined || v === "" ? "" : `${Number(v) < 0 ? "-" : ""}$${numero(Math.abs(Number(v)), 2)}`);
@@ -227,12 +228,14 @@ function Pedidos({ estado, productos, cerrar, alTerminar }: { estado: any; produ
   const [abono, setAbono] = useState({ importe: "", forma: "01" });
   const [cancel, setCancel] = useState({ destino: "DEVUELTO", motivo: "" });
   const [aut, setAut] = useState(autVacia());
+  const [autSin, setAutSin] = useState(autVacia());
   const refrescar = () => { qc.invalidateQueries({ queryKey: ["pos-pedidos"] }); alTerminar(); };
   const crear = useMutation({
     mutationFn: () => POST("/api/pos/pedidos", {
       cliente_nombre: nuevo.cliente_nombre, telefono: nuevo.telefono || null, fecha_entrega: fechaIso(nuevo.fecha), notas: nuevo.notas || null,
       renglones: renglones.filter((r) => r.articulo && n(r.cantidad) > 0).map((r) => ({ articulo: r.articulo, cantidad: r.cantidad, especificaciones: r.especificaciones || null })),
       anticipo: n(nuevo.anticipo) > 0 ? { forma: nuevo.forma, importe: nuevo.anticipo } : null,
+      autorizacion: n(nuevo.anticipo) > 0 ? null : autSin,
     }),
     onSuccess: (x: any) => { impresoraNavegador.imprimir({ titulo: `PEDIDO ${x.folio}`, lineas: [["Cliente", nuevo.cliente_nombre], ["Entrega", nuevo.fecha], ["Total", $(x.total)], ["Anticipo", $(x.anticipo?.importe ?? 0)], ["Saldo", $(n(x.total) - n(x.anticipo?.importe ?? "0"))]] }); setNuevo({ cliente_nombre: "", telefono: "", fecha: "", notas: "", anticipo: "", forma: "01" }); setRenglones([{ articulo: null, cantidad: "1", especificaciones: "" }]); refrescar(); },
   });
@@ -287,8 +290,9 @@ function Pedidos({ estado, productos, cerrar, alTerminar }: { estado: any; produ
               <TextInput label="Anticipo" w={130} value={nuevo.anticipo} onChange={(e) => setNuevo({ ...nuevo, anticipo: e.currentTarget.value })} />
               <Select label="Forma de pago" w={200} value={nuevo.forma} onChange={(v) => setNuevo({ ...nuevo, forma: v ?? "01" })} data={estado.formas.filter((f: any) => !f.requiere_referencia).map((f: any) => ({ value: f.clave, label: f.nombre }))} />
             </Group>
+            {!n(nuevo.anticipo) && <CamposAut aut={autSin} setAut={setAutSin} leyenda="Sin anticipo: lo autoriza el contador o el contralor" />}
             {crear.error && <Alert color="red">{textoError(crear.error)}</Alert>}
-            <Button size="lg" loading={crear.isPending} disabled={!nuevo.cliente_nombre || !fechaIso(nuevo.fecha) || !total} onClick={() => crear.mutate()}>Registrar pedido</Button>
+            <Button size="lg" loading={crear.isPending} disabled={!nuevo.cliente_nombre || !fechaIso(nuevo.fecha) || !total || (!n(nuevo.anticipo) && !autOk(autSin))} onClick={() => crear.mutate()}>Registrar pedido</Button>
           </Stack>
         </Tabs.Panel>
       </Tabs>
@@ -340,9 +344,24 @@ function VentasTurno({ cerrar }: { cerrar: () => void }) {
 export function Pos() {
   const { yo, recargar } = useSesion();
   const qc = useQueryClient();
-  const estado = useQuery({ queryKey: ["pos-estado"], queryFn: () => GET("/api/pos/estado") });
+  const [enLinea, setEnLinea] = useState(navigator.onLine);
+  const [pendientes, setPendientes] = useState<VentaPendiente[]>(cola.leer());
+  // Con internet se guarda una copia; sin internet se trabaja con la última copia (P43).
+  const conCopia = (clave: string, ruta: string) => async () => {
+    try {
+      const d = await GET(ruta);
+      copia.guardar(clave, d);
+      setEnLinea(true);
+      return d;
+    } catch (e) {
+      const c = copia.leer<any>(clave);
+      if (esErrorDeRed(e) && c) { setEnLinea(false); return c.datos; }
+      throw e;
+    }
+  };
+  const estado = useQuery({ queryKey: ["pos-estado"], queryFn: conCopia("estado", "/api/pos/estado") });
   const enCaja = estado.data && !estado.data.sin_caja;
-  const productos = useQuery<{ productos: Producto[] }>({ queryKey: ["pos-productos"], queryFn: () => GET("/api/pos/productos"), enabled: !!enCaja });
+  const productos = useQuery<{ productos: Producto[] }>({ queryKey: ["pos-productos"], queryFn: conCopia("productos", "/api/pos/productos"), enabled: !!enCaja });
   const [familia, setFamilia] = useState<string | null>(null);
   const [buscar, setBuscar] = useState("");
   const [carrito, setCarrito] = useState<Linea[]>([]);
@@ -356,14 +375,74 @@ export function Pos() {
   const usarCaja = useMutation({ mutationFn: (id: string) => POST("/api/auth/caja", { caja_id: id }), onSuccess: () => { recargar(); refrescar(); } });
   const abrir = useMutation({ mutationFn: () => POST("/api/pos/turno", { fondo: fondo || "0" }), onSuccess: refrescar });
   const hayDescuento = carrito.some((l) => n(l.descuento) > 0);
+  const ventaSinConexion = (pagos: Pago[]) => {
+    // Sin internet: no se autorizan descuentos y se cuida la existencia con la última copia.
+    if (hayDescuento) throw new Error("Sin conexión no se pueden autorizar descuentos. Quita el descuento o espera a que regrese el internet.");
+    const prods = (productos.data?.productos ?? []) as Producto[];
+    for (const l of carrito) {
+      const p = prods.find((x) => x.clave === l.clave);
+      if (!p || n(p.existencia) < n(l.cantidad)) throw new Error(`Sin existencia suficiente de ${l.nombre}: no se puede vender.`);
+    }
+    const recibido = pagos.reduce((s, p) => s + n(p.importe), 0);
+    const e0 = estado.data;
+    const folio = folioLocal(e0.caja.clave);
+    const fecha = new Date().toISOString();
+    const cuerpo = { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: null })), pagos, sin_conexion: { fecha_caja: fecha, folio_local: folio } };
+    cola.agregar({ id: ventaId, cuerpo, folio_local: folio, total, fecha });
+    const nuevos = prods.map((p) => { const l = carrito.find((x) => x.clave === p.clave); return l ? { ...p, existencia: String(n(p.existencia) - n(l.cantidad)) } : p; });
+    qc.setQueryData(["pos-productos"], { productos: nuevos });
+    copia.guardar("productos", { productos: nuevos });
+    impresoraNavegador.imprimir({
+      folio, fecha, sucursal: e0.caja.sucursal_nombre, caja: e0.caja.nombre, cajero: e0.cajero.nombre, provisional: true,
+      renglones: carrito.map((l) => ({ nombre: l.nombre, cantidad: l.cantidad, unidad: l.unidad, precio: String(l.precio), descuento: "0", importe: String(cent(l.precio * n(l.cantidad))) })),
+      subtotal: String(total), ieps: "0", iva: "0", descuento: "0", total: String(total),
+      pagos: pagos.map((p) => ({ forma: e0.formas.find((f: any) => f.clave === p.forma)?.nombre ?? p.forma, importe: p.importe, referencia: p.referencia || null })),
+      recibido: String(recibido), cambio: String(cent(recibido - total)),
+    });
+    setPendientes(cola.leer());
+    return { folio, cambio: String(cent(recibido - total)), sin_conexion: true };
+  };
   const cobrar = useMutation({
-    mutationFn: (pagos: Pago[]) => POST("/api/pos/ventas", { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: l.descuento || null })), pagos, autorizacion: hayDescuento ? aut : null }),
+    mutationFn: async (pagos: Pago[]) => {
+      if (!enLinea) return ventaSinConexion(pagos);
+      try {
+        return await POST("/api/pos/ventas", { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: l.descuento || null })), pagos, autorizacion: hayDescuento ? aut : null });
+      } catch (e) {
+        if (!esErrorDeRed(e)) throw e;
+        setEnLinea(false);
+        return ventaSinConexion(pagos);
+      }
+    },
     onSuccess: async (x: any) => {
-      impresoraNavegador.imprimir(await GET(`/api/pos/ventas/${x.id}`));
-      setAviso(`Venta ${x.folio} · cambio ${$(x.cambio)}`);
-      setCarrito([]); setAut(autVacia()); setVentana(null); setVentaId(uuid()); refrescar();
+      if (!x.sin_conexion) impresoraNavegador.imprimir(await GET(`/api/pos/ventas/${x.id}`));
+      setAviso(x.sin_conexion ? `Venta ${x.folio} guardada SIN CONEXIÓN · cambio ${$(x.cambio)}` : `Venta ${x.folio} · cambio ${$(x.cambio)}`);
+      setCarrito([]); setAut(autVacia()); setVentana(null); setVentaId(uuid());
+      if (!x.sin_conexion) refrescar();
     },
   });
+  // Envía las ventas guardadas sin conexión en cuanto haya internet (el servidor no las duplica).
+  const sincronizar = async () => {
+    for (const v of cola.leer()) {
+      try {
+        await POST("/api/pos/ventas", v.cuerpo);
+        cola.quitar(v.id);
+        setEnLinea(true);
+      } catch (e) {
+        if (esErrorDeRed(e)) { setEnLinea(false); break; }
+        cola.marcar(v.id, textoError(e));
+      }
+    }
+    setPendientes(cola.leer());
+    refrescar();
+  };
+  useEffect(() => {
+    const arriba = () => { setEnLinea(true); sincronizar(); };
+    const abajo = () => setEnLinea(false);
+    window.addEventListener("online", arriba);
+    window.addEventListener("offline", abajo);
+    const t = setInterval(() => { if (cola.leer().length) sincronizar(); }, 20000);
+    return () => { window.removeEventListener("online", arriba); window.removeEventListener("offline", abajo); clearInterval(t); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (aviso) { const t = setTimeout(() => setAviso(null), 6000); return () => clearTimeout(t); } }, [aviso]);
   const lista = productos.data?.productos ?? [];
   const familias = useMemo(() => [...new Map(lista.map((p) => [p.familia, p.familia_nombre])).entries()], [lista]);
@@ -400,14 +479,23 @@ export function Pos() {
       <Group gap={6}>
         <Button size="xs" variant="white" onClick={() => setVentana("cajero")}>Cambiar cajero</Button>
         {e.turno && <>
-          <Button size="xs" variant="white" onClick={() => setVentana("pedidos")}>Pedidos</Button>
-          <Button size="xs" variant="white" onClick={() => setVentana("devolucion")}>Devolución</Button>
-          <Button size="xs" variant="white" onClick={() => setVentana("efectivo")}>Retiro / ingreso</Button>
-          <Button size="xs" variant="white" onClick={() => setVentana("ventas")}>Ventas del turno</Button>
-          <Button size="xs" variant="white" color="red" onClick={() => setVentana("corte")}>Corte</Button>
+          <Button size="xs" variant="white" disabled={!enLinea} onClick={() => setVentana("pedidos")}>Pedidos</Button>
+          <Button size="xs" variant="white" disabled={!enLinea} onClick={() => setVentana("devolucion")}>Devolución</Button>
+          <Button size="xs" variant="white" disabled={!enLinea} onClick={() => setVentana("efectivo")}>Retiro / ingreso</Button>
+          <Button size="xs" variant="white" disabled={!enLinea} onClick={() => setVentana("ventas")}>Ventas del turno</Button>
+          <Button size="xs" variant="white" color="red" disabled={!enLinea || pendientes.length > 0} onClick={() => setVentana("corte")}>Corte</Button>
         </>}
         <Button size="xs" variant="subtle" c="white" component="a" href="/">Salir</Button>
       </Group>
+    </Group>
+  );
+  const avisoConexion = (!enLinea || pendientes.length > 0) && (
+    <Group px="md" py={6} bg={enLinea ? "var(--mantine-color-yellow-2)" : "var(--mantine-color-red-7)"} c={enLinea ? "dark" : "white"} justify="space-between">
+      <Text size="sm" fw={600}>
+        {enLinea ? "Hay ventas hechas sin conexión por enviar." : "SIN CONEXIÓN: puedes seguir vendiendo; las ventas se guardan en esta computadora y se envían solas al volver el internet. Devoluciones, retiros, pedidos, descuentos y cortes esperan a la conexión."}
+        {pendientes.length > 0 && ` Pendientes: ${pendientes.length}${pendientes.some((v) => v.error) ? ` (${pendientes.filter((v) => v.error).length} con problema: avisa al encargado)` : ""}.`}
+      </Text>
+      {pendientes.length > 0 && <Group gap={6}><Button size="xs" variant="white" onClick={() => setVentana("pendientes")}>Ver</Button><Button size="xs" variant="white" onClick={() => sincronizar()}>Enviar ahora</Button></Group>}
     </Group>
   );
   if (!e.turno) {
@@ -425,6 +513,7 @@ export function Pos() {
   return (
     <Box h="100vh" style={{ display: "flex", flexDirection: "column" }}>
       {cabecera}
+      {avisoConexion}
       <Box style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <Stack p="sm" style={{ flex: 1, minWidth: 0 }} gap="xs">
           <Group>
@@ -475,7 +564,7 @@ export function Pos() {
           {aviso && <Alert color="green" py={6}>{aviso}</Alert>}
           <Divider />
           <Group justify="space-between"><Text size="xl">Total</Text><Text size="2.2rem" fw={800}>{$(total)}</Text></Group>
-          {hayDescuento && <CamposAut aut={aut} setAut={setAut} leyenda="El descuento lo autoriza un encargado" />}
+          {hayDescuento && <CamposAut aut={aut} setAut={setAut} leyenda="El descuento lo autoriza el contador o el contralor" />}
           <Group grow>
             <Button size="lg" variant="default" disabled={!carrito.length} onClick={() => setCarrito([])}>Cancelar</Button>
             <Button size="xl" color="green" disabled={!carrito.length || (hayDescuento && !autOk(aut))} onClick={() => { cobrar.reset(); setVentana("cobrar"); }}>Cobrar</Button>
@@ -486,7 +575,7 @@ export function Pos() {
         <Modal opened onClose={() => setDescuentoDe(null)} title={`Descuento en ${carrito[descuentoDe]!.nombre}`} size="sm" centered>
           <Stack>
             <TextInput size="lg" label="Descuento en pesos" value={carrito[descuentoDe]!.descuento} onChange={(x) => setLinea(descuentoDe, { descuento: x.currentTarget.value })} />
-            <Text size="xs" c="dimmed">Lo tendrá que autorizar un encargado con su PIN al cobrar.</Text>
+            <Text size="xs" c="dimmed">Lo tendrá que autorizar el contador o el contralor con su PIN al cobrar.</Text>
             <Button onClick={() => setDescuentoDe(null)}>Listo</Button>
           </Stack>
         </Modal>
@@ -498,6 +587,15 @@ export function Pos() {
       {ventana === "corte" && <Corte estado={e} cerrar={() => setVentana(null)} alTerminar={refrescar} />}
       {ventana === "pedidos" && <Pedidos estado={e} productos={lista} cerrar={() => setVentana(null)} alTerminar={refrescar} />}
       {ventana === "ventas" && <VentasTurno cerrar={() => setVentana(null)} />}
+      {ventana === "pendientes" && (
+        <Modal opened onClose={() => setVentana(null)} title="Ventas hechas sin conexión" size="lg" centered>
+          <Text size="sm" mb="sm">Se envían solas al volver el internet. Si una tiene problema (por ejemplo, el sistema ya no tiene existencia porque se registró una merma), el encargado debe corregir el inventario y luego presionar "Enviar ahora". No se borran: la venta ya ocurrió.</Text>
+          <Table>
+            <Table.Thead><Table.Tr><Table.Th>Folio provisional</Table.Th><Table.Th>Hora</Table.Th><Table.Th>Total</Table.Th><Table.Th>Estado</Table.Th></Table.Tr></Table.Thead>
+            <Table.Tbody>{pendientes.map((v) => <Table.Tr key={v.id}><Table.Td>{v.folio_local}</Table.Td><Table.Td>{fechaHora(v.fecha)}</Table.Td><Table.Td>{$(v.total)}</Table.Td><Table.Td>{v.error ? <Text size="xs" c="red">{v.error}</Text> : "Por enviar"}</Table.Td></Table.Tr>)}</Table.Tbody>
+          </Table>
+        </Modal>
+      )}
     </Box>
   );
 }

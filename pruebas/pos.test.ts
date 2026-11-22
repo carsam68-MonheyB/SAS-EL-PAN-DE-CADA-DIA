@@ -8,6 +8,7 @@ import { prepararInventarios, type Entorno } from "./inventarios-apoyo";
 
 let e: Entorno;
 const ENC = { usuario: "prueba.enc", pin: "4826" };
+const CON = { usuario: "prueba.con", pin: "4830" };
 const caj = () => e.nav.caj!;
 const vender = (cuerpo: Record<string, unknown>) => caj().post("/api/pos/ventas", { id: randomUUID(), ...cuerpo });
 const efectivo = (importe: string) => ({ forma: "01", importe });
@@ -24,7 +25,7 @@ beforeAll(async () => {
        FROM (VALUES ('PRUEBA-CONCHA-V', NULL, 14.00), ('PRUEBA-CONCHA-C', NULL, 15.00), ('PRUEBA-BOLILLO', NULL, 3.00), ('PRUEBA-TELERA', 'SUC1', 3.50)) AS x(art, suc, precio)
        JOIN articulo a ON a.clave = x.art LEFT JOIN sucursal s ON s.clave = x.suc`,
   );
-  for (const [rol, pin] of [["caj", "4821"], ["enc", ENC.pin]] as const) {
+  for (const [rol, pin] of [["caj", "4821"], ["enc", ENC.pin], ["con", CON.pin]] as const) {
     expect((await e.nav[rol]!.post("/api/auth/mi-pin", { password: e.password, pin })).estado).toBe(200);
   }
 }, 180_000);
@@ -81,15 +82,16 @@ describe("ventas", () => {
     expect((await vender({ renglones: [{ articulo: "PRUEBA-BOLILLO", cantidad: "1" }], pagos: [{ forma: "04", importe: "5", referencia: "AUT-1" }] })).datos.mensaje).toMatch(/cambio/);
   });
 
-  it("el descuento lo autoriza un encargado con su PIN (no el cajero) y queda registrado", async () => {
+  it("el descuento lo autoriza el contador o el contralor con su PIN (P50), no el encargado ni el cajero", async () => {
     const cuerpo = { renglones: [{ articulo: "PRUEBA-BOLILLO", cantidad: "5", descuento: "3" }], pagos: [efectivo("20")] };
     expect((await vender(cuerpo)).datos.error).toBe("requiere_autorizacion");
     expect((await vender({ ...cuerpo, autorizacion: { usuario: "prueba.caj", pin: "4821" } })).datos.mensaje).toMatch(/propias/);
     expect((await vender({ ...cuerpo, autorizacion: { usuario: "prueba.enc", pin: "0000" } })).datos.mensaje).toMatch(/PIN incorrecto/);
-    const r = await vender({ ...cuerpo, autorizacion: ENC });
+    expect((await vender({ ...cuerpo, autorizacion: ENC })).datos.mensaje).toMatch(/no tiene permiso/);
+    const r = await vender({ ...cuerpo, autorizacion: CON });
     expect(r.estado, JSON.stringify(r.datos)).toBe(200);
     expect(r.datos).toMatchObject({ total: "12.00", cambio: "8.00" });
-    expect((await e.pool.query("SELECT count(*)::int AS n FROM bitacora_acceso WHERE evento = 'autorizacion_caja' AND NOT exito")).rows[0].n).toBe(2);
+    expect((await e.pool.query("SELECT count(*)::int AS n FROM bitacora_acceso WHERE evento = 'autorizacion_caja' AND NOT exito")).rows[0].n).toBe(3);
   });
 
   it("el ticket trae renglones, pagos y cambio; la venta no se puede modificar", async () => {
@@ -146,6 +148,24 @@ describe("pedidos con anticipo", () => {
     expect((await caj().post(`/api/pos/pedidos/${pedido}/abonar`, efectivo("1"))).estado).toBe(409);
   });
 
+  it("un pedido sin anticipo lo autoriza el contador o el contralor (P60)", async () => {
+    const cuerpo = { cliente_nombre: "PRUEBA Sin anticipo", fecha_entrega: "2099-01-03", renglones: [{ articulo: "PRUEBA-BOLILLO", cantidad: "20" }] };
+    expect((await caj().post("/api/pos/pedidos", cuerpo)).datos.error).toBe("requiere_autorizacion");
+    expect((await caj().post("/api/pos/pedidos", { ...cuerpo, autorizacion: ENC })).datos.mensaje).toMatch(/no tiene permiso/);
+    const r = await caj().post("/api/pos/pedidos", { ...cuerpo, autorizacion: CON });
+    expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+  });
+
+  it("pedido por WhatsApp desde oficina para la Sucursal 1 (P59): sin anticipo y con autorización", async () => {
+    const cuerpo = { cliente_nombre: "PRUEBA WhatsApp", telefono: "5511111111", fecha_entrega: "2099-01-04", origen: "WHATSAPP", sucursal: "SUC1", renglones: [{ articulo: "PRUEBA-CONCHA-V", cantidad: "6" }] };
+    expect((await e.nav.enc!.post("/api/pos/pedidos", { ...cuerpo, anticipo: efectivo("10"), autorizacion: CON })).datos.mensaje).toMatch(/se cobra en la caja/);
+    expect((await e.nav.enc!.post("/api/pos/pedidos", { ...cuerpo, sucursal: "MAT", autorizacion: CON })).estado).toBe(403);
+    const r = await e.nav.enc!.post("/api/pos/pedidos", { ...cuerpo, autorizacion: CON });
+    expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+    const p = (await e.pool.query("SELECT origen, autorizo_sin_anticipo_id IS NOT NULL AS autorizado FROM pedido WHERE id = $1", [r.datos.id])).rows[0];
+    expect(p).toEqual({ origen: "WHATSAPP", autorizado: true });
+  });
+
   it("cancelar un pedido requiere autorización; el anticipo se devuelve en efectivo", async () => {
     const p = await caj().post("/api/pos/pedidos", { cliente_nombre: "PRUEBA Otro", fecha_entrega: "2099-01-02", renglones: [{ articulo: "PRUEBA-CONCHA-V", cantidad: "2" }], anticipo: efectivo("10") });
     expect((await caj().post(`/api/pos/pedidos/${p.datos.id}/cancelar`, { destino: "DEVUELTO", motivo: "Ya no lo quiere" })).estado).toBe(403);
@@ -183,11 +203,24 @@ describe("cortes", () => {
   });
 });
 
+describe("venta sin conexión (P43)", () => {
+  it("una venta hecha sin internet se registra al reconectar con su hora real y su folio provisional, sin duplicarse", async () => {
+    await caj().post("/api/pos/turno", { fondo: "0" });
+    const id = randomUUID();
+    const cuerpo = { id, renglones: [{ articulo: "PRUEBA-BOLILLO", cantidad: "4" }], pagos: [efectivo("12")], sin_conexion: { fecha_caja: "2026-11-22T15:30:00-06:00", folio_local: "SC-CAJA-SUC1-1-0001" } };
+    const r = await caj().post("/api/pos/ventas", cuerpo);
+    expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+    expect((await caj().post("/api/pos/ventas", cuerpo)).datos.repetida).toBe(true);
+    const v = (await e.pool.query("SELECT sin_conexion, folio_local FROM venta WHERE id = $1", [id])).rows[0];
+    expect(v).toEqual({ sin_conexion: true, folio_local: "SC-CAJA-SUC1-1-0001" });
+  });
+});
+
 describe("oficina", () => {
   it("el contralor consulta ventas y cortes de todas las sucursales y exporta a Excel; el cajero no", async () => {
     const v = await e.nav.con!.get("/api/pos/ventas");
     expect(v.estado).toBe(200);
-    expect(v.datos.ventas).toHaveLength(4);
+    expect(v.datos.ventas).toHaveLength(5);
     expect(v.datos.ventas.every((x: any) => x.costo !== undefined)).toBe(true);
     expect((await e.nav.con!.get("/api/pos/ventas?formato=xlsx")).datos).toBeInstanceOf(Uint8Array);
     const k = await e.nav.con!.get("/api/pos/cortes");

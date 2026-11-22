@@ -1,9 +1,11 @@
 // Oficina: ventas por fecha y sucursal (con exportación), tickets, cortes de
 // caja con su arqueo y pedidos. Solo lectura; la operación es en la caja.
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { PasswordInput, SegmentedControl, Textarea } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Badge, Button, Card, Group, Modal, ScrollArea, Select, SimpleGrid, Stack, Table, Tabs, Text, TextInput, Title } from "@mantine/core";
-import { descargar, GET, textoError } from "../api";
+import { descargar, GET, POST, textoError } from "../api";
 import { fecha, fechaHora, fechaIso, numero } from "../formato";
 import { impresoraNavegador } from "../impresion";
 import { useSesion } from "../sesion";
@@ -113,17 +115,70 @@ function Cortes() {
   );
 }
 
+function PedidoOficina({ alTerminar }: { alTerminar: () => void }) {
+  const est = useQuery({ queryKey: ["pos-estado-oficina"], queryFn: () => GET("/api/pos/estado") });
+  const [d, setD] = useState({ sucursal: null as string | null, origen: "WHATSAPP", cliente_nombre: "", telefono: "", fecha: "", notas: "" });
+  const [rs, setRs] = useState<{ articulo: string | null; cantidad: string; especificaciones: string }[]>([{ articulo: null, cantidad: "1", especificaciones: "" }]);
+  const [aut, setAut] = useState({ usuario: "", pin: "" });
+  const prods = useQuery({ queryKey: ["pos-prod-oficina", d.sucursal], queryFn: () => GET(`/api/pos/productos?sucursal=${d.sucursal}`), enabled: !!d.sucursal });
+  const lista: any[] = (prods.data?.productos ?? []).filter((p: any) => p.precio);
+  const total = rs.reduce((s, r) => s + Number(lista.find((p) => p.clave === r.articulo)?.precio ?? 0) * Number(r.cantidad || 0), 0);
+  const m = useMutation({
+    mutationFn: () => POST("/api/pos/pedidos", {
+      sucursal: d.sucursal, origen: d.origen, cliente_nombre: d.cliente_nombre, telefono: d.telefono || null, fecha_entrega: fechaIso(d.fecha), notas: d.notas || null,
+      renglones: rs.filter((r) => r.articulo && Number(r.cantidad) > 0).map((r) => ({ articulo: r.articulo, cantidad: r.cantidad, especificaciones: r.especificaciones || null })),
+      autorizacion: aut,
+    }),
+    onSuccess: (x: any) => { setOk(`Pedido ${x.folio} registrado por $${numero(x.total, 2)}. El cliente paga o abona en la sucursal.`); setRs([{ articulo: null, cantidad: "1", especificaciones: "" }]); setD({ ...d, cliente_nombre: "", telefono: "", fecha: "", notas: "" }); setAut({ usuario: "", pin: "" }); alTerminar(); },
+  });
+  const [ok, setOk] = useState<string | null>(null);
+  return (
+    <Card withBorder>
+      <Text fw={600}>Nuevo pedido por teléfono o WhatsApp</Text>
+      <Text size="xs" c="dimmed" mb="sm">Se registra sin anticipo, con la autorización (usuario y PIN) del contador o el contralor. El anticipo, los abonos y la entrega se cobran en la caja de la sucursal.</Text>
+      <Stack>
+        <Group align="flex-end">
+          <SegmentedControl value={d.origen} onChange={(v) => setD({ ...d, origen: v })} data={[{ value: "WHATSAPP", label: "WhatsApp" }, { value: "TELEFONO", label: "Teléfono" }]} />
+          <Select label="Sucursal que entrega" w={220} data={(est.data?.sucursales ?? []).map((x: any) => ({ value: x.clave, label: x.nombre }))} value={d.sucursal} onChange={(v) => setD({ ...d, sucursal: v })} />
+          <TextInput label="Cliente" w={220} value={d.cliente_nombre} onChange={(e) => setD({ ...d, cliente_nombre: e.currentTarget.value })} />
+          <TextInput label="Teléfono" w={150} value={d.telefono} onChange={(e) => setD({ ...d, telefono: e.currentTarget.value })} />
+          <TextInput label="Fecha de entrega" placeholder="DD/MM/AAAA" w={140} value={d.fecha} error={d.fecha && !fechaIso(d.fecha) ? "No válida" : undefined} onChange={(e) => setD({ ...d, fecha: e.currentTarget.value })} />
+        </Group>
+        {rs.map((r, i) => (
+          <Group key={i} align="flex-end">
+            <Select label={i === 0 ? "Producto" : undefined} searchable w={320} disabled={!d.sucursal} data={lista.map((p) => ({ value: p.clave, label: `${p.nombre} · $${numero(p.precio, 2)}` }))} value={r.articulo} onChange={(v) => setRs(rs.map((x, j) => (j === i ? { ...x, articulo: v } : x)))} />
+            <TextInput label={i === 0 ? "Cantidad" : undefined} w={90} value={r.cantidad} onChange={(e) => { const v = e.currentTarget.value; setRs(rs.map((x, j) => (j === i ? { ...x, cantidad: v } : x))); }} />
+            <TextInput label={i === 0 ? "Especificaciones" : undefined} w={280} value={r.especificaciones} onChange={(e) => { const v = e.currentTarget.value; setRs(rs.map((x, j) => (j === i ? { ...x, especificaciones: v } : x))); }} />
+          </Group>
+        ))}
+        <Button variant="default" w={180} onClick={() => setRs([...rs, { articulo: null, cantidad: "1", especificaciones: "" }])}>Agregar producto</Button>
+        <Textarea label="Notas (decoración, texto, etc.)" value={d.notas} onChange={(e) => setD({ ...d, notas: e.currentTarget.value })} />
+        <Text fw={700}>Total: ${numero(total, 2)}</Text>
+        <Group grow>
+          <TextInput label="Autoriza (usuario del contador o contralor)" value={aut.usuario} onChange={(e) => setAut({ ...aut, usuario: e.currentTarget.value })} autoComplete="off" />
+          <PasswordInput label="PIN" value={aut.pin} onChange={(e) => setAut({ ...aut, pin: e.currentTarget.value.replace(/\D/g, "") })} autoComplete="off" />
+        </Group>
+        {m.error && <Alert color="red">{textoError(m.error)}</Alert>}
+        {ok && <Alert color="green">{ok}</Alert>}
+        <Button loading={m.isPending} disabled={!d.sucursal || !d.cliente_nombre || !fechaIso(d.fecha) || !total || !aut.usuario || aut.pin.length < 4} onClick={() => { setOk(null); m.mutate(); }}>Registrar pedido</Button>
+      </Stack>
+    </Card>
+  );
+}
+
 function ListaPedidos() {
   const [estatus, setEstatus] = useState<string | null>("REGISTRADO");
+  const { puede } = useSesion();
   const r = useQuery({ queryKey: ["pedidos", estatus], queryFn: () => GET(`/api/pos/pedidos${estatus ? `?estatus=${estatus}` : ""}`) });
   return (
     <Stack>
+      {puede("pos.pedidos:crear") && <PedidoOficina alTerminar={() => r.refetch()} />}
       <Select w={200} label="Mostrar" clearable placeholder="Todos" value={estatus} onChange={setEstatus} data={[{ value: "REGISTRADO", label: "Por entregar" }, { value: "ENTREGADO", label: "Entregados" }, { value: "CANCELADO", label: "Cancelados" }]} />
       <Table withTableBorder striped fz="sm">
         <Table.Thead><Table.Tr><Table.Th>Folio</Table.Th><Table.Th>Entrega</Table.Th><Table.Th>Sucursal</Table.Th><Table.Th>Cliente</Table.Th><Table.Th>Productos</Table.Th><Table.Th ta="right">Total</Table.Th><Table.Th ta="right">Anticipo</Table.Th><Table.Th>Estatus</Table.Th></Table.Tr></Table.Thead>
         <Table.Tbody>{(r.data?.pedidos ?? []).map((p: any) => (
           <Table.Tr key={p.id}>
-            <Table.Td>{p.folio}</Table.Td><Table.Td>{fecha(p.fecha_entrega)}</Table.Td><Table.Td>{p.sucursal}</Table.Td><Table.Td>{p.cliente_nombre}<Text size="xs" c="dimmed">{p.telefono}</Text></Table.Td>
+            <Table.Td>{p.folio}</Table.Td><Table.Td>{fecha(p.fecha_entrega)}</Table.Td><Table.Td>{p.sucursal}</Table.Td><Table.Td>{p.cliente_nombre}<Text size="xs" c="dimmed">{p.telefono}{p.origen && p.origen !== "MOSTRADOR" ? ` · ${p.origen === "WHATSAPP" ? "WhatsApp" : "Teléfono"}` : ""}</Text></Table.Td>
             <Table.Td>{p.renglones.map((x: any) => <Text key={x.articulo} size="xs">{Number(x.cantidad)} × {x.nombre}</Text>)}</Table.Td>
             <Table.Td ta="right">{$(p.total)}</Table.Td><Table.Td ta="right">{$(p.anticipado)}</Table.Td>
             <Table.Td>{p.estatus === "REGISTRADO" ? <Badge>por entregar</Badge> : p.estatus === "ENTREGADO" ? <Badge color="green">entregado {p.venta}</Badge> : <Badge color="gray">cancelado{p.destino_anticipo ? ` · anticipo ${p.destino_anticipo.toLowerCase()}` : ""}</Badge>}</Table.Td>

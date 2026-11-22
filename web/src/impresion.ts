@@ -10,6 +10,8 @@ export interface Ticket {
   renglones: { nombre: string; cantidad: string; unidad: string; precio: string; descuento: string; importe: string }[];
   subtotal: string; ieps: string; iva: string; descuento: string; total: string; anticipo_aplicado?: string;
   pagos: { forma: string; importe: string; referencia: string | null }[]; recibido: string; cambio: string;
+  /** Ticket hecho sin conexión: los impuestos se desglosan al sincronizar. */
+  provisional?: boolean;
 }
 
 export interface Impresora {
@@ -31,11 +33,12 @@ function htmlTicket(t: Ticket): string {
     <div class="c"><b>${esc(t.sucursal)}</b><br>${esc(t.caja)}</div>
     <div>Folio: <b>${esc(t.folio)}</b><br>${fechaHora(t.fecha)}<br>Atendió: ${esc(t.cajero)}${t.pedido ? `<br>Pedido: ${esc(t.pedido)}` : ""}</div>
     <hr><table>${filas}</table><hr>
+    ${t.provisional ? `<div class="c"><b>TICKET PROVISIONAL · SIN CONEXIÓN</b><br><small>El desglose de impuestos se registra al volver el internet.</small></div>` : ""}
     <table>
       ${Number(t.descuento) ? `<tr><td>Descuentos</td><td class="d">-${$(t.descuento)}</td></tr>` : ""}
-      <tr><td>Subtotal</td><td class="d">${$(t.subtotal)}</td></tr>
+      ${t.provisional ? "" : `<tr><td>Subtotal</td><td class="d">${$(t.subtotal)}</td></tr>
       ${Number(t.ieps) ? `<tr><td>IEPS</td><td class="d">${$(t.ieps)}</td></tr>` : ""}
-      <tr><td>IVA</td><td class="d">${$(t.iva)}</td></tr>
+      <tr><td>IVA</td><td class="d">${$(t.iva)}</td></tr>`}
       <tr class="t"><td>TOTAL</td><td class="d">${$(t.total)}</td></tr>
       ${pagos}
       <tr><td>Cambio</td><td class="d">${$(t.cambio)}</td></tr>
@@ -66,7 +69,8 @@ export const impresoraNavegador: Impresora = {
     doc.close();
     await new Promise((r) => setTimeout(r, 50));
     f.contentWindow!.focus();
-    f.contentWindow!.print();
+    // Las pruebas automáticas de pantalla desactivan el diálogo de impresión.
+    if (!(window as unknown as { __sinImpresion?: boolean }).__sinImpresion) f.contentWindow!.print();
     setTimeout(() => f.remove(), 1000);
   },
   async abrirCajon() {

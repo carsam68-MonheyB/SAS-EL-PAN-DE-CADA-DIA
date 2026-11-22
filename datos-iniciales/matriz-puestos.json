@@ -874,6 +874,38 @@
       }
     },
     {
+      "grupo": "Punto de venta",
+      "clave": "pos.descuentos",
+      "nombre": "Descuentos en caja",
+      "nota": "Los autoriza el contador o el contralor con su PIN (P50, 22/11/2026).",
+      "roles": {
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "CNT": [
+          "ver",
+          "autorizar"
+        ]
+      }
+    },
+    {
+      "grupo": "Punto de venta",
+      "clave": "pos.pedidos_sin_anticipo",
+      "nombre": "Pedidos sin anticipo",
+      "nota": "Un pedido sin anticipo lo autoriza el contador o el contralor (P60, 22/11/2026).",
+      "roles": {
+        "CON": [
+          "ver",
+          "autorizar"
+        ],
+        "CNT": [
+          "ver",
+          "autorizar"
+        ]
+      }
+    },
+    {
       "grupo": "Fiscal",
       "clave": "fiscal.cfdi",
       "nombre": "Facturación CFDI (nominativa, global, notas de crédito, pagos)",
