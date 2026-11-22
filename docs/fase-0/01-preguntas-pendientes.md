@@ -58,7 +58,7 @@
 | P33a | ✅ **Respondida (21/11/2026):** el aviso por cambio de costo o precio en los layouts se queda en **10 %**. 🟡 El máximo de **5,000 renglones** por archivo sigue provisional (no afecta: el negocio tiene ~70 SKU). Ambos se cambian en Configuración → Cargas por layout. | — |
 | P33b | ✅ **Respondida (21/11/2026):** el precio de venta al público **ya incluye impuestos**. → Configuración `precios.incluyen_impuestos = si`; el POS y el CFDI desglosan los impuestos a partir del precio. | — |
 | P33c | Catálogos del SAT: el sistema **no trae claves del SAT precargadas**. El contador carga las que use el negocio (producto/servicio, unidad, objeto de impuesto, régimen, uso de CFDI, forma de pago, código agrupador), copiándolas del archivo oficial del SAT, con el layout "Catálogos del SAT". | F1B / F8 |
-| P33 | Tolerancias: diferencia aceptable en balance de masa (% o kg), en surtido vs. estándar, en cotejo a tres vías (cantidad, precio, impuestos), y % de cambio de costo que genera advertencia en layouts. | F2–F5 |
+| P33 | Tolerancias. 🟡 **Fase 4 (provisionales, en Configuración → Compras):** cotejo a 3 vías con **0 % en cantidad**, **1 % en precio** y **$1.00** en IVA y total (redondeos); una OC puede pasar **5 %** de lo autorizado en la requisición sin volver a autorizarse. Cambio de costo en layouts: 10 % (P33a). Faltan las de balance de masa y surtido (Fase 5). | F5 |
 
 ## E. Costos e inventarios
 
@@ -83,9 +83,9 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P40 | ✅ **Respondida:** dos niveles por monto: nivel 1 hasta $10,000.00 (provisional) y nivel 2 = dirección arriba de ese monto. Se autoriza el total de la requisición. | — |
-| P41 | ¿Las OC se envían por correo al proveedor desde el sistema? ¿Formato de OC (logo, leyendas)? | F4 |
-| P42 | ¿Quién autoriza y programa pagos? ¿Se registran pagos por transferencia desde el sistema o solo se registran los que ya se hicieron en el banco? Bancos y cuentas bancarias. | F4 |
+| P40 | ✅ **Respondida:** dos niveles por monto: nivel 1 hasta $10,000.00 (provisional) y nivel 2 = dirección arriba de ese monto. Se autoriza el total de la requisición. **Fase 4:** también se reautoriza una OC que rebase lo autorizado más la tolerancia; los pagos los autoriza el contralor hasta $20,000 y dirección arriba (límites provisionales de la matriz). | — |
+| P41 | ¿Las OC se envían por correo al proveedor desde el sistema? ¿Formato de OC (logo, leyendas)? 🟡 **Fase 4:** la OC se imprime o se guarda en PDF desde el navegador. El envío por correo necesita un servicio de correo (ej. con dominio propio); se agrega si lo quieres. | No |
+| P42 | Pagos. 🟡 **Fase 4:** el contador **programa** el pago (facturas, cuenta, forma y fecha), lo **autoriza** el contralor o dirección según el monto (quien recibió la mercancía no puede) y, ya hecho en el banco, el contador lo **marca pagado** con la referencia. De las cuentas bancarias solo se guarda banco, alias y los últimos 4 dígitos. ¿Así operan? ¿Qué bancos y cuentas? | No |
 
 ## G. Punto de venta
 

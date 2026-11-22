@@ -21,6 +21,7 @@ import { Costos } from "./paginas/Costos";
 import { Inventarios } from "./paginas/Inventarios";
 import { Pos } from "./paginas/Pos";
 import { Ventas } from "./paginas/Ventas";
+import { Compras } from "./paginas/Compras";
 
 // Permisos que dan acceso a algún catálogo (el detalle lo decide el servidor).
 const VER_CATALOGOS = [
@@ -29,6 +30,7 @@ const VER_CATALOGOS = [
   "produccion.plan:ver", "datos.costos:ver",
 ];
 const VER_CARGAS = ["cargas.layout:importar", "catalogos.precios:autorizar", "inventarios.ajustes:autorizar"];
+const VER_COMPRAS = ["compras.requisiciones:ver", "compras.ordenes:ver", "compras.recepcion:ver", "compras.facturas:ver", "compras.cxp:ver"];
 const VER_INVENTARIOS = [
   "inventarios.existencias:ver", "inventarios.traspasos:ver", "inventarios.conteos:ver", "inventarios.merma_sucursal:ver",
   "produccion.mermas:ver", "compras.recepcion:crear", "inventarios.surtido:crear", "produccion.ordenes:crear",
@@ -43,6 +45,7 @@ const MENU = [
   { ruta: "/costos", texto: "Costo estándar", permisos: ["datos.costos:ver"] },
   { ruta: "/inventarios", texto: "Inventarios", permisos: VER_INVENTARIOS },
   { ruta: "/pos", texto: "Punto de venta (caja)", permisos: ["pos.ventas:crear", "pos.caja:crear", "pos.caja:autorizar"] },
+  { ruta: "/compras", texto: "Compras", permisos: VER_COMPRAS },
   { ruta: "/ventas", texto: "Ventas y cortes", permisos: ["pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver"] },
   { ruta: "/usuarios", texto: "Usuarios", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
@@ -91,6 +94,7 @@ function Marco() {
           {puede("datos.costos:ver") && <Route path="/costos" element={<Costos />} />}
           {puede(...VER_INVENTARIOS) && <Route path="/inventarios" element={<Inventarios />} />}
           {puede("pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver") && <Route path="/ventas" element={<Ventas />} />}
+          {puede(...VER_COMPRAS) && <Route path="/compras" element={<Compras />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/usuarios/*" element={<Usuarios />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/roles" element={<Roles />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/controles" element={<Controles />} />}

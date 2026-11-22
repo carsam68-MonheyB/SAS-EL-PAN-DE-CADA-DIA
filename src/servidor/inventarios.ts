@@ -265,6 +265,10 @@ const TIPOS_MP: Almacen["tipo"][] = ["MP", "INS"];
 // Operaciones
 // ---------------------------------------------------------------------------
 export async function entradaCompra(c: Cliente, u: UsuarioActual, d: { almacen: string; proveedor?: string | null; referencia?: string | null; comentario?: string | null; renglones: RenglonCaptura[] }) {
+  // Desde la Fase 4 las compras entran por la recepción de una orden de compra autorizada.
+  if ((await c.query("SELECT valor FROM configuracion WHERE clave = 'compras.permitir_entrada_sin_oc'")).rows[0]?.valor !== "SI") {
+    throw new ErrorApp(409, "regla", "Las compras entran por la recepción de una orden de compra (Compras → Órdenes de compra). La entrada directa está desactivada en Configuración.");
+  }
   const alm = await almacenPorClave(c, d.almacen);
   exigirAlmacen(u, alm);
   if (!TIPOS_MP.includes(alm.tipo)) throw invalido("Las compras entran a un almacén de materia prima o de insumos.");
@@ -641,6 +645,7 @@ async function cancelarMovimientoInterno(c: Cliente, u: UsuarioActual, movId: st
 export async function cancelarMovimiento(c: Cliente, u: UsuarioActual, movId: string, motivo: string) {
   const m = (await c.query("SELECT m.id, m.tipo, m.documento_tipo, m.documento_id, a.id AS almacen_id, a.clave AS almacen, a.sucursal_id FROM movimiento m JOIN almacen a ON a.id = m.almacen_id WHERE m.id = $1", [movId])).rows[0];
   if (!m) throw noEncontrado("No existe ese movimiento.");
+  if (m.documento_tipo === "RECEPCION") throw new ErrorApp(409, "regla", "Una recepción de compra no se cancela desde el inventario: la devolución al proveedor se registra en Compras.");
   const permiso = PERMISO_CANCELAR[m.tipo];
   if (!permiso) throw new ErrorApp(409, "regla", m.tipo === "CANCELACION" ? "Una cancelación no se cancela." : "Los traspasos se cancelan desde el traspaso (solo mientras están en tránsito).");
   if (!u.permisos.has(permiso)) throw prohibido("No tienes permiso para cancelar este movimiento.");
@@ -733,4 +738,19 @@ export async function entradaPorDevolucion(c: Cliente, usuarioId: string, almace
     await entrar(x, m.id, almacenId, art, p.cantidad, { importe: p.importe, loteId });
   }
   return m.id as string;
+}
+
+// ---- Recepciones de compra (Fase 4) ------------------------------------------------
+/** Entrada al almacén por la recepción de una orden de compra, al precio de la OC (sin IVA). */
+export async function entradaPorRecepcion(c: Cliente, usuarioId: string, almacenId: string, d: { recepcionId: string; folio: string; proveedorId: string; oc: string; remision: string | null },
+  partidas: { articulo_id: string; cantidad: Dec; costo: Dec; lote: string | null; caducidad: string | null }[]) {
+  const x = await contexto(c, usuarioId);
+  const m = await nuevoMovimiento(x, "ENTRADA_COMPRA", almacenId, { documento_tipo: "RECEPCION", documento_id: d.recepcionId, proveedor_id: d.proveedorId, referencia: [d.folio, d.oc, d.remision].filter(Boolean).join(" · ") });
+  for (const p of partidas) {
+    const art = await articuloPorId(c, p.articulo_id);
+    if (p.lote && !art.maneja_lote) throw invalido(`${art.clave} no maneja lote.`);
+    const loteId = await loteEntrada(c, { art, cantidad: p.cantidad, loteCodigo: p.lote, caducidad: p.caducidad, costo: p.costo });
+    await entrar(x, m.id, almacenId, art, p.cantidad, { costo: p.costo, loteId });
+  }
+  return m as { id: string; folio: string };
 }

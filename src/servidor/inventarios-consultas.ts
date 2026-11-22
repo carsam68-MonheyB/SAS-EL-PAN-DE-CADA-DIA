@@ -35,7 +35,8 @@ export async function opciones(c: Cliente, a: Alcance) {
   const causas = (await c.query("SELECT clave, nombre, aplica FROM causa_merma WHERE activo ORDER BY clave")).rows;
   const proveedores = (await c.query("SELECT clave, coalesce(nombre_comercial, razon_social) AS nombre FROM proveedor WHERE activo ORDER BY clave")).rows;
   const planes = (await c.query("SELECT id, folio, fecha::text FROM plan_produccion WHERE estatus = 'APROBADO' ORDER BY fecha DESC LIMIT 50")).rows;
-  return { almacenes: await almacenesVisibles(c, a), articulos, causas, proveedores, planes };
+  const sinOc = (await c.query("SELECT valor FROM configuracion WHERE clave = 'compras.permitir_entrada_sin_oc'")).rows[0]?.valor === "SI";
+  return { almacenes: await almacenesVisibles(c, a), articulos, causas, proveedores, planes, entrada_sin_oc: sinOc };
 }
 
 export async function existencias(c: Cliente, a: Alcance, f: { almacen?: string | null; tipo?: string | null; buscar?: string | null }) {

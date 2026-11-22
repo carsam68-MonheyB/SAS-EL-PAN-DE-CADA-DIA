@@ -10,10 +10,12 @@ export const n = (x: string | null | undefined) => (x === null || x === undefine
 
 export async function prepararInventarios(base: string) {
   const pool = await baseLimpia(base);
+  // Las pruebas de la Fase 3 usan la entrada por compra directa (desde la Fase 4 va por orden de compra).
+  await pool.query("UPDATE configuracion SET valor = 'SI' WHERE clave = 'compras.permitir_entrada_sin_oc'");
   const nav: Record<string, Navegador> = {};
   const admin = (await instalarAdministrador()).nav;
   const r = await admin.post("/api/datos-prueba");
-  for (const rol of ["com", "jpr", "cnt", "con", "dir", "alm", "enc", "mae", "caj"]) {
+  for (const rol of ["com", "jpr", "cnt", "con", "dir", "alm", "enc", "mae", "caj", "aut1"]) {
     nav[rol] = new Navegador();
     await entrar(nav[rol]!, `prueba.${rol}`, r.datos.password);
   }

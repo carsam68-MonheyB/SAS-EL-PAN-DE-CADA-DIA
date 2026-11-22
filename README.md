@@ -193,6 +193,25 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - Al reconectar se envía cada venta con `sin_conexion` (hora real y folio provisional). El servidor no la duplica y la valida igual que cualquier venta.
   - Si una venta ya no tiene existencia, queda marcada para que el encargado corrija el inventario y la reenvíe. No se borra.
 
+## Compras (Fase 4)
+
+- **Motor de autorizaciones** (`solicitud_autorizacion` y `firma_autorizacion`, de solo inserción):
+  - Firma quien tiene el permiso y un límite que cubre el monto (`limite_autorizacion`).
+  - Quien solicita no firma. Quien recibió la mercancía no autoriza su pago.
+  - Lo usan requisiciones, órdenes de compra que rebasan lo autorizado, facturas con diferencias y pagos.
+- **Flujo:**
+  1. **Requisición:** manual o del plan. Se estima con el costo de referencia y se autoriza por nivel: hasta $10,000 el autorizador de nivel 1 (AUT1), arriba dirección.
+  2. **Orden de compra:** solo sale de una requisición autorizada, en unidad de compra con conversión. Si pasa de lo autorizado más `compras.tolerancia_oc_pct`, vuelve a autorización.
+  3. **Recepción:** entra al inventario (`ENTRADA_COMPRA`, documento `RECEPCION`) al precio de la OC por unidad base, con lote y caducidad. Desde el inventario no se cancela.
+  4. **Factura XML (CFDI 4.0/3.3):** `src/servidor/cfdi.ts` usa `fast-xml-parser` y rechaza DOCTYPE/ENTITY y archivos de más de 1 MB.
+  5. **Cotejo a 3 vías** (`src/dominio/compras.ts`): cantidad contra lo recibido, precio contra la OC, IVA y total, con tolerancias de Configuración → Compras. Si todo está dentro, se genera la cuenta por pagar; si no, autoriza el contralor.
+  6. **Pago:** el contador lo programa, se autoriza y se marca pagado con la referencia bancaria.
+- **Reportes:** antigüedad de saldos (exportable a Excel) y comparativo de precios por proveedor.
+- **Desde esta fase** la "entrada por compra" directa de la Fase 3 queda desactivada (`compras.permitir_entrada_sin_oc` = NO).
+- **Pruebas:**
+  - `pruebas/compras-dominio.test.ts`: cotejo, antigüedad y CFDI.
+  - `pruebas/compras.test.ts`: flujo completo.
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

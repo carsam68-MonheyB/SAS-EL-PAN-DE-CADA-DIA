@@ -28,6 +28,7 @@ interface Opciones {
   causas: { clave: string; nombre: string; aplica: string }[];
   proveedores: { clave: string; nombre: string }[];
   planes: { id: string; folio: string; fecha: string }[];
+  entrada_sin_oc: boolean;
 }
 const useOpciones = () => useQuery<Opciones>({ queryKey: ["inv-opciones"], queryFn: () => GET("/api/inventarios/opciones") });
 const datosAlmacen = (o: Opciones | undefined, f: (a: Opciones["almacenes"][number]) => boolean) =>
@@ -112,18 +113,18 @@ function Operaciones() {
   const sucursalDe = (clave: string | null) => o?.almacenes.find((a) => a.clave === clave)?.sucursal;
   const tipoProd = o?.almacenes.find((a) => a.clave === prod.almacen)?.tipo;
   const opciones = [
-    puede("compras.recepcion:crear") && "compra", puede("inventarios.surtido:crear") && "surtido", puede("produccion.ordenes:crear") && "produccion",
+    puede("compras.recepcion:crear") && op.data?.entrada_sin_oc && "compra", puede("inventarios.surtido:crear") && "surtido", puede("produccion.ordenes:crear") && "produccion",
   ].filter(Boolean) as string[];
   const [cual, setCual] = useState<string | null>(null);
   const sel = cual ?? opciones[0] ?? null;
-  if (!opciones.length) return <Text c="dimmed" size="sm">Tu puesto no registra entradas ni surtidos.</Text>;
+  if (!opciones.length) return <Text c="dimmed" size="sm">Tu puesto no registra surtidos ni entradas de producción aquí. Las compras se reciben en Compras → Órdenes de compra.</Text>;
   return (
     <Stack>
       <Select w={320} label="¿Qué vas a registrar?" allowDeselect={false} value={sel} onChange={setCual}
         data={[{ value: "compra", label: "Entrada por compra" }, { value: "surtido", label: "Surtido a producción (vale)" }, { value: "produccion", label: "Entrada de producción terminada" }].filter((x) => opciones.includes(x.value))} />
       {sel === "compra" && (
         <FormDoc titulo="Entrada por compra" ruta="/api/inventarios/compras" tipos={["INSUMO", "EMPAQUE"]} entrada costo
-          ayuda="Mientras no exista el módulo de compras (Fase 4), la mercancía recibida se registra aquí con su costo. Puedes capturar en la unidad de compra (ej. BULTO): el sistema convierte a la unidad base y el costo también."
+          ayuda="Entrada sin orden de compra (habilitada en Configuración solo para casos especiales); lo normal es recibir en Compras → Órdenes de compra. Puedes capturar en la unidad de compra (ej. BULTO): el sistema convierte a la unidad base y el costo también."
           listo={!!compra.almacen} cuerpo={() => compra} exito={(x) => `Se registró la entrada ${x.folio}.`}
           encabezado={(
             <Group align="flex-end">
