@@ -215,7 +215,7 @@ const recetasIntermedios: Layout = {
     "Las cantidades del lote van en la unidad base del intermedio (normalmente KG).",
     "CAPTURA = CANTIDAD: cada ingrediente con su cantidad y unidad. CAPTURA = PCT_PANADERO: cada ingrediente como % de la harina (harina = 100 %) y es obligatorio el TAMANO_LOTE: el sistema calcula harina = TAMANO_LOTE × 100 ÷ suma de %.",
     "RENDIMIENTO_LOTE: lo que rinde el lote ya preparado. Si se deja vacío se calcula: TAMANO_LOTE (o la suma de ingredientes) × (1 − MERMA_PROCESO_PCT).",
-    "REGLA_LOTE = COMPLETO: se preparan lotes completos y el excedente queda como sobrante esperado. EXACTO: se prepara la cantidad justa (pregunta P29).",
+    "REGLA_LOTE = COMPLETO: se preparan lotes completos y el excedente queda como sobrante esperado. EXACTO: se prepara la cantidad justa (pregunta P29). Recomendado: EXACTO para masas fermentadas (la masa que sobra no se guarda y se vuelve merma; la amasadora se respeta con la CAPACIDAD_AMASADORA, que divide en amasadas) y COMPLETO para cubiertas, rellenos y betunes que se conservan en refrigeración.",
     "Una versión nueva queda en BORRADOR y se puede corregir. Cuando está completa se ACTIVA en la pantalla Recetas; ya activa no cambia.",
   ],
   campos: [

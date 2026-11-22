@@ -271,6 +271,38 @@ describe("costo estándar en cadena", () => {
     expect((await nav.dir!.post("/api/costos/costeos", { fecha: "2099-01-01" })).estado).toBe(403);
   });
 
+  it("la calculadora saca el costo por minuto y lo guarda como tarifa vigente con la foto de sus datos", async () => {
+    const pedido = { tipo: "MOD", etapa: "PRUEBA-AMASADO", vigente_desde: "2099-06-01", comentario: "PRUEBA",
+      datos: { nomina_mensual: "24,000", carga_social_pct: "35", personas: "2", dias_mes: "26", minutos_jornada: "480", aprovechamiento_pct: "85" } };
+    const c = await nav.dir!.post("/api/costos/calculadora/calcular", pedido);
+    expect(c.estado, JSON.stringify(c.datos)).toBe(200);
+    expect(c.datos.resultado).toBe("1.527149");
+    // Dirección consulta pero no guarda; el contralor sí.
+    expect((await nav.dir!.post("/api/costos/calculadora/guardar", pedido)).estado).toBe(403);
+    const g = await nav.con!.post("/api/costos/calculadora/guardar", pedido);
+    expect(g.estado, JSON.stringify(g.datos)).toBe(200);
+    const t = await pool.query("SELECT t.costo_minuto::text FROM tarifa_mod t JOIN etapa_produccion e ON e.id = t.etapa_id WHERE e.clave = 'PRUEBA-AMASADO' AND t.vigente_desde = '2099-06-01'");
+    expect(t.rows[0].costo_minuto).toBe("1.527149");
+    const h = await nav.con!.get("/api/costos/calculadora");
+    expect(h.datos.historial[0]).toMatchObject({ tipo: "MOD", etapa: "PRUEBA-AMASADO", resultado: "1.527149" });
+    expect(h.datos.historial[0].datos.nomina_mensual).toBe("24000");
+    await expect(pool.query("UPDATE calculo_costo SET resultado = 0")).rejects.toThrow();
+  });
+
+  it("la calculadora de gastos indirectos guarda la tasa por kilo de masa y rechaza datos inválidos", async () => {
+    const g = await nav.con!.post("/api/costos/calculadora/guardar", { tipo: "GIF", base: "KG_MASA", vigente_desde: "2099-06-01",
+      datos: { cantidad_base_mensual: "5000", gastos: [{ concepto: "Gas", importe_mensual: "9000" }, { concepto: "Luz", importe_mensual: "3,000.00" }] } });
+    expect(g.estado, JSON.stringify(g.datos)).toBe(200);
+    expect(g.datos.resultado).toBe("2.4");
+    expect((await pool.query("SELECT tasa::text FROM tasa_gif WHERE base = 'KG_MASA' AND vigente_desde = '2099-06-01'")).rows[0].tasa).toBe("2.400000");
+    const malo = await nav.con!.post("/api/costos/calculadora/calcular", { tipo: "GIF", base: "KG_MASA", datos: { cantidad_base_mensual: "0", gastos: [{ concepto: "Gas", importe_mensual: "1" }] } });
+    expect(malo.estado).toBe(400);
+    const pasado = await nav.con!.post("/api/costos/calculadora/guardar", { tipo: "GIF", base: "PIEZA", vigente_desde: "2000-01-01",
+      datos: { cantidad_base_mensual: "10", gastos: [{ concepto: "Gas", importe_mensual: "1" }] } });
+    expect(pasado.estado).toBe(400);
+    expect((await pool.query("SELECT count(*)::int AS n FROM calculo_costo")).rows[0].n).toBe(2);
+  });
+
   it("todo quedó en la bitácora íntegra", async () => {
     const { rows } = await pool.query("SELECT count(*)::int AS n FROM bitacora_auditoria WHERE tabla IN ('receta', 'receta_componente', 'plan_renglon', 'tarifa_mod')");
     expect(rows[0].n).toBeGreaterThan(30);

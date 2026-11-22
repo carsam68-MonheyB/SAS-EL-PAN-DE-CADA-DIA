@@ -6,11 +6,23 @@ import { invalido, noEncontrado } from "../../src/servidor/errores";
 import { libroExcel, respuestaExcel } from "../../src/servidor/excel";
 import { hoyNegocio } from "../../src/servidor/fechas";
 import { leerCuerpo } from "../../src/servidor/http";
+import { calcular, guardarCalculo, historialCalculos, type PedidoCalculo } from "../../src/servidor/calculadora";
 import { calcularCostos, guardarCosteo } from "../../src/servidor/recetas";
 import { ruta } from "../../src/servidor/ruta";
 import type { Cliente } from "../../src/servidor/transaccion";
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const IMPORTE = z.string().trim().transform((v) => v.replaceAll(",", "")).pipe(z.string().regex(/^\d{1,12}(\.\d{1,6})?$/, "Número no válido (punto decimal)."));
+const PEDIDO_CALCULO = z.discriminatedUnion("tipo", [
+  z.object({
+    tipo: z.literal("MOD"), etapa: z.string().trim().toUpperCase().max(20), vigente_desde: z.string().regex(FECHA).optional(), comentario: z.string().trim().max(300).optional(),
+    datos: z.object({ nomina_mensual: IMPORTE, carga_social_pct: IMPORTE, personas: IMPORTE, dias_mes: IMPORTE, minutos_jornada: IMPORTE, aprovechamiento_pct: IMPORTE }),
+  }),
+  z.object({
+    tipo: z.literal("GIF"), base: z.enum(["KG_MASA", "MINUTO_MOD", "PIEZA"]), vigente_desde: z.string().regex(FECHA).optional(), comentario: z.string().trim().max(300).optional(),
+    datos: z.object({ gastos: z.array(z.object({ concepto: z.string().trim().min(1, "Escribe el concepto del gasto.").max(80), importe_mensual: IMPORTE })).min(1).max(50), cantidad_base_mensual: IMPORTE }),
+  }),
+]);
 const fechaMx = (f: string) => f.split("-").reverse().join("/");
 
 async function fechaPedida(c: Cliente, valor: string | null | undefined) {
@@ -23,7 +35,7 @@ const manejador = ruta({ permiso: "datos.costos:ver" }, async (ctx) => {
   const recurso = ctx.params.recurso;
   const id = ctx.params.id;
   const m = ctx.req.method;
-  if (id && !/^[0-9a-f-]{36}$/i.test(id)) throw noEncontrado("No existe ese costeo.");
+  if (id && recurso !== "calculadora" && !/^[0-9a-f-]{36}$/i.test(id)) throw noEncontrado("No existe ese costeo.");
   const verCantidades = ctx.puede("datos.receta_completa:ver");
   // Sin permiso de ver la receta completa, el desglose muestra importes pero no cantidades.
   const recortar = <T extends { costo: any; nuevo: any }>(a: T): T => {
@@ -103,6 +115,22 @@ const manejador = ruta({ permiso: "datos.costos:ver" }, async (ctx) => {
     ctx.exigir(["configuracion.parametros:editar", "produccion.recetas:editar"]);
     const d = await leerCuerpo(ctx.req, z.object({ fecha: z.string().optional(), comentario: z.string().trim().max(300).optional() }));
     return ctx.tx(async (c) => guardarCosteo(c, ctx.usuario.id, await fechaPedida(c, d.fecha), d.comentario || null));
+  }
+
+  // Calculadora de costo por minuto de mano de obra y de tasa de gastos indirectos (P35, P36).
+  if (recurso === "calculadora" && !id && m === "GET") {
+    return ctx.tx(async (c) => ({
+      etapas: (await c.query("SELECT clave, nombre FROM etapa_produccion WHERE activo ORDER BY orden, clave")).rows,
+      historial: await historialCalculos(c),
+      hoy: await hoyNegocio(c),
+    }));
+  }
+
+  if (recurso === "calculadora" && (id === "calcular" || id === "guardar") && m === "POST") {
+    const d = (await leerCuerpo(ctx.req, PEDIDO_CALCULO)) as PedidoCalculo;
+    if (id === "calcular") return calcular(d);
+    ctx.exigir("configuracion.parametros:editar");
+    return ctx.tx((c) => guardarCalculo(c, ctx.usuario.id, ctx.usuario.permisos, d));
   }
 
   throw invalido("Operación no reconocida.");
