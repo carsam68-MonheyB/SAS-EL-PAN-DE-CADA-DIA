@@ -97,7 +97,7 @@
 | P46 | ✅ Cajón Ghia RJ11 en la impresora; sin lector de código de barras (un lector USB posterior funciona sin cambios). **No se vende pan por peso** (sin báscula): las piezas van en números enteros. | — |
 | P47 | ✅ **Decidido:** se aceptan efectivo, tarjeta de crédito, tarjeta de débito (terminal bancaria aparte) y transferencia. Solo se guarda la referencia del voucher. | — |
 | P48 | ✅ Denominaciones de Banco de México para el arqueo. **El fondo de caja se define cada día** al abrir el turno (no es fijo). | — |
-| P49 | Periodicidad de la **factura global** (diaria, semanal, mensual, bimestral según tu régimen). Plazo que tiene el cliente para pedir factura de su ticket. | F8 |
+| P49 | ✅ **Respondida (22/11/2026):** la **factura global es diaria**. Como se factura cada día, el cliente que quiera factura de su ticket la pide **el mismo día**, antes de hacer la global (un ticket incluido en la global ya no se factura aparte). | — |
 | P50 | ✅ **Decidido:** se permiten descuentos y los autoriza con su PIN el **contador o el contralor** (permiso `pos.descuentos:autorizar`), sin límite por monto. El encargado ya no autoriza descuentos. | — |
 
 ## H. Contabilidad y fiscal
@@ -106,12 +106,12 @@
 |---|---|---|
 | P51 | Catálogo de cuentas actual (archivo) o si partimos del código agrupador del SAT. 🟡 **Fase 7:** el sistema ya contabiliza con **reglas** (Contabilidad → Reglas): cada concepto (caja, ventas, IVA, inventarios, mano de obra aplicada, proveedores…) va a la cuenta que diga tu contador, en general o por sucursal. **Falta:** tu catálogo real y las reglas; mientras no estén, las operaciones quedan "pendientes de contabilizar" (no se inventan cuentas). | Datos reales |
 | P52 | Fecha de arranque contable y si se cargan saldos iniciales. 🟡 **Fase 7:** periodos mensuales; la fecha de arranque se configura en Configuración → Contabilidad (lo anterior no se contabiliza) y los saldos iniciales entran con una **póliza manual de apertura** autorizada por el contralor. **Falta:** la fecha y los saldos. | Datos reales |
-| P53 | Proveedor de timbrado (**PAC**). Si no hay, te comparo 3 o 4 opciones con costo por timbre y API (ej. Finkok, SW Sapien, Facturama, Diverza). | F8 |
-| P54 | Series y folios. 🟡 **Fase 6 (provisional):** el ticket se numera por caja: `CAJA-SUC1-1-000001`. Las devoluciones usan `DEV-`, los pedidos `PED-` y los turnos `TUR-`. Las series de facturas se definen en la Fase 8. | F8 |
+| P53 | ✅ **Respondida:** **no habrá PAC**. Las facturas se elaboran y timbran en el **portal del SAT** (Factura electrónica). El sistema prepara los datos para capturarlos y guarda el XML que se descarga del portal. | — |
+| P54 | ✅ **Respondida:** las series y folios de las facturas son los que asigna el portal del SAT. Los tickets siguen numerados por caja (`CAJA-SUC1-1-000001`); devoluciones `DEV-`, pedidos `PED-` y turnos `TUR-`. | — |
 | P55 | Datos fiscales por SKU (clave prod/serv, clave unidad, objeto de impuesto, IVA, IEPS): los capturas tú con tu contador — confírmame si llegarán en el layout de SKU o después. | F1 (estructura) |
-| P56 | ¿Hay retenciones (ej. compras a personas físicas con actividad empresarial o fletes)? | F8 |
+| P56 | ✅ **Respondida:** **no hay retenciones**: la empresa es por ahora una **persona física**. | — |
 | P57 | ¿La contabilidad electrónica (Anexo 24) se envía desde este sistema o el contador la sigue haciendo en su sistema con lo que este le exporte? 🟡 **Fase 7:** la balanza, el diario, los auxiliares y las pólizas se exportan a Excel. El XML del SAT se agrega si se decide enviarlo desde aquí. | No |
-| P58 | ¿Quién custodia la e.firma? Además de la e.firma, ¿se tiene **CSD** (certificado de sello digital) para timbrar? (El timbrado usa el CSD, la descarga masiva usa la e.firma). | F8 |
+| P58 | ✅ **Respondida:** la **e.firma la tiene el contador** y no se guarda en este sistema; tampoco se necesita CSD, porque se timbra en el portal del SAT. Sin e.firma no hay descarga masiva automática: los XML se suben al sistema. | — |
 
 ## I. Pedidos y anticipos (nuevo, por respuesta a P25)
 
@@ -122,5 +122,5 @@
 | P61 | Cancelación de pedidos. 🟡 **Fase 6:** la autoriza con PIN un encargado, que decide si el anticipo **se devuelve** (sale efectivo de la caja) o **se retiene**. ¿Hay plazo o regla fija? | No |
 | P62 | Personalización de pedidos. 🟡 **Fase 6:** cada renglón lleva especificaciones (texto) y el pedido lleva notas. Solo productos del catálogo, al precio vigente (que queda fijo al registrar el pedido). Faltan la foto de referencia y los productos especiales con precio libre. | No |
 | P63 | ✅ **Respondida:** el pedido especial **no se liga** a la orden de producción. Si hace falta producirlo aparte, se libera una orden manual con el pedido en el comentario. | — |
-| P64 | **Tratamiento fiscal del anticipo (con tu contador):** ¿se emite CFDI por el anticipo y después el CFDI del total relacionado con tipo de relación 07 (procedimiento de la Guía de llenado del Anexo 20), o se factura todo al entregar? Si el cliente no pide factura, ¿cómo entra a la factura global? | F8 (la estructura se crea antes) |
+| P64 | ✅ **Respondida:** al recibir el anticipo se entrega un **recibo** (no se factura); **todo se factura a la entrega del pedido**. | — |
 | P65 | Cuenta contable de anticipos de clientes (pasivo). 🟡 **Fase 7:** es la regla del concepto ANTICIPOS_CLIENTES; los anticipos retenidos de pedidos cancelados van a ANTICIPOS_RETENIDOS. Falta la cuenta real. | Datos reales |
