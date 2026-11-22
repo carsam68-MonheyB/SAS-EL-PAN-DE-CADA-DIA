@@ -423,7 +423,12 @@
           "ver"
         ],
         "CON": [
-          "ver"
+          "ver",
+          "cancelar"
+        ],
+        "CNT": [
+          "ver",
+          "cancelar"
         ]
       }
     },
@@ -474,7 +479,12 @@
           "ver"
         ],
         "CON": [
-          "ver"
+          "ver",
+          "cancelar"
+        ],
+        "CNT": [
+          "ver",
+          "cancelar"
         ]
       }
     },
@@ -499,10 +509,15 @@
           "editar"
         ],
         "CON": [
-          "ver"
+          "ver",
+          "cancelar"
         ],
         "DIR": [
           "ver"
+        ],
+        "CNT": [
+          "ver",
+          "cancelar"
         ]
       }
     },
@@ -587,11 +602,16 @@
         ],
         "CON": [
           "ver",
+          "cancelar",
           "autorizar"
         ],
         "DIR": [
           "ver",
           "autorizar"
+        ],
+        "CNT": [
+          "ver",
+          "cancelar"
         ]
       }
     },
@@ -692,7 +712,12 @@
           "ver"
         ],
         "CON": [
-          "ver"
+          "ver",
+          "cancelar"
+        ],
+        "CNT": [
+          "ver",
+          "cancelar"
         ]
       }
     },

@@ -13,17 +13,16 @@ let nav: Record<string, Navegador>;
 let subir: Entorno["subir"];
 let cargar: Entorno["cargar"];
 let existencia: Entorno["existencia"];
-let otorgar: Entorno["otorgar"];
 
 beforeAll(async () => {
-  ({ pool, nav, subir, cargar, existencia, otorgar } = await prepararInventarios("erp_prueba_inventarios"));
+  ({ pool, nav, subir, cargar, existencia } = await prepararInventarios("erp_prueba_inventarios"));
 }, 180_000);
 
 describe("catálogos e inventario inicial por layout", () => {
   it("carga causas de merma (contralor) y mínimos por almacén (compras)", async () => {
     await cargar("con", "causas_merma", "fase-3/29-causas-merma.txt");
     await cargar("com", "minimos_almacen", "fase-3/30-minimos-por-almacen.txt");
-    expect((await pool.query("SELECT count(*)::int AS n FROM causa_merma")).rows[0].n).toBe(4);
+    expect((await pool.query("SELECT count(*)::int AS n FROM causa_merma")).rows[0].n).toBe(9); // 5 aprobadas (P38) + 4 de prueba
   });
 
   it("el archivo con errores detecta lote faltante o sobrante, tipo de almacén, clave, negativo, piezas fraccionadas y costo vacío", async () => {
@@ -206,10 +205,10 @@ describe("traspasos entre sucursales", () => {
   });
 
   it("un traspaso en tránsito se cancela y la mercancía regresa al origen con el mismo costo", async () => {
-    await otorgar("JPR", "inventarios.traspasos:cancelar");
     const r = await nav.jpr!.post("/api/inventarios/traspasos", { origen: "PT-MAT", destino: "PT-SUC1", renglones: [{ articulo: "PRUEBA-BOLILLO", cantidad: "30" }] });
     expect(await existencia("PT-MAT", "PRUEBA-BOLILLO")).toEqual({ cantidad: "70", valor: "105" });
-    const c = await nav.jpr!.post(`/api/inventarios/traspasos/${r.datos.id}/cancelar`, { motivo: "Se envió por error" });
+    expect((await nav.jpr!.post(`/api/inventarios/traspasos/${r.datos.id}/cancelar`, { motivo: "Se envió por error" })).estado).toBe(403);
+    const c = await nav.con!.post(`/api/inventarios/traspasos/${r.datos.id}/cancelar`, { motivo: "Se envió por error" });
     expect(c.estado, JSON.stringify(c.datos)).toBe(200);
     expect(await existencia("PT-MAT", "PRUEBA-BOLILLO")).toEqual({ cantidad: "100", valor: "150" });
     expect((await nav.enc!.post(`/api/inventarios/traspasos/${r.datos.id}/recibir`, {})).estado).toBe(409);
@@ -247,20 +246,18 @@ describe("mermas con autorización, segregación y límites", () => {
 });
 
 describe("cancelaciones, plan y controles", () => {
-  it("cancelar una compra requiere permiso y saca lo que entró; no se cancela dos veces", async () => {
+  it("solo el contralor o el contador cancelan (P70): la compra cancelada saca lo que entró; no se cancela dos veces", async () => {
     const compra = (await pool.query("SELECT id FROM movimiento WHERE tipo = 'ENTRADA_COMPRA'")).rows[0].id;
     expect((await nav.alm!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Factura equivocada" })).estado).toBe(403);
-    await otorgar("ALM", "compras.recepcion:cancelar");
-    const r = await nav.alm!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Factura equivocada" });
+    const r = await nav.con!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Factura equivocada" });
     expect(r.estado, JSON.stringify(r.datos)).toBe(200);
     expect(await existencia("MP-MAT", "PRUEBA-HAR-01")).toEqual({ cantidad: "0", valor: "0" });
-    expect((await nav.alm!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Otra vez" })).estado).toBe(409);
+    expect((await nav.con!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Otra vez" })).estado).toBe(409);
   });
 
-  it("cancelar un vale de surtido regresa la harina de producción a materia prima", async () => {
-    await otorgar("ALM", "inventarios.surtido:cancelar");
+  it("el contador cancela un vale de surtido y la harina regresa de producción a materia prima", async () => {
     const s = (await pool.query("SELECT salida_id FROM surtido")).rows[0].salida_id;
-    const r = await nav.alm!.post(`/api/inventarios/movimientos/${s}/cancelar`, { motivo: "Prueba" });
+    const r = await nav.cnt!.post(`/api/inventarios/movimientos/${s}/cancelar`, { motivo: "Prueba" });
     expect(r.estado, JSON.stringify(r.datos)).toBe(200);
     expect(r.datos.cancelaciones).toHaveLength(2);
     expect(await existencia("PEP-MAT", "PRUEBA-HAR-01")).toEqual({ cantidad: "0", valor: "0" });
@@ -278,7 +275,8 @@ describe("cancelaciones, plan y controles", () => {
     expect(e.find((x) => x.clave === "PRUEBA-HAR-01")?.existencia).toBe("60.000000");
   });
 
-  it("el método de valuación ya no se puede cambiar con movimientos", async () => {
+  it("el método de valuación es costo promedio (decidido) y ya no se puede cambiar con movimientos", async () => {
+    expect((await pool.query("SELECT valor, provisional FROM configuracion WHERE clave = 'inventarios.metodo_valuacion'")).rows[0]).toEqual({ valor: "PROMEDIO", provisional: false });
     await expect(pool.query("UPDATE configuracion SET valor = 'PEPS' WHERE clave = 'inventarios.metodo_valuacion'")).rejects.toThrow(/método de valuación/);
   });
 

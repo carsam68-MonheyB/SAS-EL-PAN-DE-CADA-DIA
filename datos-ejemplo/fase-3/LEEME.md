@@ -12,7 +12,7 @@ Usuarios: los de **Datos de prueba** (`prueba.alm` almacenista, `prueba.jpr` jef
 
 | Archivo | Catálogo | Quién lo sube |
 |---|---|---|
-| `29-causas-merma.txt` | Causas de merma | contralor o jefe de producción |
+| `29-causas-merma.txt` | Causas de merma (de prueba; las 5 reales ya vienen cargadas) | contralor o jefe de producción |
 | `30-minimos-por-almacen.txt` | Mínimos y reorden por almacén | compras |
 | `31-inventario-inicial.txt` | Inventario inicial | jefe de producción |
 
@@ -46,6 +46,8 @@ Método de valuación: **costo promedio** (el que viene por omisión).
 | 10 | maestro de masas | Merma en MP-MAT de **10 kg de mantequilla** (causa caducado) | Valor $1,450. El **jefe de producción no puede autorizarla** (su límite es $1,000); el **contralor sí**. |
 | 11 | contralor | Existencias → clic en un renglón | El **kárdex** muestra cada entrada y salida con su saldo; se exporta a Excel. |
 
+Para **cancelar** un movimiento: contralor o contador → Movimientos → abre el movimiento → **Cancelar movimiento** (o, en un traspaso en tránsito, **Cancelar traspaso**). Se registra el movimiento inverso; nada se borra.
+
 Al final, en el **Plan de producción** (en borrador), el botón **Tomar existencias del inventario** llena la existencia y lo que viene en tránsito.
 
 ## 3. Lo que todavía no hace (fases siguientes)
@@ -53,4 +55,3 @@ Al final, en el **Plan de producción** (en borrador), el botón **Tomar existen
 - Las compras con orden de compra y factura llegan en la **Fase 4**.
 - Las órdenes de producción, con consumo real y mermas por etapa, llegan en la **Fase 5**. Mientras tanto, el pan terminado entra con **Entrada de producción**, al costo estándar del día, y necesita una receta activa a la fecha de hoy.
 - Las pólizas contables de cada movimiento llegan en la **Fase 7**.
-- Ningún puesto tiene todavía permiso de **cancelar** movimientos (pregunta P70). Para probarlo, el administrador puede dárselo al contralor en **Roles y permisos**.

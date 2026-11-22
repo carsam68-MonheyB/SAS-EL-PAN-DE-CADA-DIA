@@ -128,6 +128,10 @@ El sistema impide asignar a un mismo usuario, o que un mismo usuario ejecute sob
 - El **contador** custodia y carga la **e.firma**.
 - Se separó **maestro de masas** de **panadero**.
 
+## 6-B. Cambios aprobados después
+
+- **22/11/2026 (P70):** el contralor (CON) y el contador (CNT) pueden **ver y cancelar** en compras recibidas, vales de surtido, traspasos, ajustes de inventario y órdenes/entradas de producción. Aplicado en `datos-iniciales/matriz-puestos.json` y en la migración 0010.
+
 ## 7. Pendiente
 
 1. ¿Qué **otros puestos** existen además de panaderos (ej. auxiliar de producción, repartidor, supervisor de sucursales, decorador)? ¿Qué hace cada uno en el sistema?

@@ -39,23 +39,21 @@ describe("PEPS", () => {
   });
 
   it("una compra ya usada en parte no se cancela; una sin usar se cancela exacta", async () => {
-    await e.otorgar("ALM", "compras.recepcion:cancelar");
-    const r = await e.nav.alm!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Prueba" });
+    const r = await e.nav.con!.post(`/api/inventarios/movimientos/${compra}/cancelar`, { motivo: "Prueba" });
     expect(r.estado).toBe(409);
     expect(r.datos.mensaje).toMatch(/ya se usó/);
     const nueva = await e.nav.alm!.post("/api/inventarios/compras", {
       almacen: "MP-MAT", renglones: [{ articulo: "PRUEBA-HAR-01", cantidad: "10", costo_unitario: "20", lote: "PRUEBA-HAR-C", caducidad: "2027-05-31" }],
     });
     expect(await e.existencia("MP-MAT", "PRUEBA-HAR-01")).toEqual({ cantidad: "40", valor: "740" });
-    const c = await e.nav.alm!.post(`/api/inventarios/movimientos/${nueva.datos.id}/cancelar`, { motivo: "Prueba" });
+    const c = await e.nav.con!.post(`/api/inventarios/movimientos/${nueva.datos.id}/cancelar`, { motivo: "Prueba" });
     expect(c.estado, JSON.stringify(c.datos)).toBe(200);
     expect(await e.existencia("MP-MAT", "PRUEBA-HAR-01")).toEqual({ cantidad: "30", valor: "540" });
   });
 
   it("cancelar el vale regresa cada capa con su costo original", async () => {
-    await e.otorgar("ALM", "inventarios.surtido:cancelar");
     const s = (await e.pool.query("SELECT salida_id FROM surtido")).rows[0].salida_id;
-    const r = await e.nav.alm!.post(`/api/inventarios/movimientos/${s}/cancelar`, { motivo: "Prueba" });
+    const r = await e.nav.cnt!.post(`/api/inventarios/movimientos/${s}/cancelar`, { motivo: "Prueba" });
     expect(r.estado, JSON.stringify(r.datos)).toBe(200);
     expect(await e.existencia("PEP-MAT", "PRUEBA-HAR-01")).toEqual({ cantidad: "0", valor: "0" });
     expect(await e.existencia("MP-MAT", "PRUEBA-HAR-01")).toEqual({ cantidad: "250", valor: "4600" });

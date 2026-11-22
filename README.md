@@ -117,7 +117,7 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
 - **Saldos:** `existencia`, `existencia_lote` y `capa_costo` (PEPS).
   - Se actualizan en la misma transacción, con el saldo bloqueado (`FOR UPDATE`).
   - `SELECT * FROM inventario_diferencias()` debe regresar cero renglones.
-- **Valuación** (`inventarios.metodo_valuacion`, P34): PROMEDIO (provisional) o PEPS.
+- **Valuación** (`inventarios.metodo_valuacion`, P34): **COSTO PROMEDIO** (decidido). El sistema también soporta PEPS.
   - No se puede cambiar una vez que hay movimientos.
   - Cuando sale todo lo que queda, se toma el valor restante exacto: no quedan centavos huérfanos.
 - **Lotes:** si el artículo maneja lote, las salidas sin lote se reparten por caducidad (FEFO).
@@ -139,6 +139,7 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
 - **Alertas:**
   - Bajo mínimo o punto de reorden, con cantidad sugerida hasta el máximo. Los mínimos del artículo aplican en almacenes MP/INS; en PEP/PT solo los capturados por almacén.
   - Lotes caducados o por caducar (`inventarios.dias_alerta_caducidad`).
+- **Cancelaciones** (P70): las hacen el contralor y el contador.
 - **Seguridad:**
   - Cada acción valida en el servidor el permiso y el **alcance** del usuario sobre el almacén.
   - Sin `datos.costos:ver` se ocultan importes y valores.
