@@ -3,7 +3,7 @@
 // actual de la sesión de caja; lo que requiere supervisor se autoriza en la
 // misma caja con usuario y PIN de alguien con permiso, distinto del cajero.
 import { dentroDeAlcanceSucursal, tieneAlguno } from "../dominio/permisos";
-import { arqueo, cobrar, desglosar, efectivoEsperado, importeDevolucion, importeRenglon, type Tasa } from "../dominio/pos";
+import { arqueo, cobrar, desglosar, descuentoOferta, efectivoEsperado, importeDevolucion, importeRenglon, ofertaAplicable, type Oferta, type Tasa } from "../dominio/pos";
 import { D, type Dec } from "../dominio/recetas";
 import { configEntero } from "./configuracion";
 import { verificar } from "./contrasena";
@@ -131,10 +131,67 @@ export async function abrirTurno(c: Cliente, k: ContextoCaja, fondo: string) {
 // ---------------------------------------------------------------------------
 // Productos y precios
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Ofertas de fin del día (P37)
+// ---------------------------------------------------------------------------
+export async function leerOfertas(c: Cliente): Promise<Oferta[]> {
+  return (await c.query("SELECT id, articulo_id, familia_id, sucursal_id, descuento_pct::text, to_char(hora_desde, 'HH24:MI') AS hora FROM oferta WHERE activo")).rows
+    .map((o) => ({ id: o.id, articuloId: o.articulo_id, familiaId: o.familia_id, sucursalId: o.sucursal_id, pct: new D(o.descuento_pct), horaDesde: o.hora }));
+}
+
+export async function listarOfertas(c: Cliente) {
+  return (await c.query(
+    `SELECT o.id, a.clave AS articulo, a.nombre AS articulo_nombre, f.clave AS familia, f.nombre AS familia_nombre, s.clave AS sucursal,
+            o.descuento_pct::text, to_char(o.hora_desde, 'HH24:MI') AS hora_desde, o.activo, o.actualizado_en, o.creado_en,
+            (SELECT u.usuario FROM usuario u WHERE u.id = coalesce(o.actualizado_por, o.creado_por)) AS capturo
+       FROM oferta o LEFT JOIN articulo a ON a.id = o.articulo_id LEFT JOIN familia f ON f.id = o.familia_id LEFT JOIN sucursal s ON s.id = o.sucursal_id
+      ORDER BY o.activo DESC, s.clave NULLS FIRST, (a.id IS NOT NULL), (f.id IS NOT NULL), coalesce(a.clave, f.clave)`,
+  )).rows;
+}
+
+/**
+ * Alta o cambio de una oferta (contador o contralor). Sin id: nueva para ese alcance
+ * (si ya hay una activa para el mismo alcance, se actualiza). Con id: cambia % u hora, o la desactiva.
+ */
+export async function guardarOferta(c: Cliente, d: { id?: string | null; articulo?: string | null; familia?: string | null; sucursal?: string | null; descuento_pct: string; hora_desde: string; activo?: boolean }) {
+  const pct = dec(d.descuento_pct, "Descuento");
+  if (pct.lte(0) || pct.gte(100) || pct.decimalPlaces() > 2) throw invalido("El descuento es un porcentaje mayor que 0 y menor que 100, con hasta 2 decimales.");
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.hora_desde)) throw invalido("Hora no válida (HH:MM, de 00:00 a 23:59).");
+  if (d.id) {
+    const o = (await c.query("UPDATE oferta SET descuento_pct = $2, hora_desde = $3, activo = $4 WHERE id = $1 RETURNING id", [d.id, pct.toFixed(2), d.hora_desde, d.activo ?? true])).rows[0];
+    if (!o) throw noEncontrado("No existe esa oferta.");
+    return { id: o.id };
+  }
+  if (d.articulo && d.familia) throw invalido("La oferta es para un producto o para una familia, no ambos.");
+  const art = d.articulo ? (await c.query("SELECT id FROM articulo WHERE clave = upper($1) AND tipo = 'SKU'", [d.articulo])).rows[0] : null;
+  if (d.articulo && !art) throw invalido(`No es un producto a la venta: ${d.articulo}.`);
+  const fam = d.familia ? (await c.query("SELECT id FROM familia WHERE clave = upper($1)", [d.familia])).rows[0] : null;
+  if (d.familia && !fam) throw invalido(`No existe la familia ${d.familia}.`);
+  const suc = d.sucursal ? (await c.query("SELECT id FROM sucursal WHERE clave = upper($1)", [d.sucursal])).rows[0] : null;
+  if (d.sucursal && !suc) throw invalido(`No existe la sucursal ${d.sucursal}.`);
+  const ya = (await c.query(
+    "SELECT id FROM oferta WHERE activo AND articulo_id IS NOT DISTINCT FROM $1 AND familia_id IS NOT DISTINCT FROM $2 AND sucursal_id IS NOT DISTINCT FROM $3",
+    [art?.id ?? null, fam?.id ?? null, suc?.id ?? null],
+  )).rows[0];
+  if (ya) {
+    await c.query("UPDATE oferta SET descuento_pct = $2, hora_desde = $3 WHERE id = $1", [ya.id, pct.toFixed(2), d.hora_desde]);
+    return { id: ya.id };
+  }
+  const o = (await c.query("INSERT INTO oferta (articulo_id, familia_id, sucursal_id, descuento_pct, hora_desde) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    [art?.id ?? null, fam?.id ?? null, suc?.id ?? null, pct.toFixed(2), d.hora_desde])).rows[0];
+  return { id: o.id };
+}
+
+/** Hora local del negocio (HH:MM) del momento de la venta; con minutos de holgura opcionales. */
+async function horaLocal(c: Cliente, fecha: string | null, holguraMin = 0): Promise<string> {
+  return (await c.query("SELECT to_char((coalesce($1::timestamptz, now()) + make_interval(mins => $2)) AT TIME ZONE 'America/Mexico_City', 'HH24:MI') AS h", [fecha, holguraMin])).rows[0].h;
+}
+
 export async function productosCaja(c: Cliente, k: ContextoCaja) {
   const hoy = await hoyNegocio(c);
+  const ofertas = await leerOfertas(c);
   const { rows } = await c.query(
-    `SELECT a.id, a.clave, a.nombre, u.clave AS unidad, coalesce(f.clave, 'SIN-FAMILIA') AS familia, coalesce(f.nombre, 'Otros') AS familia_nombre, a.codigo_barras,
+    `SELECT a.id, a.familia_id, a.clave, a.nombre, u.clave AS unidad, coalesce(f.clave, 'SIN-FAMILIA') AS familia, coalesce(f.nombre, 'Otros') AS familia_nombre, a.codigo_barras,
             (SELECT p.precio::text FROM precio_venta p WHERE p.articulo_id = a.id AND (p.sucursal_id = $1 OR p.sucursal_id IS NULL)
                 AND p.vigente_desde <= $2 AND (p.vigente_hasta IS NULL OR p.vigente_hasta >= $2)
               ORDER BY (p.sucursal_id IS NULL), p.vigente_desde DESC LIMIT 1) AS precio,
@@ -144,14 +201,18 @@ export async function productosCaja(c: Cliente, k: ContextoCaja) {
       WHERE a.tipo = 'SKU' AND a.activo ORDER BY f.nombre NULLS LAST, a.nombre`,
     [k.caja.sucursal_id, hoy, k.caja.almacen_id ?? null],
   );
-  return rows;
+  // La caja recibe la oferta de cada producto (% y hora) para calcular el total también sin internet.
+  return rows.map(({ familia_id, ...r }) => {
+    const o = ofertaAplicable(ofertas, { id: r.id, familiaId: familia_id }, k.caja.sucursal_id, "23:59");
+    return { ...r, oferta: o ? { pct: o.pct.toFixed(2), desde: o.horaDesde } : null };
+  });
 }
 
-interface ArticuloVenta { id: string; clave: string; nombre: string; unidad: string; precio: string | null; iva: Tasa | null; ieps: Tasa | null }
+interface ArticuloVenta { id: string; familiaId: string | null; clave: string; nombre: string; unidad: string; precio: string | null; iva: Tasa | null; ieps: Tasa | null }
 async function articulosVenta(c: Cliente, k: ContextoCaja, claves: string[]): Promise<Map<string, ArticuloVenta>> {
   const hoy = await hoyNegocio(c);
   const { rows } = await c.query(
-    `SELECT a.id, a.clave, a.nombre, u.clave AS unidad,
+    `SELECT a.id, a.familia_id, a.clave, a.nombre, u.clave AS unidad,
             (SELECT p.precio::text FROM precio_venta p WHERE p.articulo_id = a.id AND (p.sucursal_id = $2 OR p.sucursal_id IS NULL)
                 AND p.vigente_desde <= $3 AND (p.vigente_hasta IS NULL OR p.vigente_hasta >= $3)
               ORDER BY (p.sucursal_id IS NULL), p.vigente_desde DESC LIMIT 1) AS precio,
@@ -162,7 +223,7 @@ async function articulosVenta(c: Cliente, k: ContextoCaja, claves: string[]): Pr
     [claves.map((x) => x.toUpperCase()), k.caja.sucursal_id, hoy],
   );
   const m = new Map<string, ArticuloVenta>(rows.map((r) => [r.clave, {
-    id: r.id, clave: r.clave, nombre: r.nombre, unidad: r.unidad, precio: r.precio,
+    id: r.id, familiaId: r.familia_id, clave: r.clave, nombre: r.nombre, unidad: r.unidad, precio: r.precio,
     iva: r.iva_tipo ? { tipoFactor: r.iva_tipo, tasa: r.iva_tasa } : null, ieps: r.ieps_tipo ? { tipoFactor: r.ieps_tipo, tasa: r.ieps_tasa } : null,
   }]));
   const faltan = [...new Set(claves.map((x) => x.toUpperCase()))].filter((x) => !m.has(x));
@@ -200,7 +261,8 @@ async function prepararPagos(c: Cliente, porCobrar: Dec, pagos: PagoCaptura[]) {
 // ---------------------------------------------------------------------------
 // Venta
 // ---------------------------------------------------------------------------
-export interface RenglonVenta { articulo: string; cantidad: string; descuento?: string | null }
+/** `oferta`: la caja aplicó la oferta de fin del día (se acepta con 5 minutos de diferencia de reloj). */
+export interface RenglonVenta { articulo: string; cantidad: string; descuento?: string | null; oferta?: boolean | null }
 export interface PedidoVenta { id: string; anticipado: Dec; renglones: { articulo: string; cantidad: string; precio: string }[] }
 
 export interface SinConexion { fecha_caja: string; folio_local: string }
@@ -212,7 +274,11 @@ export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; rengl
   if (!d.renglones.length) throw invalido("La venta no tiene productos.");
   const arts = await articulosVenta(c, k, d.renglones.map((r) => r.articulo));
   const precioPedido = new Map((pedido?.renglones ?? []).map((r) => [r.articulo, r.precio]));
-  let total = new D(0), base = new D(0), ieps = new D(0), iva = new D(0), descuento = new D(0);
+  // Ofertas de fin del día: a la hora de la venta (la de la caja si fue sin conexión). Un pedido conserva su precio pactado.
+  const ofertas = pedido ? [] : await leerOfertas(c);
+  const hora = ofertas.length ? await horaLocal(c, d.sinConexion?.fecha_caja ?? null) : "00:00";
+  const horaHolgura = ofertas.length ? await horaLocal(c, d.sinConexion?.fecha_caja ?? null, 5) : "00:00";
+  let total = new D(0), base = new D(0), ieps = new D(0), iva = new D(0), descuento = new D(0), manual = new D(0);
   const renglones = d.renglones.map((r, i) => {
     const a = arts.get(r.articulo.toUpperCase())!;
     const cantidad = dec(r.cantidad, a.clave);
@@ -222,17 +288,21 @@ export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; rengl
     const precioTxt = pedido ? precioPedido.get(a.clave) : a.precio;
     if (precioTxt === null || precioTxt === undefined) throw invalido(`${a.nombre} no tiene precio vigente en esta sucursal.`);
     const precio = new D(precioTxt);
-    const desc = r.descuento ? dec(r.descuento, "Descuento") : new D(0);
-    if (desc.decimalPlaces() > 2) throw invalido("El descuento va en pesos y centavos.");
+    const descManual = r.descuento ? dec(r.descuento, "Descuento") : new D(0);
+    if (descManual.decimalPlaces() > 2) throw invalido("El descuento va en pesos y centavos.");
+    const oferta = ofertaAplicable(ofertas, a, k.caja.sucursal_id, hora) ?? (r.oferta ? ofertaAplicable(ofertas, a, k.caja.sucursal_id, horaHolgura) : null);
+    const descOferta = oferta ? descuentoOferta(precio, cantidad, oferta.pct) : new D(0);
+    const desc = descOferta.plus(descManual);
     let importe: Dec, imp: ReturnType<typeof desglosar>;
     try {
       importe = importeRenglon(precio, cantidad, desc);
       imp = desglosar(importe, a.iva, a.ieps);
     } catch (e) { throw invalido(`${a.nombre}: ${(e as Error).message}`); }
-    total = total.plus(importe); base = base.plus(imp.base); ieps = ieps.plus(imp.ieps); iva = iva.plus(imp.iva); descuento = descuento.plus(desc);
-    return { orden: i + 1, a, cantidad, precio, desc, importe, imp };
+    total = total.plus(importe); base = base.plus(imp.base); ieps = ieps.plus(imp.ieps); iva = iva.plus(imp.iva); descuento = descuento.plus(desc); manual = manual.plus(descManual);
+    return { orden: i + 1, a, cantidad, precio, desc, importe, imp, oferta, descOferta };
   });
-  if (descuento.gt(0) && !d.autorizoDescuento) throw new ErrorApp(403, "requiere_autorizacion", "El descuento requiere la autorización de un encargado.");
+  // La oferta no pide autorización; un descuento adicional, sí (P50).
+  if (manual.gt(0) && !d.autorizoDescuento) throw new ErrorApp(403, "requiere_autorizacion", "El descuento requiere la autorización de un encargado.");
   const anticipo = pedido?.anticipado ?? new D(0);
   const cobro = await prepararPagos(c, total.minus(anticipo), d.pagos);
   // Folio consecutivo por caja (provisional, P54).
@@ -244,16 +314,16 @@ export async function vender(c: Cliente, k: ContextoCaja, d: { id: string; rengl
                         pedido_id, anticipo_aplicado, movimiento_id, autorizo_descuento_id, sin_conexion, fecha_caja, folio_local)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
     [d.id, folio, k.caja.id, turno.id, k.caja.sucursal_id, k.caja.almacen_id, k.cajero.id, await hoyNegocio(c), m2(base), m2(ieps), m2(iva), m2(descuento), m2(total),
-      m2(cobro.recibido.plus(anticipo)), m2(cobro.cambio), pedido?.id ?? null, m2(anticipo), salida.movimientoId, descuento.gt(0) ? d.autorizoDescuento : null,
+      m2(cobro.recibido.plus(anticipo)), m2(cobro.cambio), pedido?.id ?? null, m2(anticipo), salida.movimientoId, manual.gt(0) ? d.autorizoDescuento : null,
       !!d.sinConexion, d.sinConexion?.fecha_caja ?? null, d.sinConexion?.folio_local ?? null],
   );
   for (const [i, r] of renglones.entries()) {
     const costo = salida.costos[i]!;
     await c.query(
-      `INSERT INTO venta_renglon (venta_id, orden, articulo_id, cantidad, precio, descuento, importe, base, ieps, iva, tasa_iva, tasa_ieps, costo_unitario, costo_importe)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      `INSERT INTO venta_renglon (venta_id, orden, articulo_id, cantidad, precio, descuento, importe, base, ieps, iva, tasa_iva, tasa_ieps, costo_unitario, costo_importe, oferta_id, descuento_oferta)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [d.id, r.orden, r.a.id, r.cantidad.toFixed(), m2(r.precio), m2(r.desc), m2(r.importe), m2(r.imp.base), m2(r.imp.ieps), m2(r.imp.iva),
-        r.a.iva?.tasa ?? null, r.a.ieps?.tasa ?? null, costo.div(r.cantidad).toDecimalPlaces(6).toFixed(), costo.toFixed()],
+        r.a.iva?.tasa ?? null, r.a.ieps?.tasa ?? null, costo.div(r.cantidad).toDecimalPlaces(6).toFixed(), costo.toFixed(), r.oferta?.id ?? null, m2(r.descOferta)],
     );
   }
   for (const [i, p] of cobro.lista.entries()) {

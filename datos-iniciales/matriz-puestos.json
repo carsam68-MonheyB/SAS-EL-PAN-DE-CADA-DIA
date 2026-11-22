@@ -883,14 +883,16 @@
       "grupo": "Punto de venta",
       "clave": "pos.descuentos",
       "nombre": "Descuentos en caja",
-      "nota": "Los autoriza el contador o el contralor con su PIN (P50, 22/11/2026).",
+      "nota": "Los autoriza el contador o el contralor con su PIN (P50, 22/11/2026). Ellos mismos capturan las ofertas de fin del día: % y hora (P37, 22/11/2026).",
       "roles": {
         "CON": [
           "ver",
+          "editar",
           "autorizar"
         ],
         "CNT": [
           "ver",
+          "editar",
           "autorizar"
         ]
       }

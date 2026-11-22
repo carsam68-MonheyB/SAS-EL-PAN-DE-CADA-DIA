@@ -1,7 +1,7 @@
 // Cálculos críticos del punto de venta: impuestos, cobro y cambio, corte y arqueo.
 // Valores esperados calculados a mano.
 import { describe, expect, it } from "vitest";
-import { arqueo, cobrar, desglosar, efectivoEsperado, importeDevolucion, importeRenglon } from "../src/dominio/pos";
+import { arqueo, cobrar, descuentoOferta, desglosar, efectivoEsperado, importeDevolucion, importeRenglon, ofertaAplicable, type Oferta } from "../src/dominio/pos";
 import { D } from "../src/dominio/recetas";
 
 const d = (x: string | number) => new D(x);
@@ -77,5 +77,36 @@ describe("devoluciones parciales", () => {
     const c = importeDevolucion(d(10), d(3), d(1), d(2), a.plus(b));
     expect([a, b, c].map((x) => x.toFixed(2))).toEqual(["3.33", "3.33", "3.34"]);
     expect(() => importeDevolucion(d(10), d(3), d(2), d(2), d("6.66"))).toThrow(/Solo quedan 1/);
+  });
+});
+
+describe("ofertas de fin del día (P37)", () => {
+  const O = (id: string, o: Partial<Oferta>): Oferta => ({ id, articuloId: null, familiaId: null, sucursalId: null, pct: new D(10), horaDesde: "18:00", ...o });
+  const ofertas = [
+    O("todos", { pct: new D(10), horaDesde: "18:00" }),
+    O("dulce", { familiaId: "PAN-DULCE", pct: new D(20), horaDesde: "17:00" }),
+    O("dulce-suc1", { familiaId: "PAN-DULCE", sucursalId: "SUC1", pct: new D(25), horaDesde: "19:00" }),
+    O("concha", { articuloId: "CONCHA", pct: new D(30), horaDesde: "20:00" }),
+  ];
+  const bolillo = { id: "BOLILLO", familiaId: "PAN-BLANCO" };
+  const dona = { id: "DONA", familiaId: "PAN-DULCE" };
+  const concha = { id: "CONCHA", familiaId: "PAN-DULCE" };
+  it("antes de la hora no aplica; desde la hora (inclusive) sí", () => {
+    expect(ofertaAplicable(ofertas, bolillo, "MAT", "17:59")).toBeNull();
+    expect(ofertaAplicable(ofertas, bolillo, "MAT", "18:00")?.id).toBe("todos");
+  });
+  it("gana la más específica: producto > familia > todos; sucursal > todas", () => {
+    expect(ofertaAplicable(ofertas, dona, "MAT", "17:30")?.id).toBe("dulce");
+    expect(ofertaAplicable(ofertas, dona, "SUC1", "19:30")?.id).toBe("dulce-suc1");
+    expect(ofertaAplicable(ofertas, concha, "MAT", "20:00")?.id).toBe("concha");
+  });
+  it("si la más específica aún no empieza, no se usa una más general", () => {
+    expect(ofertaAplicable(ofertas, dona, "SUC1", "18:30")).toBeNull();
+    expect(ofertaAplicable(ofertas, concha, "MAT", "19:00")).toBeNull();
+  });
+  it("descuento sobre el importe bruto, a centavos: 7 × $3.50 = $24.50 al 30 % = $7.35; 3 × $14 al 15 % = $6.30", () => {
+    expect(descuentoOferta(new D("3.50"), new D(7), new D(30)).toFixed(2)).toBe("7.35");
+    expect(descuentoOferta(new D(14), new D(3), new D(15)).toFixed(2)).toBe("6.30");
+    expect(descuentoOferta(new D("0.05"), new D(1), new D(10)).toFixed(2)).toBe("0.01"); // 0.005 sube
   });
 });

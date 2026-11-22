@@ -193,6 +193,14 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - Al reconectar se envía cada venta con `sin_conexion` (hora real y folio provisional). El servidor no la duplica y la valida igual que cualquier venta.
   - Si una venta ya no tiene existencia, queda marcada para que el encargado corrija el inventario y la reenvíe. No se borra.
 
+### Ofertas de fin del día (P37)
+
+- El contador o el contralor (`pos.descuentos:editar`) capturan el **% de descuento y la hora** desde la que aplica (`oferta`): para todos los productos, una familia o un producto, en todas las sucursales o en una.
+- Gana la más específica: producto > familia > todos; la de la sucursal sobre la de todas. Si la más específica aún no empieza, no se usa una más general (`src/dominio/pos.ts`, con pruebas).
+- La caja la aplica sola, sin PIN, también sin internet (con la hora de la caja). Se aceptan 5 minutos de diferencia entre el reloj de la caja y el del servidor. Un descuento adicional sigue pidiendo autorización (P50). Los pedidos conservan su precio pactado.
+- Cada renglón guarda su oferta y el descuento de oferta (`venta_renglon.oferta_id`, `descuento_oferta`); el reporte de ventas lo separa.
+- Pruebas: `pruebas/ofertas.test.ts`.
+
 ## Compras (Fase 4)
 
 - **Motor de autorizaciones** (`solicitud_autorizacion` y `firma_autorizacion`, de solo inserción):

@@ -1,11 +1,11 @@
 // Oficina: ventas por fecha y sucursal (con exportación), tickets, cortes de
 // caja con su arqueo y pedidos. Solo lectura; la operación es en la caja.
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PasswordInput, SegmentedControl, Textarea } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Badge, Button, Card, Group, Modal, ScrollArea, Select, SimpleGrid, Stack, Table, Tabs, Text, TextInput, Title } from "@mantine/core";
-import { descargar, GET, POST, textoError } from "../api";
+import { descargar, GET, POST, PUT, textoError } from "../api";
 import { fecha, fechaHora, fechaIso, numero } from "../formato";
 import { impresoraNavegador } from "../impresion";
 import { useSesion } from "../sesion";
@@ -189,20 +189,84 @@ function ListaPedidos() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Ofertas de fin del día (P37): las capturan el contador o el contralor
+// ---------------------------------------------------------------------------
+function Ofertas() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["ofertas"], queryFn: () => GET("/api/ofertas") });
+  const [f, setF] = useState({ alcance: "TODOS", articulo: null as string | null, familia: null as string | null, sucursal: null as string | null, descuento_pct: "", hora_desde: "" });
+  const [edit, setEdit] = useState<Record<string, { descuento_pct: string; hora_desde: string }>>({});
+  const listo = () => { qc.invalidateQueries({ queryKey: ["ofertas"] }); };
+  const alta = useMutation({
+    mutationFn: () => POST_PUT({ articulo: f.alcance === "PRODUCTO" ? f.articulo : null, familia: f.alcance === "FAMILIA" ? f.familia : null, sucursal: f.sucursal, descuento_pct: f.descuento_pct, hora_desde: f.hora_desde }),
+    onSuccess: () => { setF({ ...f, descuento_pct: "", hora_desde: "" }); listo(); },
+  });
+  const cambio = useMutation({ mutationFn: (x: any) => POST_PUT(x), onSuccess: () => { setEdit({}); listo(); } });
+  const d = q.data;
+  if (!d) return q.error ? <Alert color="red">{textoError(q.error)}</Alert> : null;
+  return (
+    <Stack>
+      <Text size="sm" c="dimmed">El pan se vende con descuento antes de terminar el día. Desde la hora indicada, la caja aplica la oferta sola (sin pedir PIN) y el ticket muestra el descuento. Si hay varias, gana la más específica: producto, luego familia, luego todos; y la de la sucursal sobre la de todas. Los pedidos conservan su precio pactado.</Text>
+      {d.puede_editar && (
+        <Card withBorder>
+          <Group align="flex-end">
+            <Select label="Aplica a" w={170} data={[{ value: "TODOS", label: "Todos los productos" }, { value: "FAMILIA", label: "Una familia" }, { value: "PRODUCTO", label: "Un producto" }]} value={f.alcance} onChange={(v) => setF({ ...f, alcance: v ?? "TODOS" })} />
+            {f.alcance === "FAMILIA" && <Select label="Familia" w={220} searchable data={d.familias.map((x: any) => ({ value: x.clave, label: x.nombre }))} value={f.familia} onChange={(v) => setF({ ...f, familia: v })} />}
+            {f.alcance === "PRODUCTO" && <Select label="Producto" w={260} searchable data={d.productos.map((x: any) => ({ value: x.clave, label: x.nombre }))} value={f.articulo} onChange={(v) => setF({ ...f, articulo: v })} />}
+            <Select label="Sucursal" w={170} clearable placeholder="Todas" data={d.sucursales.map((x: any) => ({ value: x.clave, label: x.nombre }))} value={f.sucursal} onChange={(v) => setF({ ...f, sucursal: v })} />
+            <TextInput label="Descuento %" w={110} value={f.descuento_pct} onChange={(e) => setF({ ...f, descuento_pct: e.currentTarget.value })} />
+            <TextInput label="Desde (HH:MM)" w={120} placeholder="18:00" value={f.hora_desde} onChange={(e) => setF({ ...f, hora_desde: e.currentTarget.value })} />
+            <Button loading={alta.isPending} disabled={!f.descuento_pct || !f.hora_desde} onClick={() => alta.mutate()}>Guardar oferta</Button>
+          </Group>
+          {alta.error && <Alert mt="xs" color="red">{textoError(alta.error)}</Alert>}
+        </Card>
+      )}
+      {cambio.error && <Alert color="red">{textoError(cambio.error)}</Alert>}
+      <Table striped withTableBorder fz="sm">
+        <Table.Thead><Table.Tr><Table.Th>Aplica a</Table.Th><Table.Th>Sucursal</Table.Th><Table.Th>Descuento</Table.Th><Table.Th>Desde</Table.Th><Table.Th>Estatus</Table.Th><Table.Th>Capturó</Table.Th><Table.Th /></Table.Tr></Table.Thead>
+        <Table.Tbody>
+          {d.ofertas.map((o: any) => {
+            const e = edit[o.id];
+            return (
+              <Table.Tr key={o.id} c={o.activo ? undefined : "dimmed"}>
+                <Table.Td>{o.articulo ? o.articulo_nombre : o.familia ? `Familia ${o.familia_nombre}` : "Todos los productos"}</Table.Td>
+                <Table.Td>{o.sucursal ?? "Todas"}</Table.Td>
+                <Table.Td>{e ? <TextInput size="xs" w={80} value={e.descuento_pct} onChange={(x) => setEdit({ [o.id]: { ...e, descuento_pct: x.currentTarget.value } })} /> : `${Number(o.descuento_pct)}%`}</Table.Td>
+                <Table.Td>{e ? <TextInput size="xs" w={80} value={e.hora_desde} onChange={(x) => setEdit({ [o.id]: { ...e, hora_desde: x.currentTarget.value } })} /> : o.hora_desde}</Table.Td>
+                <Table.Td>{o.activo ? <Badge color="green" variant="light">Activa</Badge> : <Badge color="gray" variant="light">Desactivada</Badge>}</Table.Td>
+                <Table.Td>{o.capturo}</Table.Td>
+                <Table.Td>{d.puede_editar && o.activo && (e
+                  ? <Group gap={4}><Button size="xs" loading={cambio.isPending} onClick={() => cambio.mutate({ id: o.id, ...e, activo: true })}>Guardar</Button><Button size="xs" variant="subtle" onClick={() => setEdit({})}>Cancelar</Button></Group>
+                  : <Group gap={4}><Button size="xs" variant="light" onClick={() => setEdit({ [o.id]: { descuento_pct: Number(o.descuento_pct).toString(), hora_desde: o.hora_desde } })}>Cambiar</Button>
+                      <Button size="xs" variant="subtle" color="red" loading={cambio.isPending} onClick={() => cambio.mutate({ id: o.id, descuento_pct: Number(o.descuento_pct).toString(), hora_desde: o.hora_desde, activo: false })}>Desactivar</Button></Group>)}</Table.Td>
+              </Table.Tr>
+            );
+          })}
+          {!d.ofertas.length && <Table.Tr><Table.Td colSpan={7}><Text size="sm" c="dimmed">Sin ofertas capturadas.</Text></Table.Td></Table.Tr>}
+        </Table.Tbody>
+      </Table>
+    </Stack>
+  );
+}
+const POST_PUT = (cuerpo: unknown) => PUT("/api/ofertas", cuerpo);
+
 export function Ventas() {
   const { puede } = useSesion();
   return (
     <Stack>
       <Title order={2}>Ventas y cortes</Title>
-      <Tabs defaultValue={puede("pos.ventas:ver") ? "ventas" : "cortes"} keepMounted={false}>
+      <Tabs defaultValue={puede("pos.ventas:ver") ? "ventas" : puede("pos.caja:ver") ? "cortes" : "ofertas"} keepMounted={false}>
         <Tabs.List>
           {puede("pos.ventas:ver") && <Tabs.Tab value="ventas">Ventas</Tabs.Tab>}
           {puede("pos.caja:ver") && <Tabs.Tab value="cortes">Cortes de caja</Tabs.Tab>}
           {puede("pos.pedidos:ver") && <Tabs.Tab value="pedidos">Pedidos</Tabs.Tab>}
+          {puede("pos.descuentos:ver") && <Tabs.Tab value="ofertas">Ofertas de fin del día</Tabs.Tab>}
         </Tabs.List>
         <Tabs.Panel value="ventas" pt="md"><ListaVentas /></Tabs.Panel>
         <Tabs.Panel value="cortes" pt="md"><Cortes /></Tabs.Panel>
         <Tabs.Panel value="pedidos" pt="md"><ListaPedidos /></Tabs.Panel>
+        <Tabs.Panel value="ofertas" pt="md"><Ofertas /></Tabs.Panel>
       </Tabs>
     </Stack>
   );

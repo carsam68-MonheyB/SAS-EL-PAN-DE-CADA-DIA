@@ -91,3 +91,26 @@ export function importeDevolucion(importeRenglon: Dec, cantidadVendida: Dec, can
   if (cantidadDevuelta.eq(restante)) return importeRenglon.minus(importeYaDevuelto);
   return r2(importeRenglon.mul(cantidadDevuelta).div(cantidadVendida));
 }
+
+// ---------------------------------------------------------------------------
+// Ofertas de fin del día (P37): % de descuento desde una hora, capturados por el
+// contador o el contralor. Gana la más específica: producto > familia > todos;
+// a igualdad, la de la sucursal sobre la de todas.
+// ---------------------------------------------------------------------------
+export interface Oferta { id: string; articuloId: string | null; familiaId: string | null; sucursalId: string | null; pct: Dec; horaDesde: string }
+
+export function ofertaAplicable(ofertas: Oferta[], articulo: { id: string; familiaId: string | null }, sucursalId: string, hora: string): Oferta | null {
+  const peso = (o: Oferta) => (o.articuloId ? 4 : o.familiaId ? 2 : 0) + (o.sucursalId ? 1 : 0);
+  const candidatas = ofertas.filter((o) =>
+    (o.sucursalId === null || o.sucursalId === sucursalId)
+    && (o.articuloId ? o.articuloId === articulo.id : o.familiaId ? o.familiaId === articulo.familiaId : true));
+  if (!candidatas.length) return null;
+  const mejor = candidatas.reduce((a, b) => (peso(b) > peso(a) ? b : a));
+  // Si la más específica aún no empieza, no aplica otra más general: la del producto manda.
+  return hora.slice(0, 5) >= mejor.horaDesde.slice(0, 5) ? mejor : null;
+}
+
+/** Descuento de la oferta sobre el importe bruto (precio × cantidad), a centavos. */
+export function descuentoOferta(precio: Dec, cantidad: Dec, pct: Dec): Dec {
+  return r2(r2(precio.mul(cantidad)).mul(pct).div(100));
+}

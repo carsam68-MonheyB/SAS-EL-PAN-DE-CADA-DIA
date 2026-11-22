@@ -76,7 +76,7 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
   if (recurso === "ventas" && !id && m === "POST") {
     const d = await leerCuerpo(ctx.req, z.object({
       id: z.string().uuid(),
-      renglones: z.array(z.object({ articulo: z.string().max(30), cantidad: NUM, descuento: NUM.optional().nullable() })).min(1).max(200),
+      renglones: z.array(z.object({ articulo: z.string().max(30), cantidad: NUM, descuento: NUM.optional().nullable(), oferta: z.boolean().optional().nullable() })).min(1).max(200),
       pagos: z.array(PAGO).max(10),
       autorizacion: AUT.optional().nullable(),
       sin_conexion: z.object({ fecha_caja: z.string().datetime({ offset: true }), folio_local: z.string().regex(/^[A-Z0-9-]{1,40}$/) }).optional().nullable(),
@@ -103,7 +103,8 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
       const hasta = FECHA.parse(sp.get("hasta") ?? desde);
       const ventas = (await c.query(
         `SELECT v.id, v.folio, v.fecha, v.fecha_negocio::text, s.clave AS sucursal, cj.clave AS caja, u.usuario AS cajero, v.subtotal::text, v.ieps::text, v.iva::text,
-                v.descuento::text, v.total::text, v.devuelto::text, v.estatus, pe.folio AS pedido,
+                v.descuento::text, (SELECT coalesce(sum(r.descuento_oferta), 0) FROM venta_renglon r WHERE r.venta_id = v.id)::text AS descuento_oferta,
+                v.total::text, v.devuelto::text, v.estatus, pe.folio AS pedido,
                 ${ctx.puede("datos.costos:ver") ? "(SELECT sum(r.costo_importe)::text FROM venta_renglon r WHERE r.venta_id = v.id)" : "NULL::text"} AS costo
            FROM venta v JOIN sucursal s ON s.id = v.sucursal_id JOIN caja cj ON cj.id = v.caja_id JOIN usuario u ON u.id = v.cajero_id
            LEFT JOIN pedido pe ON pe.id = v.pedido_id
@@ -119,10 +120,10 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
         columnas: [
           { titulo: "Fecha", clave: "fecha" }, { titulo: "Folio", clave: "folio" }, { titulo: "Sucursal", clave: "sucursal" }, { titulo: "Caja", clave: "caja" },
           { titulo: "Cajero", clave: "cajero" }, { titulo: "Subtotal", clave: "subtotal" }, { titulo: "IEPS", clave: "ieps" }, { titulo: "IVA", clave: "iva" },
-          { titulo: "Descuento", clave: "descuento" }, { titulo: "Total", clave: "total" }, { titulo: "Devuelto", clave: "devuelto" },
+          { titulo: "Descuento", clave: "descuento" }, { titulo: "De él, oferta", clave: "descuento_oferta" }, { titulo: "Total", clave: "total" }, { titulo: "Devuelto", clave: "devuelto" },
           ...(ctx.puede("datos.costos:ver") ? [{ titulo: "Costo", clave: "costo" }] : []), { titulo: "Estatus", clave: "estatus" }, { titulo: "Pedido", clave: "pedido" },
         ],
-        filas: ventas.map((v) => ({ ...v, fecha: v.fecha_negocio.split("-").reverse().join("/"), subtotal: n(v.subtotal), ieps: n(v.ieps), iva: n(v.iva), descuento: n(v.descuento), total: n(v.total), devuelto: n(v.devuelto), costo: n(v.costo) })),
+        filas: ventas.map((v) => ({ ...v, fecha: v.fecha_negocio.split("-").reverse().join("/"), subtotal: n(v.subtotal), ieps: n(v.ieps), iva: n(v.iva), descuento: n(v.descuento), descuento_oferta: n(v.descuento_oferta), total: n(v.total), devuelto: n(v.devuelto), costo: n(v.costo) })),
       }], "Ventas");
       return respuestaExcel(datos, `ventas-${desde}-${hasta}.xlsx`);
     });

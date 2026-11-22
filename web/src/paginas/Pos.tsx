@@ -19,8 +19,18 @@ const n = (v: string) => Number((v || "0").replaceAll(",", "")) || 0;
 const cent = (x: number) => Math.round(x * 100) / 100;
 const uuid = () => crypto.randomUUID();
 
-interface Producto { clave: string; nombre: string; unidad: string; familia: string; familia_nombre: string; precio: string | null; existencia: string; tiene_iva: boolean; codigo_barras: string | null }
-interface Linea { clave: string; nombre: string; unidad: string; precio: number; cantidad: string; descuento: string }
+interface Oferta { pct: string; desde: string }
+interface Producto { clave: string; nombre: string; unidad: string; familia: string; familia_nombre: string; precio: string | null; existencia: string; tiene_iva: boolean; codigo_barras: string | null; oferta: Oferta | null }
+interface Linea { clave: string; nombre: string; unidad: string; precio: number; cantidad: string; descuento: string; oferta: Oferta | null }
+/** Hora local del negocio (HH:MM). */
+const horaMx = () => new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+/** Descuento de la oferta de fin del día (P37), en aritmética entera de centavos (igual que el servidor). */
+const descOferta = (l: Linea, ahora: string) => {
+  if (!l.oferta || ahora < l.oferta.desde) return 0;
+  const bruto = Math.round(l.precio * 100 * n(l.cantidad));
+  const pct = Math.round(Number(l.oferta.pct) * 100);
+  return Math.floor((bruto * pct + 5000) / 10000) / 100;
+};
 interface Pago { forma: string; importe: string; referencia: string }
 interface Aut { usuario: string; pin: string }
 
@@ -367,6 +377,8 @@ export function Pos() {
   const [carrito, setCarrito] = useState<Linea[]>([]);
   const [ventana, setVentana] = useState<string | null>(null);
   const [descuentoDe, setDescuentoDe] = useState<number | null>(null);
+  const [ahora, setAhora] = useState(horaMx());
+  useEffect(() => { const t = setInterval(() => setAhora(horaMx()), 15000); return () => clearInterval(t); }, []);
   const [aut, setAut] = useState(autVacia());
   const [aviso, setAviso] = useState<string | null>(null);
   const [fondo, setFondo] = useState("");
@@ -387,15 +399,15 @@ export function Pos() {
     const e0 = estado.data;
     const folio = folioLocal(e0.caja.clave);
     const fecha = new Date().toISOString();
-    const cuerpo = { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: null })), pagos, sin_conexion: { fecha_caja: fecha, folio_local: folio } };
+    const cuerpo = { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: null, oferta: descOferta(l, ahora) > 0 })), pagos, sin_conexion: { fecha_caja: fecha, folio_local: folio } };
     cola.agregar({ id: ventaId, cuerpo, folio_local: folio, total, fecha });
     const nuevos = prods.map((p) => { const l = carrito.find((x) => x.clave === p.clave); return l ? { ...p, existencia: String(n(p.existencia) - n(l.cantidad)) } : p; });
     qc.setQueryData(["pos-productos"], { productos: nuevos });
     copia.guardar("productos", { productos: nuevos });
     impresoraNavegador.imprimir({
       folio, fecha, sucursal: e0.caja.sucursal_nombre, caja: e0.caja.nombre, cajero: e0.cajero.nombre, provisional: true,
-      renglones: carrito.map((l) => ({ nombre: l.nombre, cantidad: l.cantidad, unidad: l.unidad, precio: String(l.precio), descuento: "0", importe: String(cent(l.precio * n(l.cantidad))) })),
-      subtotal: String(total), ieps: "0", iva: "0", descuento: "0", total: String(total),
+      renglones: carrito.map((l) => ({ nombre: l.nombre, cantidad: l.cantidad, unidad: l.unidad, precio: String(l.precio), descuento: String(descOferta(l, ahora)), importe: String(cent(cent(l.precio * n(l.cantidad)) - descOferta(l, ahora))) })),
+      subtotal: String(total), ieps: "0", iva: "0", descuento: String(cent(carrito.reduce((x, l) => x + descOferta(l, ahora), 0))), total: String(total),
       pagos: pagos.map((p) => ({ forma: e0.formas.find((f: any) => f.clave === p.forma)?.nombre ?? p.forma, importe: p.importe, referencia: p.referencia || null })),
       recibido: String(recibido), cambio: String(cent(recibido - total)),
     });
@@ -406,7 +418,7 @@ export function Pos() {
     mutationFn: async (pagos: Pago[]) => {
       if (!enLinea) return ventaSinConexion(pagos);
       try {
-        return await POST("/api/pos/ventas", { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: l.descuento || null })), pagos, autorizacion: hayDescuento ? aut : null });
+        return await POST("/api/pos/ventas", { id: ventaId, renglones: carrito.map((l) => ({ articulo: l.clave, cantidad: l.cantidad, descuento: l.descuento || null, oferta: descOferta(l, ahora) > 0 })), pagos, autorizacion: hayDescuento ? aut : null });
       } catch (e) {
         if (!esErrorDeRed(e)) throw e;
         setEnLinea(false);
@@ -447,13 +459,13 @@ export function Pos() {
   const lista = productos.data?.productos ?? [];
   const familias = useMemo(() => [...new Map(lista.map((p) => [p.familia, p.familia_nombre])).entries()], [lista]);
   const visibles = lista.filter((p) => (buscar ? `${p.clave} ${p.nombre} ${p.codigo_barras ?? ""}`.toLowerCase().includes(buscar.toLowerCase()) : !familia || p.familia === familia));
-  const total = cent(carrito.reduce((s, l) => s + cent(l.precio * n(l.cantidad)) - n(l.descuento), 0));
+  const total = cent(carrito.reduce((s, l) => s + cent(l.precio * n(l.cantidad)) - descOferta(l, ahora) - n(l.descuento), 0));
   const agregar = (p: Producto) => {
     if (!p.precio) return;
     setCarrito((c) => {
       const i = c.findIndex((l) => l.clave === p.clave);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, cantidad: String(n(l.cantidad) + 1) } : l));
-      return [...c, { clave: p.clave, nombre: p.nombre, unidad: p.unidad, precio: Number(p.precio), cantidad: "1", descuento: "" }];
+      return [...c, { clave: p.clave, nombre: p.nombre, unidad: p.unidad, precio: Number(p.precio), cantidad: "1", descuento: "", oferta: p.oferta ?? null }];
     });
   };
   const setLinea = (i: number, c: Partial<Linea>) => setCarrito((x) => x.map((l, j) => (j === i ? { ...l, ...c } : l)));
@@ -530,9 +542,10 @@ export function Pos() {
                 const sin = !p.precio || n(p.existencia) <= 0;
                 return (
                   <UnstyledButton key={p.clave} onClick={() => agregar(p)} disabled={!p.precio} style={{ opacity: sin ? 0.5 : 1 }}>
-                    <Card withBorder h={110} p="xs" bg={sin ? "var(--mantine-color-gray-1)" : "var(--mantine-color-orange-0)"}>
+                    <Card withBorder h={128} p="xs" bg={sin ? "var(--mantine-color-gray-1)" : "var(--mantine-color-orange-0)"}>
                       <Text fw={700} lineClamp={2}>{p.nombre}</Text>
                       <Text size="lg" fw={800} c="orange.8">{p.precio ? $(p.precio) : "Sin precio"}</Text>
+                      {p.oferta && <Badge size="sm" color={ahora >= p.oferta.desde ? "green" : "gray"} variant={ahora >= p.oferta.desde ? "filled" : "light"}>{ahora >= p.oferta.desde ? `Oferta −${Number(p.oferta.pct)}%` : `Oferta ${Number(p.oferta.pct)}% desde ${p.oferta.desde}`}</Badge>}
                       <Text size="xs" c={n(p.existencia) > 0 ? "dimmed" : "red"}>Hay {Number(p.existencia)} {p.unidad}</Text>
                     </Card>
                   </UnstyledButton>
@@ -548,8 +561,9 @@ export function Pos() {
               <Card key={l.clave} withBorder p="xs" mb={6}>
                 <Group justify="space-between" wrap="nowrap">
                   <Text fw={600} lineClamp={1}>{l.nombre}</Text>
-                  <Text fw={700}>{$(cent(l.precio * n(l.cantidad)) - n(l.descuento))}</Text>
+                  <Text fw={700}>{$(cent(l.precio * n(l.cantidad)) - descOferta(l, ahora) - n(l.descuento))}</Text>
                 </Group>
+                {descOferta(l, ahora) > 0 && <Text size="xs" c="green.8">Oferta −{Number(l.oferta!.pct)}%: −{$(descOferta(l, ahora))}</Text>}
                 <Group gap={6} mt={4}>
                   <ActionIcon size="lg" variant="light" onClick={() => n(l.cantidad) <= 1 ? setCarrito(carrito.filter((_, j) => j !== i)) : setLinea(i, { cantidad: String(n(l.cantidad) - 1) })}>−</ActionIcon>
                   <TextInput w={70} size="sm" value={l.cantidad} onChange={(x) => setLinea(i, { cantidad: x.currentTarget.value })} />

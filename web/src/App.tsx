@@ -54,7 +54,7 @@ const MENU = [
   { ruta: "/compras", texto: "Compras", permisos: VER_COMPRAS },
   { ruta: "/contabilidad", texto: "Contabilidad", permisos: VER_CONTABILIDAD },
   { ruta: "/facturacion", texto: "Facturación", permisos: ["fiscal.cfdi:ver"] },
-  { ruta: "/ventas", texto: "Ventas y cortes", permisos: ["pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver"] },
+  { ruta: "/ventas", texto: "Ventas y cortes", permisos: ["pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver", "pos.descuentos:ver"] },
   { ruta: "/usuarios", texto: "Usuarios", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/controles", texto: "Segregación y límites", permisos: ["seguridad.usuarios:ver"] },
@@ -102,7 +102,7 @@ function Marco() {
           {puede("datos.costos:ver") && <Route path="/costos" element={<Costos />} />}
           {puede("produccion.ordenes:ver", "produccion.ordenes:crear") && <Route path="/produccion" element={<Produccion />} />}
           {puede(...VER_INVENTARIOS) && <Route path="/inventarios" element={<Inventarios />} />}
-          {puede("pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver") && <Route path="/ventas" element={<Ventas />} />}
+          {puede("pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver", "pos.descuentos:ver") && <Route path="/ventas" element={<Ventas />} />}
           {puede(...VER_COMPRAS) && <Route path="/compras" element={<Compras />} />}
           {puede(...VER_CONTABILIDAD) && <Route path="/contabilidad" element={<Contabilidad />} />}
           {puede("fiscal.cfdi:ver") && <Route path="/facturacion" element={<Facturacion />} />}

@@ -39,6 +39,15 @@ Usuarios de **Datos de prueba**:
 | 12 | **Corte → Corte X** | Efectivo esperado **$670.00**: fondo 500 + ventas en efectivo 164 + anticipos 80 − retiro 50 − devolución 14 − anticipo devuelto 10. |
 | 13 | **Corte → Corte Z:** cuenta 1 de $500, 1 de $100, 1 de $50 y 1 de $20; autoriza el encargado | Diferencia **$0.00** y el turno se cierra. Ya no se puede vender hasta abrir otro. |
 
+## 2b. Ofertas de fin del día (P37)
+
+| Paso | Quién | Qué hacer | Resultado esperado |
+|---|---|---|---|
+| 1 | `prueba.cnt` o `prueba.con` | **Ventas y cortes → Ofertas de fin del día**: aplica a "Una familia" → PRUEBA Pan dulce, descuento **30**, desde una hora que ya pasó (ej. `00:00`) → **Guardar oferta** | La oferta queda activa y se ve quién la capturó. El encargado y el cajero no pueden capturarlas. |
+| 2 | `prueba.caj` | Recarga la caja y agrega 1 concha de vainilla | La tarjeta del producto dice **OFERTA −30%** y el renglón cobra $9.80 en lugar de $14.00, **sin pedir PIN**. |
+| 3 | `prueba.cnt` | Captura otra para "Todos los productos" con una hora que todavía no llega | En la caja los productos sin oferta activa muestran "Oferta 20% desde HH:MM" en gris; a esa hora se aplica sola. |
+| 4 | `prueba.con` | **Ventas y cortes → Ventas** | El Excel trae la columna "De él, oferta" para separar el descuento de oferta de los autorizados con PIN. |
+
 ## 3. Venta sin internet (prueba opcional)
 
 1. Con la caja abierta, desconecta el internet de la computadora (o apaga el WiFi).
