@@ -4,6 +4,7 @@ import Decimal from "decimal.js";
 import { factorConversion, type ConversionGeneral } from "../../dominio/unidades";
 import type { Campo, FilaValidada, Layout } from "./tipos";
 import { CATALOGOS_SAT } from "./tipos";
+import { LAYOUTS_PRODUCCION } from "./produccion";
 
 const CLAVE_PATRON = /^[A-Z0-9-]+$/;
 const CLAVE_TEXTO = "solo letras sin acento, números y guion (-)";
@@ -325,7 +326,7 @@ const insumos: Layout = {
 
 const intermedios: Layout = {
   clave: "intermedios", secuencia: 13, grupo: "Artículos", nombre: "Masas e intermedios (N1)",
-  descripcion: "Lo que se prepara en producción y se usa en varios panes: masas, cubiertas, rellenos, betunes. Su fórmula, rendimiento y tamaño de lote se capturan en Recetas (Fase 2).",
+  descripcion: "Lo que se prepara en producción y se usa en varios panes: masas, cubiertas, rellenos, betunes. Su fórmula, rendimiento y tamaño de lote se capturan en \"Recetas de masas e intermedios\" y \"Fórmulas de masas e intermedios\".",
   tabla: "articulo", llave: ["CLAVE"], filtro: "t.tipo = 'INTERMEDIO'", fijos: { tipo: "INTERMEDIO" },
   permisos: { ver: VER_ARTICULOS, crear: ["produccion.recetas:crear"], editar: ["produccion.recetas:editar"], exportar: ["produccion.recetas:exportar"] },
   campos: [
@@ -519,6 +520,7 @@ const cuentas: Layout = {
 export const LAYOUTS: Layout[] = [
   satCatalogo, unidades, conversiones, familias, centrosCosto, sucursales, almacenes, cajas, tasas,
   proveedores, clientes, insumos, intermedios, productos, unidadesArticulo, articulosProveedor, precios, cuentas,
+  ...LAYOUTS_PRODUCCION,
 ].sort((a, b) => a.secuencia - b.secuencia);
 
 export function buscarLayout(clave: string): Layout | undefined {

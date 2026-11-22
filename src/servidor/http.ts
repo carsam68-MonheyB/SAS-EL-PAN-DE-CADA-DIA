@@ -47,6 +47,10 @@ export async function leerCuerpo<T extends z.ZodType>(req: Request, esquema: T):
 export function respuestaDeError(e: unknown, requestId?: string): Response {
   if (e instanceof ErrorApp) return json({ error: e.codigo, mensaje: e.message, detalles: e.detalles }, e.estado);
   if (e instanceof ZodError) return json({ error: "invalido", mensaje: "Revisa los datos capturados.", detalles: e.issues }, 400);
+  // Reglas que la base de datos hace cumplir (disparadores e índices únicos).
+  const codigo = (e as { code?: string } | null)?.code;
+  if (codigo === "P0001") return json({ error: "regla", mensaje: (e as Error).message }, 409);
+  if (codigo === "23505") return json({ error: "duplicado", mensaje: "Ya existe un registro con esos mismos datos." }, 409);
   console.error("Error no controlado", requestId, e);
   return json({ error: "interno", mensaje: "Ocurrió un error inesperado. Intenta de nuevo; si persiste, reporta el folio.", folio: requestId }, 500);
 }

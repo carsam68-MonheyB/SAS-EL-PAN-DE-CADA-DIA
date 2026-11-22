@@ -233,7 +233,8 @@ export async function validarCarga(c: Cliente, layout: Layout, tabla: TablaLeida
       `SELECT k.i, t.id::text AS id, ${layout.filtro ? `(${layout.filtro})` : "true"} AS aplica,
               (SELECT jsonb_object_agg(key, value) FROM jsonb_each_text(to_jsonb(t))) AS fila
          FROM unnest(${cols.map((_, i) => `$${i + 1}::text[]`).join(", ")}) WITH ORDINALITY AS k(${cols.map((_, i) => `c${i}`).join(", ")}, i)
-         JOIN ${layout.tabla} t ON ${cols.map((col, i) => `t.${col}::text IS NOT DISTINCT FROM k.c${i}`).join(" AND ")}`,
+         JOIN ${layout.tabla} t ON ${cols.map((col, i) => `t.${col}::text IS NOT DISTINCT FROM k.c${i}`).join(" AND ")}
+          ${layout.llaveEnFiltro && layout.filtro ? `AND (${layout.filtro})` : ""}`,
       arreglos,
     );
     const porIndice = new Map(rows.map((r) => [Number(r.i) - 1, r]));

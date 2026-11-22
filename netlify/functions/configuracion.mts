@@ -25,7 +25,7 @@ const manejador = ruta({}, async (ctx) => {
     ctx.exigir(PERMISOS_VER);
     if (m === "GET") {
       return ctx.tx(async (c) => ({
-        configuracion: (await c.query("SELECT clave, grupo, descripcion, tipo, valor, minimo, maximo, provisional, permiso_editar, actualizado_en FROM configuracion ORDER BY grupo, clave")).rows
+        configuracion: (await c.query("SELECT clave, grupo, descripcion, tipo, valor, minimo, maximo, opciones, provisional, permiso_editar, actualizado_en FROM configuracion ORDER BY grupo, clave")).rows
           .map((r) => ({ ...r, editable: ctx.puede(r.permiso_editar) })),
       }));
     }
@@ -42,6 +42,11 @@ const manejador = ruta({}, async (ctx) => {
         if (cfg.tipo === "decimal" && !/^-?\d+(\.\d+)?$/.test(valor.replaceAll(",", ""))) throw invalido("Debe ser un número (el punto es el decimal).");
         if (cfg.tipo === "decimal") valor = valor.replaceAll(",", "");
         if (cfg.tipo === "booleano" && !["si", "no"].includes(valor)) throw invalido("Debe ser si o no.");
+        if (cfg.opciones?.length) {
+          const opcion = (cfg.opciones as string[]).find((o) => o.toUpperCase() === valor.toUpperCase());
+          if (!opcion) throw invalido(`Valores permitidos: ${cfg.opciones.join(", ")}.`);
+          valor = opcion;
+        }
         if (["entero", "decimal"].includes(cfg.tipo)) {
           const n = Number(valor);
           if (cfg.minimo !== null && n < Number(cfg.minimo)) throw invalido(`El mínimo es ${cfg.minimo}.`);

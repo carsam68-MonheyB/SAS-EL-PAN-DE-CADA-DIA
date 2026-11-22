@@ -90,6 +90,8 @@ export interface Layout {
   autorizacion?: { permiso: string };
   /** Restringe la tabla a los registros de este layout (alias t). */
   filtro?: string;
+  /** Al buscar la llave, ignora los registros fuera del filtro (ej. planes cancelados). */
+  llaveEnFiltro?: boolean;
   /** Columnas fijas en un alta (ej. { tipo: "SKU" }). */
   fijos?: Record<string, unknown>;
   orden?: string;

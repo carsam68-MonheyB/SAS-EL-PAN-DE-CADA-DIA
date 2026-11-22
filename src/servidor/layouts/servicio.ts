@@ -154,10 +154,16 @@ export async function resolverAutorizacion(c: Cliente, usuarioId: string, permis
  * queda como carga pendiente.
  */
 export async function guardarRegistro(c: Cliente, usuarioId: string, permisos: ReadonlySet<string>, clave: string, modo: "alta" | "actualizacion", valores: Record<string, string>) {
+  return guardarRegistros(c, usuarioId, permisos, clave, modo, [valores]);
+}
+
+/** Igual que guardarRegistro pero con varios renglones (todos o ninguno). */
+export async function guardarRegistros(c: Cliente, usuarioId: string, permisos: ReadonlySet<string>, clave: string, modo: Modo, filas: Record<string, string>[]) {
   const { layout, puede } = obtenerLayout(clave, permisos, "ver");
   exigirModo(puede, modo);
-  const encabezados = Object.keys(valores);
-  const bytes = escribirDelimitado(encabezados, [encabezados.map((k) => valores[k] ?? "")], "txt");
+  if (!filas.length) throw invalido("No hay renglones que guardar.");
+  const encabezados = [...new Set(filas.flatMap((f) => Object.keys(f)))];
+  const bytes = escribirDelimitado(encabezados, filas.map((f) => encabezados.map((k) => f[k] ?? "")), "txt");
   if (layout.autorizacion) {
     const s = await simular(c, usuarioId, permisos, { layout: clave, modo, nombre: "Captura en pantalla", bytes, formato: "pantalla" });
     if (s.errores) return { ok: false as const, ...s };
