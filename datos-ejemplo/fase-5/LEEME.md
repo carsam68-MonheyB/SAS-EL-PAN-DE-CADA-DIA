@@ -43,7 +43,6 @@ El jefe de producción solo consulta el estado de costos de su sucursal (escribe
 
 ## Lo que todavía no hace
 
-- **Ligar una orden a un pedido** (P63): por ahora la orden manual lleva el pedido en el comentario.
 - **Reabrir una orden cerrada:** se corrige con un ajuste por conteo en Inventarios.
 - **Indirectos reales contra aplicados y pólizas:** Fase 7 (contabilidad).
-- **Donación y venta de segunda del pan no vendido** (P37).
+- **Venta en oferta del pan no vendido** (P37): falta definir cómo se registra en caja.
