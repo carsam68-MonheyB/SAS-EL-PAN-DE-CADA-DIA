@@ -23,6 +23,7 @@ import { Pos } from "./paginas/Pos";
 import { Ventas } from "./paginas/Ventas";
 import { Compras } from "./paginas/Compras";
 import { Produccion } from "./paginas/Produccion";
+import { Contabilidad } from "./paginas/Contabilidad";
 
 // Permisos que dan acceso a algún catálogo (el detalle lo decide el servidor).
 const VER_CATALOGOS = [
@@ -37,6 +38,8 @@ const VER_INVENTARIOS = [
   "produccion.mermas:ver", "compras.recepcion:crear", "inventarios.surtido:crear", "produccion.ordenes:crear",
 ];
 
+const VER_CONTABILIDAD = ["contabilidad.polizas:ver", "contabilidad.reportes:ver", "contabilidad.catalogo:ver", "contabilidad.cierre:ver"];
+
 const MENU = [
   { ruta: "/", texto: "Inicio", permisos: [] as string[] },
   { ruta: "/catalogos", texto: "Catálogos", permisos: VER_CATALOGOS },
@@ -48,6 +51,7 @@ const MENU = [
   { ruta: "/inventarios", texto: "Inventarios", permisos: VER_INVENTARIOS },
   { ruta: "/pos", texto: "Punto de venta (caja)", permisos: ["pos.ventas:crear", "pos.caja:crear", "pos.caja:autorizar"] },
   { ruta: "/compras", texto: "Compras", permisos: VER_COMPRAS },
+  { ruta: "/contabilidad", texto: "Contabilidad", permisos: VER_CONTABILIDAD },
   { ruta: "/ventas", texto: "Ventas y cortes", permisos: ["pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver"] },
   { ruta: "/usuarios", texto: "Usuarios", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
@@ -98,6 +102,7 @@ function Marco() {
           {puede(...VER_INVENTARIOS) && <Route path="/inventarios" element={<Inventarios />} />}
           {puede("pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver") && <Route path="/ventas" element={<Ventas />} />}
           {puede(...VER_COMPRAS) && <Route path="/compras" element={<Compras />} />}
+          {puede(...VER_CONTABILIDAD) && <Route path="/contabilidad" element={<Contabilidad />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/usuarios/*" element={<Usuarios />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/roles" element={<Roles />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/controles" element={<Controles />} />}

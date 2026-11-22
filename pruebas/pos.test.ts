@@ -5,6 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { prepararInventarios, type Entorno } from "./inventarios-apoyo";
+import { revisarContabilidad } from "./apoyo-contable";
 
 let e: Entorno;
 const ENC = { usuario: "prueba.enc", pin: "4826" };
@@ -231,5 +232,14 @@ describe("oficina", () => {
   it("el inventario cuadra con el kárdex y la bitácora está íntegra", async () => {
     expect((await e.pool.query("SELECT * FROM inventario_diferencias()")).rows).toEqual([]);
     expect((await e.pool.query("SELECT bitacora_auditoria_verificar() AS roto")).rows[0].roto).toBeNull();
+  });
+});
+
+describe("contabilidad (Fase 7)", () => {
+  it("todas las operaciones se contabilizan con las reglas de ejemplo, la balanza cuadra y el inventario contable es igual al kárdex", async () => {
+    const r = await revisarContabilidad(e);
+    const origenes = new Set(((await e.pool.query("SELECT DISTINCT origen FROM poliza")).rows).map((x: any) => x.origen));
+    expect(origenes.size).toBeGreaterThan(1);
+    void r;
   });
 });

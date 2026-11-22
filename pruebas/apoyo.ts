@@ -21,6 +21,7 @@ import * as inventarios from "../netlify/functions/inventarios.mts";
 import * as pos from "../netlify/functions/pos.mts";
 import * as compras from "../netlify/functions/compras.mts";
 import * as produccion from "../netlify/functions/produccion.mts";
+import * as contabilidad from "../netlify/functions/contabilidad.mts";
 
 process.env.LLAVE_MAESTRA ??= Buffer.alloc(32, 7).toString("base64");
 process.env.CLAVE_INSTALACION ??= "clave-de-instalacion-de-pruebas-123";
@@ -53,7 +54,7 @@ export async function baseLimpia(nombre: string): Promise<pg.Pool> {
 }
 
 type Modulo = { default: (req: Request, ctx: any) => Promise<Response>; config: { path?: string | string[] } };
-const MODULOS: Modulo[] = [auth, usuarios, roles, bitacora, reportes, configuracion, instalacion, datosPrueba, catalogos, cargas, recetas, costos, planes, inventarios, pos, compras, produccion] as unknown as Modulo[];
+const MODULOS: Modulo[] = [auth, usuarios, roles, bitacora, reportes, configuracion, instalacion, datosPrueba, catalogos, cargas, recetas, costos, planes, inventarios, pos, compras, produccion, contabilidad] as unknown as Modulo[];
 const RUTAS = MODULOS.flatMap((m) =>
   ([] as string[]).concat(m.config.path ?? []).map((p) => {
     const nombres: string[] = [];

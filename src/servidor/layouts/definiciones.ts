@@ -5,6 +5,7 @@ import { factorConversion, type ConversionGeneral } from "../../dominio/unidades
 import type { Campo, FilaValidada, Layout } from "./tipos";
 import { CATALOGOS_SAT } from "./tipos";
 import { LAYOUTS_COMPRAS } from "./compras";
+import { LAYOUTS_CONTABILIDAD } from "./contabilidad";
 import { LAYOUTS_INVENTARIOS } from "./inventarios";
 import { LAYOUTS_PRODUCCION } from "./produccion";
 
@@ -525,6 +526,7 @@ export const LAYOUTS: Layout[] = [
   ...LAYOUTS_PRODUCCION,
   ...LAYOUTS_INVENTARIOS,
   ...LAYOUTS_COMPRAS,
+  ...LAYOUTS_CONTABILIDAD,
 ].sort((a, b) => a.secuencia - b.secuencia);
 
 export function buscarLayout(clave: string): Layout | undefined {

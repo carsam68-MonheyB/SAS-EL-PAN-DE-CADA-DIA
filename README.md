@@ -236,6 +236,33 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - `pruebas/produccion-dominio.test.ts`: estándar, costo real, balance, variaciones y estado de costos.
   - `pruebas/produccion.test.ts`: un día simulado de punta a punta.
 
+## Contabilidad (Fase 7)
+
+- **Periodos mensuales** (`periodo_contable`): abierto o cerrado. En un periodo cerrado no entra ni cambia ninguna póliza (trigger).
+- **Pólizas** (`poliza`, `poliza_partida`): de ingreso (I), egreso (E) o diario (D), con folio `D-202611-0001`.
+  - Las partidas son inmutables y solo van a cuentas afectables y activas.
+  - Una póliza siempre cuadra (trigger diferido al terminar la transacción).
+- **Reglas de contabilización** (`concepto_contable` y `regla_contable`):
+  - Los conceptos son la lista fija del sistema (caja, ventas, IVA, inventarios, mano de obra aplicada, proveedores…).
+  - La cuenta de cada concepto la define el negocio, en general o por sucursal (gana la de la sucursal).
+  - Se capturan en pantalla o por layout (`reglas_contables`).
+- **Pólizas automáticas** (`src/servidor/contabilidad.ts` → `contabilizar`):
+  - Busca los documentos sin póliza: movimientos de inventario, órdenes de producción cerradas, ventas, devoluciones, movimientos de caja y anticipos, pedidos cancelados con anticipo retenido, diferencias del corte Z, facturas de proveedor, pagos y faltantes de traspasos.
+  - Cada documento se contabiliza una sola vez (índice único por origen).
+  - Las cancelaciones del kárdex se revierten por su propio signo.
+  - Si falta una regla, el documento queda **pendiente** con el concepto que falta; no se inventa cuenta.
+  - El redondeo a centavos siempre cuadra (`src/dominio/contabilidad.ts`, con pruebas).
+- **Pólizas manuales:** las captura el contador y las autoriza el contralor (quien captura no autoriza). Se cancelan con motivo mientras el periodo está abierto.
+- **Reportes:** balanza de comprobación (con acumulación a cuentas de mayor), auxiliares con saldo corrido, libro diario, estado de resultados y balance general (por el primer dígito del código agrupador o de la cuenta) y conciliación del inventario contable contra el kárdex. Todo se exporta a Excel.
+- **Cierre de mes** (contralor):
+  1. Genera lo pendiente.
+  2. Exige que no quede nada sin contabilizar ni pólizas sin autorizar, y que la balanza cuadre.
+  3. Se cierra en orden; se reabre con motivo solo el último cerrado.
+- **Mano de obra e indirectos:** lo aplicado a producción se abona a sus cuentas. El gasto real se carga con pólizas manuales; la diferencia es la sub o sobreaplicación.
+- **Pruebas:**
+  - `pruebas/contabilidad-dominio.test.ts` y `pruebas/contabilidad.test.ts`.
+  - Al final de las pruebas de compras, punto de venta y producción se revisa que todo se contabilice, que la balanza cuadre y que el inventario contable sea igual al kárdex (`pruebas/apoyo-contable.ts`).
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

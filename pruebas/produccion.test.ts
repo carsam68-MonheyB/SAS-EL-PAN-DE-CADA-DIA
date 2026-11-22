@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type pg from "pg";
 import type { Navegador } from "./apoyo";
 import { n, prepararInventarios, type Entorno } from "./inventarios-apoyo";
+import { revisarContabilidad } from "./apoyo-contable";
 
 let pool: pg.Pool;
 let nav: Record<string, Navegador>;
@@ -277,5 +278,14 @@ describe("trazabilidad y reportes", () => {
     // Sin alcance a todas las sucursales hay que elegir una de las propias.
     expect((await nav.jpr!.get(`/api/produccion/estado-costos?desde=${hoy}&hasta=${hoy}`)).estado).toBe(403);
     expect((await nav.jpr!.get(`/api/produccion/estado-costos?desde=${hoy}&hasta=${hoy}&sucursal=MAT`)).estado).toBe(200);
+  });
+});
+
+describe("contabilidad (Fase 7)", () => {
+  it("todas las operaciones se contabilizan con las reglas de ejemplo, la balanza cuadra y el inventario contable es igual al kárdex", async () => {
+    const r = await revisarContabilidad({ nav, cargar } as unknown as Entorno);
+    const origenes = new Set(((await pool.query("SELECT DISTINCT origen FROM poliza")).rows).map((x: any) => x.origen));
+    expect(origenes.size).toBeGreaterThan(1);
+    void r;
   });
 });
