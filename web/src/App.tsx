@@ -18,6 +18,8 @@ import { Recetas } from "./paginas/Recetas";
 import { Planes } from "./paginas/Planes";
 import { Costos } from "./paginas/Costos";
 import { Inventarios } from "./paginas/Inventarios";
+import { Pos } from "./paginas/Pos";
+import { Ventas } from "./paginas/Ventas";
 
 // Permisos que dan acceso a algún catálogo (el detalle lo decide el servidor).
 const VER_CATALOGOS = [
@@ -39,6 +41,8 @@ const MENU = [
   { ruta: "/planes", texto: "Plan de producción", permisos: ["produccion.plan:ver"] },
   { ruta: "/costos", texto: "Costo estándar", permisos: ["datos.costos:ver"] },
   { ruta: "/inventarios", texto: "Inventarios", permisos: VER_INVENTARIOS },
+  { ruta: "/pos", texto: "Punto de venta (caja)", permisos: ["pos.ventas:crear", "pos.caja:crear", "pos.caja:autorizar"] },
+  { ruta: "/ventas", texto: "Ventas y cortes", permisos: ["pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver"] },
   { ruta: "/usuarios", texto: "Usuarios", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/controles", texto: "Segregación y límites", permisos: ["seguridad.usuarios:ver"] },
@@ -66,7 +70,9 @@ function Marco() {
       <AppShell.Navbar p="xs">
         <ScrollArea>
           {visibles.map((m) => (
-            <NavLink key={m.ruta} component={RouterLink} to={m.ruta} label={m.texto} onClick={close} />
+            m.ruta === "/pos"
+              ? <NavLink key={m.ruta} component="a" href="/pos" label={m.texto} />
+              : <NavLink key={m.ruta} component={RouterLink} to={m.ruta} label={m.texto} onClick={close} />
           ))}
           <NavLink label="Cerrar sesión" c="red" onClick={() => POST("/api/auth/salir").finally(() => window.location.assign("/"))} />
         </ScrollArea>
@@ -83,6 +89,7 @@ function Marco() {
           {puede("produccion.plan:ver") && <Route path="/planes/:id" element={<Planes />} />}
           {puede("datos.costos:ver") && <Route path="/costos" element={<Costos />} />}
           {puede(...VER_INVENTARIOS) && <Route path="/inventarios" element={<Inventarios />} />}
+          {puede("pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver") && <Route path="/ventas" element={<Ventas />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/usuarios/*" element={<Usuarios />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/roles" element={<Roles />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/controles" element={<Controles />} />}
@@ -117,7 +124,8 @@ export function App() {
   return (
     <ContextoSesion.Provider value={{ yo, recargar }}>
       <BrowserRouter>
-        <Marco />
+        {/* La caja ocupa toda la pantalla (sin menú), pensada para monitor táctil. */}
+        {ruta.startsWith("/pos") ? <Pos /> : <Marco />}
       </BrowserRouter>
     </ContextoSesion.Provider>
   );

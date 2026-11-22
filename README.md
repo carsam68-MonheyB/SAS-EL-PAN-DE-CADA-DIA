@@ -149,6 +149,43 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - `pruebas/inventarios.test.ts`: flujo completo con costo promedio.
   - `pruebas/inventarios-peps.test.ts`: capas y cancelaciones exactas.
 
+## Punto de venta (Fase 6)
+
+- **Caja en pantalla completa** en `/pos`, pensada para monitor táctil.
+  - Botones por familia y búsqueda; carrito y cobro con varias formas de pago y cálculo de cambio.
+  - Ticket de 80 mm (`web/src/impresion.ts`). Usa el adaptador de navegador; el adaptador ESC/POS para abrir el cajón está pendiente de P45.
+- **Sesión de caja:** se elige la caja (`/api/auth/caja`) y se cambia de cajero con PIN (`/api/auth/cajero`). Quien opera es el **cajero actual**.
+- **Turno:** una caja tiene un solo turno abierto. Se abre con el fondo y se cierra con el corte Z.
+- **Venta:**
+  - El identificador lo genera la caja: reenviar una venta no la duplica.
+  - Precio vigente de la sucursal o el general. Los impuestos se desglosan con `src/dominio/pos.ts`; el IVA se calcula sobre la base más el IEPS y cuadra al centavo.
+  - En la misma transacción se registra la salida de producto terminado del almacén de la caja. **Sin existencia no se vende (P71).**
+- **Tarjeta:** solo se guarda la referencia del voucher. Un número de tarjeta se rechaza en el servidor y con un CHECK en la base.
+- **Requieren autorización de supervisor** (usuario y PIN, distinto del cajero; queda en la bitácora de accesos):
+
+  | Operación | Permiso | Límite |
+  |---|---|---|
+  | Descuentos | `pos.devoluciones:autorizar` | `pos.devolucion_descuento` |
+  | Devoluciones (no las autoriza quien vendió) | `pos.devoluciones:autorizar` | `pos.devolucion_descuento` |
+  | Retiros e ingresos de efectivo | `pos.caja:autorizar` | — |
+  | Cancelación de pedidos | `pos.pedidos:autorizar` | — |
+  | Corte Z (si el cajero no tiene `pos.caja:cerrar`) | `pos.caja:cerrar` | — |
+
+- **Cortes:**
+  - X: parcial, no cierra el turno.
+  - Z: arqueo por denominación, efectivo esperado contra contado y diferencia. Si la diferencia pasa de `pos.diferencia_corte_maxima`, exige comentario y autorización.
+- **Pedidos:**
+  - Se registran con anticipo y abonos, que son un pasivo del cliente (`movimiento_caja` ANTICIPO).
+  - La entrega es una venta a los precios pactados que aplica lo anticipado.
+  - Al cancelar, el anticipo se devuelve o se retiene.
+- **Oficina:** la pantalla **Ventas y cortes** muestra ventas por fecha y sucursal (exportación a Excel y costo de lo vendido si tienes `datos.costos:ver`), cortes con su arqueo y pedidos.
+- **Pruebas:**
+  - `pruebas/pos-dominio.test.ts`: impuestos, cobro y cambio, corte, arqueo y devoluciones parciales.
+  - `pruebas/pos.test.ts`: flujo completo.
+- **Pendiente:**
+  - Pólizas (Fase 7) y factura y factura global (Fase 8).
+  - Modo sin conexión (P43) y báscula (P46).
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

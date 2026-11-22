@@ -1,0 +1,75 @@
+// Capa de impresión del POS (diseño 3.5): el ticket es un documento neutro y
+// cada adaptador lo convierte a su formato. Por ahora solo el adaptador de
+// navegador (HTML de 80 mm + diálogo de impresión, o impresión directa con
+// Chrome en modo kiosco --kiosk-printing). El adaptador ESC/POS para abrir el
+// cajón se agrega cuando se confirme el modelo de impresora (P45).
+import { fecha, fechaHora, numero } from "./formato";
+
+export interface Ticket {
+  folio: string; fecha: string; sucursal: string; caja: string; cajero: string; pedido?: string | null;
+  renglones: { nombre: string; cantidad: string; unidad: string; precio: string; descuento: string; importe: string }[];
+  subtotal: string; ieps: string; iva: string; descuento: string; total: string; anticipo_aplicado?: string;
+  pagos: { forma: string; importe: string; referencia: string | null }[]; recibido: string; cambio: string;
+}
+
+export interface Impresora {
+  nombre: string;
+  imprimir(t: Ticket | { titulo: string; lineas: [string, string][] }): Promise<void>;
+  abrirCajon(): Promise<boolean>;
+}
+
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const $ = (v: string | number) => `$${numero(v, 2)}`;
+const cant = (v: string) => (Number(v) % 1 === 0 ? String(Number(v)) : numero(v, 3));
+
+function htmlTicket(t: Ticket): string {
+  const filas = t.renglones.map((r) => `
+    <tr><td colspan="2">${esc(r.nombre)}</td></tr>
+    <tr><td>${cant(r.cantidad)} ${esc(r.unidad)} × ${$(r.precio)}${Number(r.descuento) ? ` − ${$(r.descuento)}` : ""}</td><td class="d">${$(r.importe)}</td></tr>`).join("");
+  const pagos = t.pagos.map((p) => `<tr><td>${esc(p.forma)}${p.referencia ? ` (${esc(p.referencia)})` : ""}</td><td class="d">${$(p.importe)}</td></tr>`).join("");
+  return `
+    <div class="c"><b>${esc(t.sucursal)}</b><br>${esc(t.caja)}</div>
+    <div>Folio: <b>${esc(t.folio)}</b><br>${fechaHora(t.fecha)}<br>Atendió: ${esc(t.cajero)}${t.pedido ? `<br>Pedido: ${esc(t.pedido)}` : ""}</div>
+    <hr><table>${filas}</table><hr>
+    <table>
+      ${Number(t.descuento) ? `<tr><td>Descuentos</td><td class="d">-${$(t.descuento)}</td></tr>` : ""}
+      <tr><td>Subtotal</td><td class="d">${$(t.subtotal)}</td></tr>
+      ${Number(t.ieps) ? `<tr><td>IEPS</td><td class="d">${$(t.ieps)}</td></tr>` : ""}
+      <tr><td>IVA</td><td class="d">${$(t.iva)}</td></tr>
+      <tr class="t"><td>TOTAL</td><td class="d">${$(t.total)}</td></tr>
+      ${pagos}
+      <tr><td>Cambio</td><td class="d">${$(t.cambio)}</td></tr>
+    </table>
+    <hr><div class="c">¡Gracias por su compra!<br><small>Para factura conserve este ticket.</small></div>`;
+}
+
+function htmlSimple(d: { titulo: string; lineas: [string, string][] }) {
+  return `<div class="c"><b>${esc(d.titulo)}</b></div><hr><table>${d.lineas.map(([a, b]) => `<tr><td>${esc(a)}</td><td class="d">${esc(b)}</td></tr>`).join("")}</table><hr><div class="c"><small>${fecha(new Date())}</small></div>`;
+}
+
+/** Adaptador de navegador: arma el HTML de 80 mm en un iframe oculto y llama a print(). */
+export const impresoraNavegador: Impresora = {
+  nombre: "Navegador",
+  async imprimir(t) {
+    const cuerpo = "titulo" in t ? htmlSimple(t) : htmlTicket(t);
+    const f = document.createElement("iframe");
+    f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(f);
+    const doc = f.contentDocument!;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><style>
+      @page { size: 80mm auto; margin: 3mm; }
+      body { font-family: monospace; font-size: 12px; width: 74mm; margin: 0; }
+      table { width: 100%; border-collapse: collapse; } td { vertical-align: top; } .d { text-align: right; white-space: nowrap; }
+      .c { text-align: center; } .t td { font-weight: bold; font-size: 14px; } hr { border: 0; border-top: 1px dashed #000; }
+    </style></head><body>${cuerpo}</body></html>`);
+    doc.close();
+    await new Promise((r) => setTimeout(r, 50));
+    f.contentWindow!.focus();
+    f.contentWindow!.print();
+    setTimeout(() => f.remove(), 1000);
+  },
+  async abrirCajon() {
+    return false; // el navegador no abre el cajón; lo hará el adaptador ESC/POS (P45)
+  },
+};

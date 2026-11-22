@@ -91,14 +91,14 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P43 | ¿El POS debe funcionar **sin internet**? (cambia el diseño del POS de forma importante: cola local, folios reservados, conflicto de existencias). | F1 (diseño) |
+| P43 | ¿El POS debe funcionar **sin internet**? 🟡 **Fase 6:** se construyó **con internet**. Ya quedó preparado lo principal para trabajar sin conexión: cada venta lleva un identificador generado en la caja, así que reenviarla no la duplica. Si lo necesitas, se agrega la cola local (diseño 3.6). Ojo: sin conexión no se puede garantizar la regla P71 de no vender sin existencia. | F6 (confirmar) |
 | P44 | ✅ **Respondida (cotización Ordenadores BXC, 18/08/2026):** HP usada Core i3, 8 GB RAM, SSD 128 GB, WiFi; monitor táctil Hostech 18.5" Full HD (1920×1080); regulador Ghia de 8 contactos. Falta: generación del i3 y versión de Windows (Windows 10 ya no recibe parches de seguridad desde oct‑2025). | — |
 | P45 | 🟡 **Por aclarar:** la cotización trae una **Ghia de 80 mm con autocorte, USB**, no la OFICHIDO. Los modelos Ghia de 80 mm (GTP801/GTP802) aceptan ESC/POS y tienen puerto de cajón. ¿Cuál queda en la caja y qué modelo exacto es? | F6 |
 | P46 | 🟡 **Parcial:** cajón **Ghia RJ11** conectado a la impresora; la computadora solo imprime tickets; **no hay lector de código de barras** (el POS se opera con botones táctiles por familia y con búsqueda; el código de barras queda como campo opcional del SKU, y un lector USB que se compre después funciona sin cambios). Falta: ¿hay **báscula** / venta por peso? | F6 |
-| P47 | Formas de pago aceptadas. Para tarjeta: ¿terminal bancaria independiente? (El sistema **no debe guardar datos de tarjetas**: Netlify Database no está certificada PCI‑DSS; solo registraríamos la referencia/autorización del voucher). | F6 |
-| P48 | Denominaciones para el arqueo (billetes y monedas que se cuentan). ¿Fondo de caja fijo por caja? | F6 |
+| P47 | Formas de pago. 🟡 **Fase 6 (provisional):** Efectivo (01), Tarjeta de crédito (04), Tarjeta de débito (28) y Transferencia (03), con terminal bancaria independiente. Solo se guarda la referencia o autorización del voucher; si alguien escribe un número de tarjeta, el sistema lo rechaza. Confirma cuáles aceptas. | No |
+| P48 | Denominaciones para el arqueo. ✅ Billetes de $1,000 a $20 y monedas de $10 a $0.50 (vigentes de Banco de México). 🟡 El fondo se captura al abrir cada turno; el campo "fondo sugerido" por caja es opcional. ¿El fondo es fijo por caja? ¿De cuánto? | No |
 | P49 | Periodicidad de la **factura global** (diaria, semanal, mensual, bimestral según tu régimen). Plazo que tiene el cliente para pedir factura de su ticket. | F8 |
-| P50 | ¿Se permite descuento en POS? ¿Quién lo autoriza y hasta cuánto? | F6 |
+| P50 | Descuentos en POS. 🟡 **Fase 6:** se permiten en pesos por renglón y los autoriza con su PIN un encargado (no el cajero), con el límite "devoluciones y descuentos" de la matriz: encargado hasta $500, contralor sin límite (provisional). ¿Está bien así? | No |
 
 ## H. Contabilidad y fiscal
 
@@ -107,7 +107,7 @@
 | P51 | Catálogo de cuentas actual (archivo) o si partimos del código agrupador del SAT. | F7 (layout desde F1) |
 | P52 | Fecha de arranque contable y si se cargan saldos iniciales. Ejercicio y periodos (mensual). | F7 |
 | P53 | Proveedor de timbrado (**PAC**). Si no hay, te comparo 3 o 4 opciones con costo por timbre y API (ej. Finkok, SW Sapien, Facturama, Diverza). | F8 |
-| P54 | Series y folios para tickets, facturas, notas de crédito y complementos de pago. | F6/F8 |
+| P54 | Series y folios. 🟡 **Fase 6 (provisional):** el ticket se numera por caja: `CAJA-SUC1-1-000001`. Las devoluciones usan `DEV-`, los pedidos `PED-` y los turnos `TUR-`. Las series de facturas se definen en la Fase 8. | F8 |
 | P55 | Datos fiscales por SKU (clave prod/serv, clave unidad, objeto de impuesto, IVA, IEPS): los capturas tú con tu contador — confírmame si llegarán en el layout de SKU o después. | F1 (estructura) |
 | P56 | ¿Hay retenciones (ej. compras a personas físicas con actividad empresarial o fletes)? | F8 |
 | P57 | ¿La contabilidad electrónica (Anexo 24) se envía desde este sistema o el contador la sigue haciendo en su sistema con lo que este le exporte? | F7 |
@@ -117,10 +117,10 @@
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| P59 | ¿Dónde se toman los pedidos (mostrador de sucursal, teléfono, WhatsApp, oficina)? ¿Quién puede tomarlos? | F6 |
-| P60 | ¿Hay anticipo mínimo (porcentaje o monto)? ¿Puede haber varios abonos antes de la entrega? | F6 |
-| P61 | Si el cliente cancela o no recoge: ¿se devuelve el anticipo, se pierde o depende del plazo? ¿Quién lo autoriza? | F6 |
-| P62 | ¿Los pedidos llevan datos de personalización (texto, decoración, foto de referencia, número de personas)? ¿Son SKU del catálogo, variantes, o productos especiales con precio libre? | F2 / F6 |
+| P59 | ¿Dónde se toman los pedidos? 🟡 **Fase 6:** en la caja de la sucursal (cajero o encargado). Si también se toman por teléfono o WhatsApp en oficina, dime quién los captura. | No |
+| P60 | Anticipo mínimo. 🟡 **Fase 6:** configurable (`pos.anticipo_minimo_pct`, hoy **0 %**, provisional). Se permiten varios abonos antes de la entrega. | No |
+| P61 | Cancelación de pedidos. 🟡 **Fase 6:** la autoriza con PIN un encargado, que decide si el anticipo **se devuelve** (sale efectivo de la caja) o **se retiene**. ¿Hay plazo o regla fija? | No |
+| P62 | Personalización de pedidos. 🟡 **Fase 6:** cada renglón lleva especificaciones (texto) y el pedido lleva notas. Solo productos del catálogo, al precio vigente (que queda fijo al registrar el pedido). Faltan la foto de referencia y los productos especiales con precio libre. | No |
 | P63 | ¿El pedido se produce en planta con su propia orden de producción o sale del producto normal del día? | F2 / F5 |
 | P64 | **Tratamiento fiscal del anticipo (con tu contador):** ¿se emite CFDI por el anticipo y después el CFDI del total relacionado con tipo de relación 07 (procedimiento de la Guía de llenado del Anexo 20), o se factura todo al entregar? Si el cliente no pide factura, ¿cómo entra a la factura global? | F8 (la estructura se crea antes) |
 | P65 | Cuenta contable de anticipos de clientes (pasivo): la defines en las reglas de contabilización. | F7 |

@@ -699,3 +699,38 @@ export async function existenciasParaPlan(c: Cliente, planId: string) {
   );
   return rows.filter((r) => Number(r.existencia) !== 0 || Number(r.en_transito) !== 0);
 }
+
+// ---- Ventas del punto de venta (Fase 6) -------------------------------------------
+/** Salida de producto terminado por una venta. Regresa el costo de cada partida (P71: sin existencia no hay venta). */
+export async function salidaPorVenta(c: Cliente, usuarioId: string, almacenId: string, ventaId: string, folio: string, partidas: { articulo_id: string; cantidad: Dec }[]) {
+  const x = await contexto(c, usuarioId);
+  const m = await nuevoMovimiento(x, "VENTA", almacenId, { documento_tipo: "VENTA", documento_id: ventaId, referencia: folio });
+  const costos: Dec[] = [];
+  for (const p of partidas) {
+    const art = await articuloPorId(c, p.articulo_id);
+    try {
+      costos.push((await sacar(x, m.id, almacenId, art, p.cantidad)).reduce((s, q) => s.plus(q.importe), new D(0)));
+    } catch (e) {
+      if (e instanceof ErrorApp && e.codigo === "existencia") throw new ErrorApp(409, "existencia", `Sin existencia suficiente de ${art.nombre} (${art.clave}) en la sucursal: no se puede vender. ${e.message.replace(`${art.clave}: `, "")}`);
+      throw e;
+    }
+  }
+  return { movimientoId: m.id, costos };
+}
+
+/** Regreso al inventario por devolución de una venta, al mismo costo con que salió. */
+export async function entradaPorDevolucion(c: Cliente, usuarioId: string, almacenId: string, devolucionId: string, folio: string, partidas: { articulo_id: string; cantidad: Dec; importe: Dec }[]) {
+  const x = await contexto(c, usuarioId);
+  const m = await nuevoMovimiento(x, "DEVOLUCION_VENTA", almacenId, { documento_tipo: "DEVOLUCION", documento_id: devolucionId, referencia: folio });
+  for (const p of partidas) {
+    const art = await articuloPorId(c, p.articulo_id);
+    let loteId: string | null = null;
+    if (art.maneja_lote) {
+      // Regresa al lote vigente más reciente del almacén (el pan devuelto se reincorpora al del día).
+      loteId = (await c.query("SELECT el.lote_id FROM existencia_lote el JOIN lote l ON l.id = el.lote_id WHERE el.almacen_id = $1 AND el.articulo_id = $2 ORDER BY l.creado_en DESC LIMIT 1", [almacenId, art.id])).rows[0]?.lote_id ?? null;
+      if (!loteId) throw invalido(`${art.clave} maneja lote y no hay un lote al cual regresarlo.`);
+    }
+    await entrar(x, m.id, almacenId, art, p.cantidad, { importe: p.importe, loteId });
+  }
+  return m.id as string;
+}

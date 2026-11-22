@@ -13,7 +13,7 @@ export async function prepararInventarios(base: string) {
   const nav: Record<string, Navegador> = {};
   const admin = (await instalarAdministrador()).nav;
   const r = await admin.post("/api/datos-prueba");
-  for (const rol of ["com", "jpr", "cnt", "con", "dir", "alm", "enc", "mae"]) {
+  for (const rol of ["com", "jpr", "cnt", "con", "dir", "alm", "enc", "mae", "caj"]) {
     nav[rol] = new Navegador();
     await entrar(nav[rol]!, `prueba.${rol}`, r.datos.password);
   }
@@ -47,7 +47,7 @@ export async function prepararInventarios(base: string) {
   await cargar("jpr", "intermedios", "fase-1b/13-intermedios.txt");
   await cargar("jpr", "productos", "fase-1b/14-productos.txt");
   await cargar("com", "unidades_articulo", "fase-1b/15-unidades-por-articulo.txt");
-  return { pool, nav, subir, cargar, existencia, otorgar };
+  return { pool, nav, subir, cargar, existencia, otorgar, password: r.datos.password as string };
 }
 
 export type Entorno = Awaited<ReturnType<typeof prepararInventarios>>;
