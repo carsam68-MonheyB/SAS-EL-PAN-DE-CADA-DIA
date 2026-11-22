@@ -4,6 +4,7 @@ import Decimal from "decimal.js";
 import { factorConversion, type ConversionGeneral } from "../../dominio/unidades";
 import type { Campo, FilaValidada, Layout } from "./tipos";
 import { CATALOGOS_SAT } from "./tipos";
+import { LAYOUTS_INVENTARIOS } from "./inventarios";
 import { LAYOUTS_PRODUCCION } from "./produccion";
 
 const CLAVE_PATRON = /^[A-Z0-9-]+$/;
@@ -521,6 +522,7 @@ export const LAYOUTS: Layout[] = [
   satCatalogo, unidades, conversiones, familias, centrosCosto, sucursales, almacenes, cajas, tasas,
   proveedores, clientes, insumos, intermedios, productos, unidadesArticulo, articulosProveedor, precios, cuentas,
   ...LAYOUTS_PRODUCCION,
+  ...LAYOUTS_INVENTARIOS,
 ].sort((a, b) => a.secuencia - b.secuencia);
 
 export function buscarLayout(clave: string): Layout | undefined {

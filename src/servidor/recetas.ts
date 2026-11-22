@@ -45,12 +45,12 @@ export interface Version {
   etapas: (FilaEtapa & { nombre: string })[];
 }
 
-interface Unidades {
+export interface Unidades {
   generales: ConversionGeneral[];
   propias: Map<string, UnidadPropia[]>;
 }
 
-async function leerUnidades(c: Cliente): Promise<Unidades> {
+export async function leerUnidades(c: Cliente): Promise<Unidades> {
   const generales: ConversionGeneral[] = (await c.query(
     "SELECT d.clave AS de, a.clave AS a, cu.factor::text AS factor FROM conversion_unidad cu JOIN unidad d ON d.id = cu.de_unidad_id JOIN unidad a ON a.id = cu.a_unidad_id WHERE cu.activo",
   )).rows;

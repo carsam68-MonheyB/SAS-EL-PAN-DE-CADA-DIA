@@ -10,6 +10,7 @@ import { guardarRegistros } from "../../src/servidor/layouts/servicio";
 import {
   aprobarPlan, cancelarPlan, cargarPlan, explotarPlan, generarRequisicion, guardarExistencias, requisicionesDePlan, type ExplosionJson,
 } from "../../src/servidor/recetas";
+import { existenciasParaPlan } from "../../src/servidor/inventarios";
 import { ruta } from "../../src/servidor/ruta";
 import type { Cliente } from "../../src/servidor/transaccion";
 
@@ -92,6 +93,19 @@ const manejador = ruta({ permiso: "produccion.plan:ver" }, async (ctx) => {
     }));
     await ctx.tx((c) => guardarExistencias(c, id, d.existencias.map((x) => ({ ...x, existencia: x.existencia.replaceAll(",", ""), en_transito: x.en_transito.replaceAll(",", "") }))));
     return { ok: true };
+  }
+
+  // Toma la existencia y lo que viene en tránsito del inventario (Fase 3) en lugar de capturarlos.
+  if (id && accion === "existencias-inventario" && m === "POST") {
+    ctx.exigir(["produccion.plan:crear", "produccion.plan:editar"]);
+    return ctx.tx(async (c) => {
+      const inv = await existenciasParaPlan(c, id);
+      const previas = (await c.query("SELECT a.clave FROM plan_existencia pe JOIN articulo a ON a.id = pe.articulo_id WHERE pe.plan_id = $1", [id])).rows.map((r) => r.clave);
+      const lista = new Map(previas.map((k) => [k, { articulo: k, existencia: "0", en_transito: "0" }]));
+      for (const r of inv) lista.set(r.articulo, r);
+      if (lista.size) await guardarExistencias(c, id, [...lista.values()]);
+      return { articulos: inv.length };
+    });
   }
 
   if (id && accion === "aprobar" && m === "POST") {

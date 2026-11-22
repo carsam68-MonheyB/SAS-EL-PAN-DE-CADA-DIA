@@ -1,0 +1,5 @@
+CLAVE|NOMBRE|APLICA|ACTIVO
+PRUEBA-CADUCADO|PRUEBA Producto o insumo caducado|TODOS|SI
+PRUEBA-DANADO|PRUEBA Empaque o insumo dañado|MP|SI
+PRUEBA-NO-VENDIDO|PRUEBA Pan no vendido al cierre|PT|SI
+PRUEBA-QUEMADO|PRUEBA Pieza quemada o deforme|TODOS|SI

@@ -173,7 +173,7 @@ function Detalle({ id }: { id: string }) {
       </Group>
       {error && <Alert color="red" withCloseButton onClose={() => setError(null)}>{error}</Alert>}
       {aviso && <Alert color="green" withCloseButton onClose={() => setAviso(null)}>{aviso}</Alert>}
-      {plan.estatus === "BORRADOR" && <Alert color="blue">El cálculo se actualiza con las recetas activas al {fechaMx} y con las existencias que captures. Al aprobar, el resultado queda fijo. Mientras no exista el módulo de inventarios (Fase 3), las existencias se capturan aquí.</Alert>}
+      {plan.estatus === "BORRADOR" && <Alert color="blue">El cálculo se actualiza con las recetas activas al {fechaMx} y con las existencias que captures. Al aprobar, el resultado queda fijo. Las existencias se pueden capturar aquí o tomar del inventario (materia prima, insumos y producción en proceso de la sucursal del plan, más lo que viene en tránsito).</Alert>}
       {e?.problemas.length > 0 && (
         <Alert color="red" title="Problemas: el plan no se puede aprobar">
           {e.problemas.map((p: any, i: number) => <Text key={i} size="sm">• {p.articulo}: {p.mensaje}</Text>)}
@@ -238,7 +238,12 @@ function Detalle({ id }: { id: string }) {
               </Table>
             </ScrollArea>
           )}
-          {puede.editar && <Button mt="sm" variant="light" loading={accion.isPending} onClick={guardarExistencias}>Guardar existencias y recalcular</Button>}
+          {puede.editar && (
+            <Group mt="sm">
+              <Button variant="light" loading={accion.isPending} onClick={guardarExistencias}>Guardar existencias y recalcular</Button>
+              <Button variant="default" loading={accion.isPending} onClick={() => accion.mutate({ ruta: `/api/planes/${id}/existencias-inventario` })}>Tomar existencias del inventario</Button>
+            </Group>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value="mp" pt="md">
@@ -261,7 +266,12 @@ function Detalle({ id }: { id: string }) {
               </Table>
             </ScrollArea>
           )}
-          {puede.editar && <Button mt="sm" variant="light" loading={accion.isPending} onClick={guardarExistencias}>Guardar existencias y recalcular</Button>}
+          {puede.editar && (
+            <Group mt="sm">
+              <Button variant="light" loading={accion.isPending} onClick={guardarExistencias}>Guardar existencias y recalcular</Button>
+              <Button variant="default" loading={accion.isPending} onClick={() => accion.mutate({ ruta: `/api/planes/${id}/existencias-inventario` })}>Tomar existencias del inventario</Button>
+            </Group>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value="requisicion" pt="md">

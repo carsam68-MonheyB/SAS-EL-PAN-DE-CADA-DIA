@@ -109,6 +109,45 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
 - **Layouts nuevos:** etapas, turnos, costo de mano de obra por minuto, tasas de GIF, recetas y fórmulas de masas, recetas y componentes de SKU, etapas por receta y plan de producción.
 - **Ejemplos ficticios:** están en `datos-ejemplo/fase-2` (ver su `LEEME.md`). La prueba `pruebas/recetas.test.ts` los carga y compara los kg, lotes, requerimientos y costos contra el cálculo hecho a mano.
 
+## Inventarios (Fase 3)
+
+- **Kárdex:** `movimiento` + `movimiento_renglon`.
+  - Cada renglón guarda la cantidad (+ entrada / − salida), el costo, el importe y el saldo después del movimiento.
+  - Es de solo inserción. Un movimiento se cancela con otro inverso (`CANCELACION`).
+- **Saldos:** `existencia`, `existencia_lote` y `capa_costo` (PEPS).
+  - Se actualizan en la misma transacción, con el saldo bloqueado (`FOR UPDATE`).
+  - `SELECT * FROM inventario_diferencias()` debe regresar cero renglones.
+- **Valuación** (`inventarios.metodo_valuacion`, P34): PROMEDIO (provisional) o PEPS.
+  - No se puede cambiar una vez que hay movimientos.
+  - Cuando sale todo lo que queda, se toma el valor restante exacto: no quedan centavos huérfanos.
+- **Lotes:** si el artículo maneja lote, las salidas sin lote se reparten por caducidad (FEFO).
+- **Operaciones** (pantalla **Inventarios**):
+
+  | Operación | Cómo funciona | Permiso |
+  |---|---|---|
+  | Entrada por compra | Provisional hasta la Fase 4. Admite unidad de compra con conversión. | `compras.recepcion:crear` |
+  | Surtido a producción | De MP a PEP en la misma sucursal. | `inventarios.surtido:crear` |
+  | Entrada de producción | Provisional hasta la Fase 5. Valuada al costo estándar del día. | `produccion.ordenes:crear` |
+  | Traspasos | Envío → tránsito → recepción. El faltante queda registrado y exige comentario. Se puede cancelar mientras está en tránsito. | — |
+  | Mermas | Con causa y autorización: PT → `inventarios.merma_sucursal`; lo demás → `produccion.mermas`. | Límites de `limite_autorizacion`; quien registra no autoriza. |
+  | Conteos físicos | A ciegas. El teórico se congela al enviar. El ajuste lo autoriza alguien distinto de quien contó, con límite `inventarios.ajuste`. | — |
+
+- **Layouts nuevos:**
+  - Causas de merma (29).
+  - Mínimos y reorden por almacén (30).
+  - Inventario inicial (31). Queda pendiente hasta que lo autorice quien tiene `inventarios.ajustes:autorizar`, y entra como movimiento `INICIAL`.
+- **Alertas:**
+  - Bajo mínimo o punto de reorden, con cantidad sugerida hasta el máximo. Los mínimos del artículo aplican en almacenes MP/INS; en PEP/PT solo los capturados por almacén.
+  - Lotes caducados o por caducar (`inventarios.dias_alerta_caducidad`).
+- **Seguridad:**
+  - Cada acción valida en el servidor el permiso y el **alcance** del usuario sobre el almacén.
+  - Sin `datos.costos:ver` se ocultan importes y valores.
+- **Plan de producción:** el botón **Tomar existencias del inventario** llena existencia y tránsito (MP, INS y PEP de la sucursal del plan).
+- **Pruebas:**
+  - `pruebas/inventarios-dominio.test.ts`: promedio, PEPS y FEFO.
+  - `pruebas/inventarios.test.ts`: flujo completo con costo promedio.
+  - `pruebas/inventarios-peps.test.ts`: capas y cancelaciones exactas.
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.
