@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { GET, POST, textoError } from "../api";
 import { fecha, fechaHora, fechaIso, numero } from "../formato";
-import { impresoraNavegador } from "../impresion";
+import { impresoraNavegador, recibo } from "../impresion";
 import { cola, copia, esErrorDeRed, folioLocal, type VentaPendiente } from "../sinConexion";
 import { useSesion } from "../sesion";
 
@@ -237,9 +237,9 @@ function Pedidos({ estado, productos, cerrar, alTerminar }: { estado: any; produ
       anticipo: n(nuevo.anticipo) > 0 ? { forma: nuevo.forma, importe: nuevo.anticipo } : null,
       autorizacion: n(nuevo.anticipo) > 0 ? null : autSin,
     }),
-    onSuccess: (x: any) => { impresoraNavegador.imprimir({ titulo: `PEDIDO ${x.folio}`, lineas: [["Cliente", nuevo.cliente_nombre], ["Entrega", nuevo.fecha], ["Total", $(x.total)], ["Anticipo", $(x.anticipo?.importe ?? 0)], ["Saldo", $(n(x.total) - n(x.anticipo?.importe ?? "0"))]] }); setNuevo({ cliente_nombre: "", telefono: "", fecha: "", notas: "", anticipo: "", forma: "01" }); setRenglones([{ articulo: null, cantidad: "1", especificaciones: "" }]); refrescar(); },
+    onSuccess: async (x: any) => { await impresoraNavegador.imprimir({ titulo: `PEDIDO ${x.folio}`, lineas: [["Cliente", nuevo.cliente_nombre], ["Entrega", nuevo.fecha], ["Total", $(x.total)], ["Anticipo", $(x.anticipo?.importe ?? 0)], ["Saldo", $(n(x.total) - n(x.anticipo?.importe ?? "0"))]] }); if (x.anticipo?.recibo) await impresoraNavegador.imprimir(recibo(x.anticipo.recibo)); setNuevo({ cliente_nombre: "", telefono: "", fecha: "", notas: "", anticipo: "", forma: "01" }); setRenglones([{ articulo: null, cantidad: "1", especificaciones: "" }]); refrescar(); },
   });
-  const abonar = useMutation({ mutationFn: () => POST(`/api/pos/pedidos/${accion!.p.id}/abonar`, { forma: abono.forma, importe: abono.importe }), onSuccess: () => { setAccion(null); refrescar(); } });
+  const abonar = useMutation({ mutationFn: () => POST(`/api/pos/pedidos/${accion!.p.id}/abonar`, { forma: abono.forma, importe: abono.importe }), onSuccess: (x: any) => { if (x.recibo) impresoraNavegador.imprimir(recibo(x.recibo)); setAccion(null); refrescar(); } });
   const cancelar = useMutation({ mutationFn: () => POST(`/api/pos/pedidos/${accion!.p.id}/cancelar`, { ...cancel, autorizacion: aut }), onSuccess: () => { setAccion(null); refrescar(); } });
   const entregar = useMutation({
     mutationFn: (pagos: Pago[]) => POST(`/api/pos/pedidos/${accion!.p.id}/entregar`, { venta_id: uuid(), pagos }),

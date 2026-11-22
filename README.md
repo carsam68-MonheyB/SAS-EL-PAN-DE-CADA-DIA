@@ -263,6 +263,38 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - `pruebas/contabilidad-dominio.test.ts` y `pruebas/contabilidad.test.ts`.
   - Al final de las pruebas de compras, punto de venta y producción se revisa que todo se contabilice, que la balanza cuadre y que el inventario contable sea igual al kárdex (`pruebas/apoyo-contable.ts`).
 
+## Facturación con el portal del SAT (Fase 8)
+
+Decisiones del negocio (P49, P53, P54, P56, P58, P64): las facturas se hacen y se timbran en el **portal del SAT**. No hay PAC, ni e.firma ni CSD en el sistema (la e.firma la tiene el contador).
+
+- **Solicitud de factura** (`solicitud_factura`):
+  - Lleva los datos fiscales del cliente (RFC, nombre, régimen, C.P., uso del CFDI) ligados a un ticket.
+  - Se pide **el mismo día** (`fiscal.dias_solicitud` = 0) y antes de la global de ese día.
+  - Régimen y uso se validan contra el catálogo del SAT cargado (`c_RegimenFiscal`, `c_UsoCFDI`).
+  - Los datos no se modifican: se cancela la solicitud y se captura otra.
+- **Datos para el portal** (`src/dominio/facturacion.ts`, con pruebas):
+  - **Factura individual:** un concepto por renglón, con el neto de devoluciones.
+  - **Factura global diaria:** un concepto por ticket con su folio como número de identificación, clave `01010101`, unidad `ACT`, RFC `XAXX010101000` y periodicidad 01.
+  - Impuestos agrupados por tasa.
+  - Forma de pago: la de mayor importe. Lo pagado con anticipo se declara con la forma en que se cobró el anticipo.
+- **Registro del XML** descargado del portal (`cfdi_emitido`, `cfdi_venta`):
+  - Revisa versión 4.0, MXN, RFC emisor (`empresa.rfc`), sin retenciones, UUID no repetido y receptor de la solicitud.
+  - En la global, revisa la periodicidad diaria y el mes y año.
+  - Coteja los importes contra los tickets con tolerancia `fiscal.tolerancia_importe`.
+  - Un ticket queda en **a lo más una factura vigente** (índice único).
+  - El XML y sus importes no se modifican.
+- **Notas de crédito** (CFDI de egreso relacionado): se suben en la factura que corrigen. La conciliación avisa de devoluciones de tickets facturados sin nota.
+- **Cancelación:** se hace en el portal del SAT. Aquí la registra el contador (motivo 01–04) y la autoriza el contralor; quien registra no autoriza. Al cancelarse, sus tickets y solicitudes se pueden volver a facturar.
+- **Conciliación vendido contra facturado:** por día y sucursal, con alertas de días sin global, devoluciones sin nota de crédito y cancelaciones por autorizar.
+- **Recibo de anticipo** (`anticipo.folio`, `REC-000001`): se imprime al cobrar el anticipo o un abono de un pedido. No es comprobante fiscal; todo se factura a la entrega.
+- **Contabilidad:** la póliza de una venta muestra el UUID de su factura, y la de una factura de proveedor el suyo.
+- **XML de PRUEBA:** solo con `PERMITIR_DATOS_PRUEBA=si`. Imita el XML del portal para ensayar; no está timbrado.
+- **Permisos:**
+  - Solicitudes: `fiscal.cfdi:crear` (encargado de su sucursal, contador).
+  - Registrar XML: `fiscal.cfdi:timbrar` (encargado y contador).
+  - Cancelar: `fiscal.cfdi:cancelar` (contador). Autorizar cancelación: `fiscal.cfdi:autorizar` (contralor).
+- **Pruebas:** `pruebas/facturacion-dominio.test.ts` y `pruebas/facturacion.test.ts`.
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

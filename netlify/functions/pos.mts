@@ -10,7 +10,7 @@ import { hoyNegocio } from "../../src/servidor/fechas";
 import { leerCuerpo } from "../../src/servidor/http";
 import {
   abonarPedido, abrirTurno, cancelarPedido, contextoCaja, contextoOficina, corteX, corteZ, crearPedido, devolver, entregarPedido, movimientoEfectivo,
-  productosCaja, resumenTurno, ticket, vender, verificarSupervisor, type Autorizacion, type ContextoCaja,
+  productosCaja, reciboAnticipo, resumenTurno, ticket, vender, verificarSupervisor, type Autorizacion, type ContextoCaja,
 } from "../../src/servidor/pos";
 import { ruta, type ContextoAutenticado } from "../../src/servidor/ruta";
 
@@ -178,6 +178,16 @@ const manejador = ruta({ permiso: VER }, async (ctx) => {
       if (!rows[0]) throw noEncontrado("No existe ese corte.");
       const den = (await c.query("SELECT d.valor::text AS valor, d.cantidad FROM corte_denominacion d WHERE d.corte_id = $1 ORDER BY d.valor DESC", [id])).rows;
       return { ...rows[0], denominaciones: den };
+    });
+  }
+
+  // ---- Recibo de anticipo (reimpresión) ----
+  if (recurso === "anticipos" && id && m === "GET") {
+    ctx.exigir("pos.pedidos:ver");
+    return ctx.tx(async (c) => {
+      const r = await reciboAnticipo(c, id);
+      if (!ctx.usuario.alcance.todas && !ctx.usuario.alcance.sucursales.includes(r.sucursal_id)) throw new ErrorApp(403, "prohibido", "El recibo es de otra sucursal.");
+      return r;
     });
   }
 

@@ -413,7 +413,17 @@ export async function detallePoliza(c: Cliente, id: string) {
       WHERE pp.poliza_id = $1 ORDER BY pp.orden`,
     [p.id],
   )).rows;
-  return { poliza: p, partidas };
+  // Comprobantes fiscales del documento (para la contabilidad electrónica): la factura
+  // individual o global de una venta y la factura de un proveedor.
+  const cfdis = (await c.query(
+    `SELECT e.uuid_cfdi AS uuid, e.clase, e.receptor_rfc AS rfc, e.total::text, e.estatus FROM cfdi_venta cv JOIN cfdi_emitido e ON e.id = cv.cfdi_id
+      WHERE $1 = 'VENTA' AND cv.venta_id = $2 AND cv.vigente
+     UNION ALL
+     SELECT f.uuid_cfdi, 'PROVEEDOR', pr.rfc, f.total::text, f.estatus FROM factura_proveedor f JOIN proveedor pr ON pr.id = f.proveedor_id
+      WHERE $1 = 'FACTURA_PROVEEDOR' AND f.id = $2`,
+    [p.origen, p.origen_id],
+  )).rows;
+  return { poliza: p, partidas, cfdis };
 }
 
 async function cuentas(c: Cliente): Promise<CuentaBalanza[]> {

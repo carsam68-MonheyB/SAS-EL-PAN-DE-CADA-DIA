@@ -420,9 +420,25 @@ async function registrarAnticipo(c: Cliente, k: ContextoCaja, pedidoId: string, 
     "INSERT INTO movimiento_caja (turno_id, tipo, forma_pago_id, importe, referencia, documento_id, cajero_id) VALUES ($1, 'ANTICIPO', $2, $3, $4, $5, $6) RETURNING id",
     [turno.id, pagos.lista[0]!.forma.id, m2(pagos.aplicados[0]!), pagos.lista[0]!.referencia, pedidoId, k.cajero.id],
   )).rows[0];
-  await c.query("INSERT INTO anticipo (pedido_id, movimiento_caja_id, importe) VALUES ($1, $2, $3)", [pedidoId, mc.id, m2(pagos.aplicados[0]!)]);
+  const an = (await c.query("INSERT INTO anticipo (pedido_id, movimiento_caja_id, importe) VALUES ($1, $2, $3) RETURNING folio", [pedidoId, mc.id, m2(pagos.aplicados[0]!)])).rows[0];
   await c.query("UPDATE pedido SET anticipado = anticipado + $2 WHERE id = $1", [pedidoId, m2(pagos.aplicados[0]!)]);
-  return { importe: m2(pagos.aplicados[0]!), cambio: m2(pagos.cambio) };
+  return { importe: m2(pagos.aplicados[0]!), cambio: m2(pagos.cambio), recibo: await reciboAnticipo(c, an.folio) };
+}
+
+export const LEYENDA_RECIBO = "Este recibo no es un comprobante fiscal. La factura se emite a la entrega del pedido, por el total.";
+
+/** Recibo de anticipo (P64): comprobante del pago a cuenta de un pedido; no se factura. */
+export async function reciboAnticipo(c: Cliente, folio: string) {
+  const r = (await c.query(
+    `SELECT an.folio, an.importe::text, an.creado_en, p.folio AS pedido, p.cliente_nombre, p.fecha_entrega::text, p.total::text, p.sucursal_id, s.nombre AS sucursal,
+            f.nombre AS forma, mc.referencia, u.nombre AS cajero,
+            (SELECT coalesce(sum(a2.importe), 0) FROM anticipo a2 WHERE a2.pedido_id = an.pedido_id AND (a2.creado_en, a2.id) <= (an.creado_en, an.id))::text AS anticipado
+       FROM anticipo an JOIN pedido p ON p.id = an.pedido_id JOIN sucursal s ON s.id = p.sucursal_id JOIN movimiento_caja mc ON mc.id = an.movimiento_caja_id
+       JOIN forma_pago f ON f.id = mc.forma_pago_id JOIN usuario u ON u.id = mc.cajero_id WHERE an.folio = upper($1)`,
+    [folio],
+  )).rows[0];
+  if (!r) throw noEncontrado("No existe ese recibo.");
+  return { ...r, saldo: m2(new D(r.total).minus(r.anticipado)), leyenda: LEYENDA_RECIBO };
 }
 
 export async function crearPedido(c: Cliente, k: ContextoCaja, d: { cliente_nombre: string; telefono?: string | null; cliente?: string | null; fecha_entrega: string; notas?: string | null; origen?: "MOSTRADOR" | "TELEFONO" | "WHATSAPP"; renglones: { articulo: string; cantidad: string; especificaciones?: string | null }[]; anticipo?: PagoCaptura | null; autorizoSinAnticipo?: string | null }) {

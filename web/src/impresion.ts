@@ -16,7 +16,7 @@ export interface Ticket {
 
 export interface Impresora {
   nombre: string;
-  imprimir(t: Ticket | { titulo: string; lineas: [string, string][] }): Promise<void>;
+  imprimir(t: Ticket | { titulo: string; lineas: [string, string][]; nota?: string }): Promise<void>;
   abrirCajon(): Promise<boolean>;
 }
 
@@ -43,14 +43,24 @@ function htmlTicket(t: Ticket): string {
       ${pagos}
       <tr><td>Cambio</td><td class="d">${$(t.cambio)}</td></tr>
     </table>
-    <hr><div class="c">¡Gracias por su compra!<br><small>Para factura conserve este ticket.</small></div>`;
+    <hr><div class="c">¡Gracias por su compra!<br><small>Si requiere factura, solicítela hoy mismo con este ticket.</small></div>`;
 }
 
-function htmlSimple(d: { titulo: string; lineas: [string, string][] }) {
-  return `<div class="c"><b>${esc(d.titulo)}</b></div><hr><table>${d.lineas.map(([a, b]) => `<tr><td>${esc(a)}</td><td class="d">${esc(b)}</td></tr>`).join("")}</table><hr><div class="c"><small>${fecha(new Date())}</small></div>`;
+function htmlSimple(d: { titulo: string; lineas: [string, string][]; nota?: string }) {
+  return `<div class="c"><b>${esc(d.titulo)}</b></div><hr><table>${d.lineas.map(([a, b]) => `<tr><td>${esc(a)}</td><td class="d">${esc(b)}</td></tr>`).join("")}</table><hr>${d.nota ? `<div class="c"><small>${esc(d.nota)}</small></div><hr>` : ""}<div class="c"><small>${fecha(new Date())}</small></div>`;
 }
 
 /** Adaptador de navegador: arma el HTML de 80 mm en un iframe oculto y llama a print(). */
+/** Recibo de anticipo de un pedido (P64): no es comprobante fiscal. */
+export function recibo(r: { folio: string; pedido: string; cliente_nombre: string; fecha_entrega: string; importe: string; forma: string; referencia?: string | null; total: string; anticipado: string; saldo: string; sucursal: string; cajero: string; leyenda: string }) {
+  return {
+    titulo: `RECIBO DE ANTICIPO ${r.folio}`,
+    lineas: [["Sucursal", r.sucursal], ["Pedido", r.pedido], ["Cliente", r.cliente_nombre], ["Entrega", fecha(r.fecha_entrega)], ["Recibimos", $(r.importe)],
+      ["Forma de pago", r.forma + (r.referencia ? ` (${r.referencia})` : "")], ["Total del pedido", $(r.total)], ["Anticipado a la fecha", $(r.anticipado)], ["Saldo", $(r.saldo)], ["Atendió", r.cajero]] as [string, string][],
+    nota: r.leyenda,
+  };
+}
+
 export const impresoraNavegador: Impresora = {
   nombre: "Navegador",
   async imprimir(t) {

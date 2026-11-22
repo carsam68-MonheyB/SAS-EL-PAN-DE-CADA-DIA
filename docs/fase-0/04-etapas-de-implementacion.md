@@ -40,7 +40,7 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 - Contratar correo para la oficina.
 - Pedir a tu contador: catálogo de cuentas y datos fiscales de los 70 SKU.
 - Exportar de Soft Restaurant productos, precios y ventas históricas a Excel.
-- Elegir PAC (lo necesitamos hasta la Fase 8).
+- ~~Elegir PAC (lo necesitamos hasta la Fase 8).~~ No se necesita: se factura en el portal del SAT (P53).
 
 ---
 
@@ -60,6 +60,8 @@ Guía práctica: qué haces tú, qué hago yo y cómo se aprueba cada etapa.
 | **9. Arranque** | Tableros, manual de usuario, respaldo externo y prueba de restauración, revisión final de permisos | Capacitar al personal; definir la fecha de corte | Operación en paralelo con Soft Restaurant el tiempo que decidas; después se apaga |
 
 ✅ **Decisión (21/11/2026): el POS se adelanta.** Orden real: **1A → 1B → 2 → 3 → 6 (POS) → 4 → 5 → 7 → 8 → 9**. Así Soft Restaurant se puede retirar al terminar la Fase 6. La facturación de tickets llega en la Fase 8; mientras tanto, o se sigue facturando en Soft Restaurant, o se adelanta también esa parte (se decide al llegar).
+
+✅ **Decisión (22/11/2026): la Fase 8 se hace con el portal del SAT** (P53, P58). Sin PAC ni e.firma en el sistema: el sistema prepara los datos de la factura individual y de la global diaria, guarda el XML que se descarga del portal ligado a sus tickets, registra cancelaciones con autorización y concilia lo vendido contra lo facturado. La descarga masiva y la verificación de estatus ante el SAT quedan fuera.
 
 ---
 

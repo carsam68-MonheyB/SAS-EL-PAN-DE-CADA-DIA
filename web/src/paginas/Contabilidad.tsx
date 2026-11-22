@@ -101,6 +101,7 @@ function DetallePoliza({ id, cerrar }: { id: string; cerrar: () => void }) {
           <Table.Tr fw={700}><Table.Td colSpan={3}>Sumas iguales</Table.Td><Table.Td ta="right">{$(t("cargo"))}</Table.Td><Table.Td ta="right">{$(t("abono"))}</Table.Td></Table.Tr>
         </Table.Tbody>
       </Table>
+      {!!r.data.cfdis?.length && <Text size="sm">Comprobantes fiscales: {r.data.cfdis.map((x: any) => `${x.uuid} (${x.clase === "PROVEEDOR" ? "proveedor" : x.clase === "GLOBAL" ? "factura global" : "factura individual"} ${x.rfc}, ${$(x.total)})`).join(" · ")}</Text>}
       {p.periodo_estatus === "ABIERTO" && p.origen === "MANUAL" && ["POR_AUTORIZAR", "APLICADA"].includes(p.estatus) && (
         <Group align="flex-end">
           <TextInput label="Motivo (para rechazar o cancelar)" w={320} value={motivo} onChange={(e) => setMotivo(e.currentTarget.value)} />

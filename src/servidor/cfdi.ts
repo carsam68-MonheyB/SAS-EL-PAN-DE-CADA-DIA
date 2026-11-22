@@ -11,6 +11,9 @@ export interface Cfdi {
   version: string; uuid: string; serie: string | null; folio: string | null; fecha: string; tipo: string; moneda: string;
   metodoPago: string | null; formaPago: string | null; emisorRfc: string; emisorNombre: string | null; receptorRfc: string;
   subtotal: Dec; descuento: Dec; total: Dec; iva: Dec; ieps: Dec; retenciones: Dec; conceptos: ConceptoCfdi[];
+  receptorNombre: string | null; regimenReceptor: string | null; usoCfdi: string | null; cpReceptor: string | null; lugarExpedicion: string | null;
+  informacionGlobal: { periodicidad: string; meses: string; anio: number } | null;
+  relacionados: { tipoRelacion: string; uuids: string[] }[];
 }
 
 const lista = <T,>(x: T | T[] | undefined): T[] => (x === undefined ? [] : Array.isArray(x) ? x : [x]);
@@ -25,8 +28,8 @@ const num = (v: unknown, campo: string): Dec => {
   }
 };
 
-export function leerCfdi(xml: string): Cfdi {
-  if (xml.length > 1_000_000) throw invalido("El XML pasa de 1 MB.");
+export function leerCfdi(xml: string, maximo = 1_000_000): Cfdi {
+  if (xml.length > maximo) throw invalido(`El XML pasa de ${Math.round(maximo / 1_000_000)} MB.`);
   if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw invalido("El XML trae declaraciones no permitidas (DOCTYPE/ENTITY).");
   let doc: any;
   try {
@@ -61,5 +64,9 @@ export function leerCfdi(xml: string): Cfdi {
     subtotal: num(c.SubTotal, "SubTotal"), descuento: num(c.Descuento, "Descuento"), total: num(c.Total, "Total"),
     iva: suma(tg, "002", "IVA"), ieps: suma(tg, "003", "IEPS"), retenciones: num(c.Impuestos?.TotalImpuestosRetenidos, "TotalImpuestosRetenidos"),
     conceptos,
+    receptorNombre: c.Receptor?.Nombre ? String(c.Receptor.Nombre) : null, regimenReceptor: c.Receptor?.RegimenFiscalReceptor ?? null,
+    usoCfdi: c.Receptor?.UsoCFDI ?? null, cpReceptor: c.Receptor?.DomicilioFiscalReceptor ?? null, lugarExpedicion: c.LugarExpedicion ?? null,
+    informacionGlobal: c.InformacionGlobal ? { periodicidad: String(c.InformacionGlobal.Periodicidad ?? ""), meses: String(c.InformacionGlobal.Meses ?? ""), anio: Number(c.InformacionGlobal["Año"] ?? c.InformacionGlobal.Anio ?? 0) } : null,
+    relacionados: lista(c.CfdiRelacionados).map((r: any) => ({ tipoRelacion: String(r.TipoRelacion ?? ""), uuids: lista(r.CfdiRelacionado).map((x: any) => String(x.UUID ?? "").toUpperCase()) })),
   };
 }

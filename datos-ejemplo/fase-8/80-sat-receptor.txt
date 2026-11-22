@@ -1,0 +1,9 @@
+CATALOGO|CLAVE|DESCRIPCION
+c_RegimenFiscal|601|PRUEBA General de Ley Personas Morales (verificar contra el catálogo oficial)
+c_RegimenFiscal|605|PRUEBA Sueldos y Salarios (verificar contra el catálogo oficial)
+c_RegimenFiscal|612|PRUEBA Personas Físicas con Actividades Empresariales y Profesionales (verificar)
+c_RegimenFiscal|616|PRUEBA Sin obligaciones fiscales (verificar contra el catálogo oficial)
+c_RegimenFiscal|626|PRUEBA Régimen Simplificado de Confianza (verificar contra el catálogo oficial)
+c_UsoCFDI|G01|PRUEBA Adquisición de mercancías (verificar contra el catálogo oficial)
+c_UsoCFDI|G03|PRUEBA Gastos en general (verificar contra el catálogo oficial)
+c_UsoCFDI|S01|PRUEBA Sin efectos fiscales (verificar contra el catálogo oficial)
