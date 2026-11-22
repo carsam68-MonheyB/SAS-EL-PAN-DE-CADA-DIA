@@ -22,6 +22,7 @@ import { Inventarios } from "./paginas/Inventarios";
 import { Pos } from "./paginas/Pos";
 import { Ventas } from "./paginas/Ventas";
 import { Compras } from "./paginas/Compras";
+import { Produccion } from "./paginas/Produccion";
 
 // Permisos que dan acceso a algún catálogo (el detalle lo decide el servidor).
 const VER_CATALOGOS = [
@@ -42,6 +43,7 @@ const MENU = [
   { ruta: "/cargas", texto: "Cargas masivas", permisos: VER_CARGAS },
   { ruta: "/recetas", texto: "Recetas", permisos: ["produccion.recetas:ver"] },
   { ruta: "/planes", texto: "Plan de producción", permisos: ["produccion.plan:ver"] },
+  { ruta: "/produccion", texto: "Producción", permisos: ["produccion.ordenes:ver", "produccion.ordenes:crear"] },
   { ruta: "/costos", texto: "Costo estándar", permisos: ["datos.costos:ver"] },
   { ruta: "/inventarios", texto: "Inventarios", permisos: VER_INVENTARIOS },
   { ruta: "/pos", texto: "Punto de venta (caja)", permisos: ["pos.ventas:crear", "pos.caja:crear", "pos.caja:autorizar"] },
@@ -92,6 +94,7 @@ function Marco() {
           {puede("produccion.plan:ver") && <Route path="/planes" element={<Planes />} />}
           {puede("produccion.plan:ver") && <Route path="/planes/:id" element={<Planes />} />}
           {puede("datos.costos:ver") && <Route path="/costos" element={<Costos />} />}
+          {puede("produccion.ordenes:ver", "produccion.ordenes:crear") && <Route path="/produccion" element={<Produccion />} />}
           {puede(...VER_INVENTARIOS) && <Route path="/inventarios" element={<Inventarios />} />}
           {puede("pos.ventas:ver", "pos.caja:ver", "pos.pedidos:ver") && <Route path="/ventas" element={<Ventas />} />}
           {puede(...VER_COMPRAS) && <Route path="/compras" element={<Compras />} />}

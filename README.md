@@ -213,6 +213,29 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
   - `pruebas/compras-dominio.test.ts`: cotejo, antigüedad y CFDI.
   - `pruebas/compras.test.ts`: flujo completo.
 
+## Producción y costos (Fase 5)
+
+- **Órdenes de producción** (`orden_produccion`, `src/servidor/produccion.ts`):
+  - Se generan de un plan aprobado: una orden **N1** por cada masa o intermedio a preparar (kg, con los lotes de la explosión) y una **N2** por cada producto (piezas). También hay órdenes manuales (pedido especial o reproceso).
+  - Cada orden congela la versión de receta, el consumo y los minutos estándar (`orden_componente`, `orden_etapa`) y el costo estándar del día.
+  - La orden N2 depende de las N1 que le dan la masa (`orden_dependencia`).
+  - Estatus: LIBERADA → EN_PROCESO (con el primer avance) → CERRADA, o CANCELADA con motivo. Cerrada o cancelada ya no se modifica (trigger).
+- **Vale de surtido por orden:** materia prima y empaque del almacén MP al PEP (movimientos `SURTIDO_*` ligados a la orden). Pasar del estándar más `produccion.tolerancia_surtido_pct` exige motivo. Las masas no se surten: salen de su orden.
+- **Avance por etapa** (`orden_avance`, solo inserción): cantidad, minutos y merma con causa (solo en etapas con REGISTRA_MERMA).
+- **Cierre** (`src/dominio/produccion.ts`, con pruebas):
+  1. Consume lo real del PEP (`CONSUMO_PRODUCCION`, FEFO por lote). Lo no capturado se toma del estándar para la cantidad real.
+  2. Mano de obra = minutos reales (capturados, del avance o estándar) × tarifa; indirectos = KG_MASA × kg (N1), MINUTO_MOD × minutos y PIEZA × piezas formadas (N2).
+  3. Da entrada al producto (`ENTRADA_PRODUCCION`) al **costo real** = materiales consumidos + mano de obra + indirectos.
+  4. Guarda el balance de masa y de piezas, la variación de cada material (por cantidad y por precio) y la total contra el estándar. Fuera de tolerancia (`produccion.tolerancia_*`) exige justificación.
+  - Las órdenes de masa las cierra el maestro de masas o el jefe de producción; las de producto, el jefe de producción (nota de la matriz).
+  - El consumo y la entrada de una orden no se cancelan desde inventario.
+- **Trazabilidad:** `lote_genealogia` guarda los lotes consumidos en cada orden; se rastrea un lote hacia adelante (órdenes, productos, ventas) y una orden hacia atrás.
+- **Reportes:** variaciones (por orden y por material), rendimiento y merma (por producto, etapa y causa, persona y turno), sobrantes en PEP y **estado de costo de producción y ventas** desde el kárdex, con comprobaciones que deben dar cero.
+- **Desde esta fase** la "entrada de producción" directa de la Fase 3 queda desactivada (`produccion.permitir_entrada_directa` = NO).
+- **Pruebas:**
+  - `pruebas/produccion-dominio.test.ts`: estándar, costo real, balance, variaciones y estado de costos.
+  - `pruebas/produccion.test.ts`: un día simulado de punta a punta.
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

@@ -274,7 +274,7 @@ export function normalizarReceta(
 }
 
 /** Cantidad de un componente N2 para cierto número de piezas buenas. */
-function consumoN2(r: RecetaN2, c: ComponenteNormal, piezas: Dec, formula: FormulaMerma): Dec {
+export function consumoN2(r: RecetaN2, c: ComponenteNormal, piezas: Dec, formula: FormulaMerma): Dec {
   const formadas = conMerma(piezas, r.mermaHorneadoPct, formula);
   const base = c.tipo === "EMPAQUE" ? piezas : formadas;
   let q = conMerma(c.cantidad.mul(base), c.mermaPct, formula);

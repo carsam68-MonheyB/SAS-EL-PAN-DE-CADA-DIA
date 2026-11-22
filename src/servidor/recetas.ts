@@ -204,7 +204,7 @@ export async function activarVersion(c: Cliente, usuarioId: string, claveArticul
 // Costo estándar
 // ---------------------------------------------------------------------------
 
-async function datosCosto(c: Cliente, fecha: string) {
+export async function datosCosto(c: Cliente, fecha: string) {
   const costosN0 = new Map<string, string | null>((await c.query("SELECT clave, costo_referencia::text AS costo FROM articulo WHERE tipo IN ('INSUMO', 'EMPAQUE')")).rows.map((r) => [r.clave, r.costo]));
   const tarifas = new Map<string, string>((await c.query(
     "SELECT DISTINCT ON (t.etapa_id) e.clave, t.costo_minuto::text AS v FROM tarifa_mod t JOIN etapa_produccion e ON e.id = t.etapa_id WHERE t.vigente_desde <= $1 ORDER BY t.etapa_id, t.vigente_desde DESC",

@@ -29,6 +29,7 @@ interface Opciones {
   proveedores: { clave: string; nombre: string }[];
   planes: { id: string; folio: string; fecha: string }[];
   entrada_sin_oc: boolean;
+  entrada_produccion_directa: boolean;
 }
 const useOpciones = () => useQuery<Opciones>({ queryKey: ["inv-opciones"], queryFn: () => GET("/api/inventarios/opciones") });
 const datosAlmacen = (o: Opciones | undefined, f: (a: Opciones["almacenes"][number]) => boolean) =>
@@ -113,7 +114,7 @@ function Operaciones() {
   const sucursalDe = (clave: string | null) => o?.almacenes.find((a) => a.clave === clave)?.sucursal;
   const tipoProd = o?.almacenes.find((a) => a.clave === prod.almacen)?.tipo;
   const opciones = [
-    puede("compras.recepcion:crear") && op.data?.entrada_sin_oc && "compra", puede("inventarios.surtido:crear") && "surtido", puede("produccion.ordenes:crear") && "produccion",
+    puede("compras.recepcion:crear") && op.data?.entrada_sin_oc && "compra", puede("inventarios.surtido:crear") && "surtido", puede("produccion.ordenes:crear") && op.data?.entrada_produccion_directa && "produccion",
   ].filter(Boolean) as string[];
   const [cual, setCual] = useState<string | null>(null);
   const sel = cual ?? opciones[0] ?? null;
@@ -137,7 +138,7 @@ function Operaciones() {
       )}
       {sel === "surtido" && (
         <FormDoc titulo="Surtido a producción" ruta="/api/inventarios/surtidos" tipos={["INSUMO", "EMPAQUE", "INTERMEDIO"]}
-          ayuda="Pasa materia prima del almacén al área de producción (producción en proceso) de la misma sucursal, al costo del inventario. Si no indicas lote, sale primero el que caduca antes."
+          ayuda="Pasa materia prima del almacén al área de producción (producción en proceso) de la misma sucursal, al costo del inventario. Si no indicas lote, sale primero el que caduca antes. Para surtir una orden de producción contra su estándar, usa Producción → Órdenes → Vale de surtido."
           listo={!!surtido.origen && !!surtido.destino} cuerpo={() => surtido} exito={(x) => `Se registró el vale ${x.folio} (salida ${x.salida}, entrada ${x.entrada}).`}
           encabezado={(
             <Group align="flex-end">
@@ -150,7 +151,7 @@ function Operaciones() {
       )}
       {sel === "produccion" && (
         <FormDoc titulo="Entrada de producción terminada" ruta="/api/inventarios/produccion" tipos={tipoProd === "PEP" ? ["INTERMEDIO"] : ["SKU"]}
-          ayuda="Provisional hasta las órdenes de producción (Fase 5): registra las piezas buenas que entran a producto terminado (o masas a producción en proceso), valuadas al costo estándar de hoy. Requiere receta activa y costo completo."
+          ayuda="Solo si se activó en Configuración (desde la Fase 5 la producción entra al cerrar su orden): registra las piezas buenas que entran a producto terminado (o masas a producción en proceso), valuadas al costo estándar de hoy. Requiere receta activa y costo completo."
           listo={!!prod.almacen} cuerpo={() => prod} exito={(x) => `Se registró la entrada ${x.folio}.`}
           encabezado={(
             <Group align="flex-end">

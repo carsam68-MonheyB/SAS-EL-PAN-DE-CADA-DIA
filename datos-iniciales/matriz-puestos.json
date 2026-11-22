@@ -420,15 +420,21 @@
           "imprimir"
         ],
         "DIR": [
-          "ver"
+          "ver",
+          "exportar"
         ],
         "CON": [
           "ver",
-          "cancelar"
+          "cancelar",
+          "exportar"
         ],
         "CNT": [
           "ver",
-          "cancelar"
+          "cancelar",
+          "exportar"
+        ],
+        "ALM": [
+          "ver"
         ]
       }
     },

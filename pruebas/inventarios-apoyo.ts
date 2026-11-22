@@ -15,7 +15,7 @@ export async function prepararInventarios(base: string) {
   const nav: Record<string, Navegador> = {};
   const admin = (await instalarAdministrador()).nav;
   const r = await admin.post("/api/datos-prueba");
-  for (const rol of ["com", "jpr", "cnt", "con", "dir", "alm", "enc", "mae", "caj", "aut1"]) {
+  for (const rol of ["com", "jpr", "cnt", "con", "dir", "alm", "enc", "mae", "caj", "aut1", "pan"]) {
     nav[rol] = new Navegador();
     await entrar(nav[rol]!, `prueba.${rol}`, r.datos.password);
   }

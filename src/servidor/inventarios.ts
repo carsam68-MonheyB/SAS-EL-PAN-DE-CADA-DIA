@@ -286,7 +286,7 @@ export async function entradaCompra(c: Cliente, u: UsuarioActual, d: { almacen: 
   return m;
 }
 
-export async function surtir(c: Cliente, u: UsuarioActual, d: { origen: string; destino: string; plan_id?: string | null; comentario?: string | null; renglones: RenglonCaptura[] }) {
+export async function surtir(c: Cliente, u: UsuarioActual, d: { origen: string; destino: string; plan_id?: string | null; orden_id?: string | null; referencia?: string | null; comentario?: string | null; renglones: RenglonCaptura[] }) {
   const o = await almacenPorClave(c, d.origen);
   const t = await almacenPorClave(c, d.destino);
   exigirAlmacen(u, o);
@@ -297,22 +297,26 @@ export async function surtir(c: Cliente, u: UsuarioActual, d: { origen: string; 
   const rs = await prepararRenglones(c, d.renglones, ["INSUMO", "EMPAQUE", "INTERMEDIO"]);
   const x = await contexto(c, u.id);
   const docId = (await c.query("SELECT gen_random_uuid() AS id")).rows[0].id as string;
-  const sal = await nuevoMovimiento(x, "SURTIDO_SALIDA", o.id, { documento_tipo: "SURTIDO", documento_id: docId, plan_id: d.plan_id, comentario: d.comentario });
-  const ent = await nuevoMovimiento(x, "SURTIDO_ENTRADA", t.id, { documento_tipo: "SURTIDO", documento_id: docId, plan_id: d.plan_id, comentario: d.comentario });
+  const sal = await nuevoMovimiento(x, "SURTIDO_SALIDA", o.id, { documento_tipo: "SURTIDO", documento_id: docId, plan_id: d.plan_id, referencia: d.referencia, comentario: d.comentario });
+  const ent = await nuevoMovimiento(x, "SURTIDO_ENTRADA", t.id, { documento_tipo: "SURTIDO", documento_id: docId, plan_id: d.plan_id, referencia: d.referencia, comentario: d.comentario });
   for (const r of rs) {
     for (const p of await sacar(x, sal.id, o.id, r.art, r.cantidad, { loteId: await loteSalida(c, r) })) {
       await entrar(x, ent.id, t.id, r.art, p.cantidad, { importe: p.importe, loteId: p.lote_id });
     }
   }
   const s = (await c.query(
-    `INSERT INTO surtido (id, almacen_origen_id, almacen_destino_id, plan_id, salida_id, entrada_id, comentario, usuario_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, folio`,
-    [docId, o.id, t.id, d.plan_id ?? null, sal.id, ent.id, d.comentario ?? null, u.id],
+    `INSERT INTO surtido (id, almacen_origen_id, almacen_destino_id, plan_id, orden_id, salida_id, entrada_id, comentario, usuario_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, folio`,
+    [docId, o.id, t.id, d.plan_id ?? null, d.orden_id ?? null, sal.id, ent.id, d.comentario ?? null, u.id],
   )).rows[0];
   return { ...s, salida: sal.folio, entrada: ent.folio };
 }
 
 /** Entrada de producción terminada (provisional hasta las órdenes de la Fase 5): se valúa al costo estándar del día. */
 export async function entradaProduccion(c: Cliente, u: UsuarioActual, d: { almacen: string; comentario?: string | null; renglones: RenglonCaptura[] }) {
+  // Desde la Fase 5 la producción entra al cerrar su orden de producción, al costo real.
+  if ((await c.query("SELECT valor FROM configuracion WHERE clave = 'produccion.permitir_entrada_directa'")).rows[0]?.valor !== "SI") {
+    throw new ErrorApp(409, "regla", "La producción entra al cerrar su orden (Producción → Órdenes). La entrada directa está desactivada en Configuración.");
+  }
   const alm = await almacenPorClave(c, d.almacen);
   exigirAlmacen(u, alm);
   if (alm.tipo !== "PT" && alm.tipo !== "PEP") throw invalido("La producción entra a un almacén de producto terminado (PT) o de producción en proceso (PEP).");
@@ -646,6 +650,7 @@ export async function cancelarMovimiento(c: Cliente, u: UsuarioActual, movId: st
   const m = (await c.query("SELECT m.id, m.tipo, m.documento_tipo, m.documento_id, a.id AS almacen_id, a.clave AS almacen, a.sucursal_id FROM movimiento m JOIN almacen a ON a.id = m.almacen_id WHERE m.id = $1", [movId])).rows[0];
   if (!m) throw noEncontrado("No existe ese movimiento.");
   if (m.documento_tipo === "RECEPCION") throw new ErrorApp(409, "regla", "Una recepción de compra no se cancela desde el inventario: la devolución al proveedor se registra en Compras.");
+  if (m.documento_tipo === "ORDEN_PRODUCCION") throw new ErrorApp(409, "regla", "El consumo y la entrada de una orden de producción cerrada no se cancelan desde el inventario: corrige con un ajuste por conteo.");
   const permiso = PERMISO_CANCELAR[m.tipo];
   if (!permiso) throw new ErrorApp(409, "regla", m.tipo === "CANCELACION" ? "Una cancelación no se cancela." : "Los traspasos se cancelan desde el traspaso (solo mientras están en tránsito).");
   if (!u.permisos.has(permiso)) throw prohibido("No tienes permiso para cancelar este movimiento.");
@@ -753,4 +758,41 @@ export async function entradaPorRecepcion(c: Cliente, usuarioId: string, almacen
     await entrar(x, m.id, almacenId, art, p.cantidad, { costo: p.costo, loteId });
   }
   return m as { id: string; folio: string };
+}
+
+// ---- Órdenes de producción (Fase 5) ------------------------------------------------
+export interface PorcionConsumo { articulo_id: string; lote_id: string | null; cantidad: Dec; importe: Dec }
+
+/** Consumo real de una orden desde el almacén de producción en proceso (FEFO por lote). */
+export async function consumoPorOrden(c: Cliente, usuarioId: string, almacenId: string, o: { id: string; folio: string; plan_id: string | null },
+  partidas: { articulo_id: string; cantidad: Dec }[]) {
+  const x = await contexto(c, usuarioId);
+  const m = await nuevoMovimiento(x, "CONSUMO_PRODUCCION", almacenId, { documento_tipo: "ORDEN_PRODUCCION", documento_id: o.id, plan_id: o.plan_id, referencia: o.folio });
+  const porciones: PorcionConsumo[] = [];
+  for (const p of partidas) {
+    if (p.cantidad.lte(0)) continue;
+    const art = await articuloPorId(c, p.articulo_id);
+    try {
+      for (const q of await sacar(x, m.id, almacenId, art, p.cantidad)) porciones.push({ articulo_id: art.id, lote_id: q.lote_id, cantidad: q.cantidad, importe: q.importe });
+    } catch (e) {
+      if (e instanceof ErrorApp && e.codigo === "existencia") throw new ErrorApp(409, "existencia", `${e.message} Surte primero el material a producción (vale de surtido de la orden).`);
+      throw e;
+    }
+  }
+  return { movimiento: m, porciones };
+}
+
+/** Entrada de lo producido por una orden, con el importe real (materiales + mano de obra + indirectos). */
+export async function entradaPorOrden(c: Cliente, usuarioId: string, almacenId: string, o: { id: string; folio: string; plan_id: string | null; fecha: string },
+  articuloId: string, cantidad: Dec, importe: Dec) {
+  const x = await contexto(c, usuarioId);
+  const art = await articuloPorId(c, articuloId);
+  const m = await nuevoMovimiento(x, "ENTRADA_PRODUCCION", almacenId, { documento_tipo: "ORDEN_PRODUCCION", documento_id: o.id, plan_id: o.plan_id, referencia: o.folio });
+  let loteId: string | null = null;
+  if (art.maneja_lote) {
+    const caducidad = art.vida_util_horas ? (await c.query("SELECT ($1::date + ceil($2::numeric / 24)::int)::text AS f", [o.fecha, art.vida_util_horas])).rows[0].f : null;
+    loteId = await loteEntrada(c, { art, cantidad, loteCodigo: `P${o.fecha.replaceAll("-", "")}-${o.folio}`, caducidad, costo: null });
+  }
+  await entrar(x, m.id, almacenId, art, cantidad, { importe, loteId });
+  return { movimiento: m, loteId };
 }
