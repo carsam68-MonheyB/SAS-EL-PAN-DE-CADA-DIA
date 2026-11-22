@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Badge, Button, Card, Group, Progress, SimpleGrid, Stack, Table, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Group, Progress, Select, SimpleGrid, Stack, Table, Text, TextInput, Title } from "@mantine/core";
 import { GET, PUT, textoError } from "../api";
 import { fecha, numero } from "../formato";
 
@@ -14,13 +14,17 @@ function Fila({ c }: { c: any }) {
       <Table.Td>
         {c.editable ? (
           <Group gap="xs" wrap="nowrap">
-            <TextInput size="xs" w={180} value={valor} onChange={(e) => setValor(e.currentTarget.value)} />
+            {c.opciones?.length ? (
+              <Select size="xs" w={180} data={c.opciones} value={valor} allowDeselect={false} onChange={(v) => v && setValor(v)} />
+            ) : (
+              <TextInput size="xs" w={180} value={valor} onChange={(e) => setValor(e.currentTarget.value)} />
+            )}
             <Button size="xs" variant="light" disabled={valor === c.valor} loading={m.isPending} onClick={() => m.mutate()}>Guardar</Button>
           </Group>
         ) : c.valor}
         {m.error && <Text size="xs" c="red">{textoError(m.error)}</Text>}
       </Table.Td>
-      <Table.Td>{c.minimo !== null || c.maximo !== null ? `${c.minimo ?? "—"} a ${c.maximo ?? "—"}` : ""}</Table.Td>
+      <Table.Td>{c.opciones?.length ? c.opciones.join(" o ") : c.minimo !== null || c.maximo !== null ? `${c.minimo ?? "—"} a ${c.maximo ?? "—"}` : ""}</Table.Td>
       <Table.Td>{c.provisional && <Badge color="yellow">provisional</Badge>}</Table.Td>
     </Table.Tr>
   );

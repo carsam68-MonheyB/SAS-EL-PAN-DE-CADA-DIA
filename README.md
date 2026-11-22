@@ -82,6 +82,33 @@ GitHub Actions corre lo mismo en cada push (`.github/workflows/pruebas.yml`).
 - **Precios:** quedan pendientes hasta que los autoriza otra persona (`catalogos.precios:autorizar`).
 - **Datos de ejemplo ficticios:** están en `datos-ejemplo/fase-1b` (ver su `LEEME.md`). La prueba `pruebas/ejemplos.test.ts` los carga en orden.
 
+## Recetas, explosión y costo estándar (Fase 2)
+
+- **Recetas por versión** (`receta`, `receta_componente`, `receta_etapa`):
+  - N1 = masa o intermedio, con fórmula por lote. Se captura en cantidades o en **% panadero**: harina = tamaño del lote × 100 ÷ suma de %.
+  - N2 = SKU, con componentes por pieza buena.
+  - Una versión nace en **borrador** y se **activa** en la pantalla Recetas. Ya activa no se modifica (lo impiden disparadores de la base). Aplica la versión activa con el mayor `vigente_desde` ≤ fecha.
+- **Ciclos:** una receta no puede contenerse a sí misma, ni directa ni indirectamente. Se revisa al cargar, al activar y al calcular.
+- **Cálculos críticos** en `src/dominio/recetas.ts`, con aritmética decimal exacta y pruebas en `pruebas/recetas-dominio.test.ts`:
+  1. **Explosión N2 → N1:** las masas compartidas se agrupan.
+  2. **Lotes** según la regla de cada masa: completo (con sobrante esperado) o exacto. También calcula las amasadas.
+  3. **Explosión N1 → N0.**
+  4. **Requerimiento neto** = bruto − existencia − en tránsito.
+  5. **Piezas que alcanzan** (estimación proporcional).
+  6. **Costo estándar en cadena:** materia prima, mano de obra por minuto por etapa y GIF por base. Calcula el margen sobre el precio sin impuestos.
+- **Mermas:** la fórmula está en Configuración (`recetas.formula_merma`: DIVIDIR o MULTIPLICAR, provisional).
+  - La merma de **horneado** se aplica sobre todo lo que se consume al formar.
+  - La de **formado**, solo a la masa.
+  - El **empaque** se calcula sobre piezas buenas.
+- **Plan de producción:**
+  - Se captura en pantalla o por layout, por fecha, turno y sucursal.
+  - Mientras no exista el módulo de inventarios (Fase 3), las existencias para el requerimiento neto se capturan en el plan.
+  - Al **aprobar**, la explosión queda fija y se puede generar la **requisición de compra en borrador** (se completa en la Fase 4).
+  - Se exporta a Excel para cuadrar con el cálculo manual.
+- **Costo estándar:** muestra el costo y el margen a una fecha. Permite simular el impacto de un cambio de costo de insumos y guardar fotos inmutables (`costeo`, `costo_estandar`).
+- **Layouts nuevos:** etapas, turnos, costo de mano de obra por minuto, tasas de GIF, recetas y fórmulas de masas, recetas y componentes de SKU, etapas por receta y plan de producción.
+- **Ejemplos ficticios:** están en `datos-ejemplo/fase-2` (ver su `LEEME.md`). La prueba `pruebas/recetas.test.ts` los carga y compara los kg, lotes, requerimientos y costos contra el cálculo hecho a mano.
+
 ## Traslado a la estructura definitiva
 
 Antes de cargar datos reales (ver `docs/fase-0/02-diseno-propuesto.md`, sección 1.2): repositorio y proyecto en las cuentas del negocio, **llaves nuevas**, base nueva construida con las migraciones, desactivar deploy previews en producción, `PERMITIR_DATOS_PRUEBA` sin definir, y carga de datos reales por layout.

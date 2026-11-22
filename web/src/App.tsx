@@ -14,11 +14,15 @@ import { Configuracion } from "./paginas/Configuracion";
 import { MiCuenta } from "./paginas/MiCuenta";
 import { Catalogos } from "./paginas/Catalogos";
 import { Cargas } from "./paginas/Cargas";
+import { Recetas } from "./paginas/Recetas";
+import { Planes } from "./paginas/Planes";
+import { Costos } from "./paginas/Costos";
 
 // Permisos que dan acceso a algún catálogo (el detalle lo decide el servidor).
 const VER_CATALOGOS = [
   "catalogos.estructura:ver", "catalogos.insumos:ver", "catalogos.sku:ver", "catalogos.proveedores:ver",
   "catalogos.clientes:ver", "catalogos.precios:ver", "produccion.recetas:ver", "contabilidad.catalogo:ver",
+  "produccion.plan:ver", "datos.costos:ver",
 ];
 const VER_CARGAS = ["cargas.layout:importar", "catalogos.precios:autorizar"];
 
@@ -26,6 +30,9 @@ const MENU = [
   { ruta: "/", texto: "Inicio", permisos: [] as string[] },
   { ruta: "/catalogos", texto: "Catálogos", permisos: VER_CATALOGOS },
   { ruta: "/cargas", texto: "Cargas masivas", permisos: VER_CARGAS },
+  { ruta: "/recetas", texto: "Recetas", permisos: ["produccion.recetas:ver"] },
+  { ruta: "/planes", texto: "Plan de producción", permisos: ["produccion.plan:ver"] },
+  { ruta: "/costos", texto: "Costo estándar", permisos: ["datos.costos:ver"] },
   { ruta: "/usuarios", texto: "Usuarios", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/controles", texto: "Segregación y límites", permisos: ["seguridad.usuarios:ver"] },
@@ -64,6 +71,11 @@ function Marco() {
           {puede(...VER_CATALOGOS) && <Route path="/catalogos" element={<Catalogos />} />}
           {puede(...VER_CATALOGOS) && <Route path="/catalogos/:clave" element={<Catalogos />} />}
           {puede(...VER_CARGAS) && <Route path="/cargas" element={<Cargas />} />}
+          {puede("produccion.recetas:ver") && <Route path="/recetas" element={<Recetas />} />}
+          {puede("produccion.recetas:ver") && <Route path="/recetas/:clave" element={<Recetas />} />}
+          {puede("produccion.plan:ver") && <Route path="/planes" element={<Planes />} />}
+          {puede("produccion.plan:ver") && <Route path="/planes/:id" element={<Planes />} />}
+          {puede("datos.costos:ver") && <Route path="/costos" element={<Costos />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/usuarios/*" element={<Usuarios />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/roles" element={<Roles />} />}
           {puede("seguridad.usuarios:ver") && <Route path="/controles" element={<Controles />} />}

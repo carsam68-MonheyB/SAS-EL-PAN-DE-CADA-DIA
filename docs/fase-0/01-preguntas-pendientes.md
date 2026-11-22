@@ -25,7 +25,7 @@
 | P10 | ✅ **Respondida:** **1 caja en la Matriz** (`CAJA-MAT-1`) y **1 caja en la Sucursal 1** (`CAJA-SUC1-1`). | — |
 | P11 | ✅ **Respondida:** `MP-MAT` materia prima · `PEP-MAT` producción en proceso · `PT-MAT` producto terminado de planta **y venta de la Matriz** (el mostrador de la Matriz vende directo de aquí) · `PT-SUC1` producto terminado de la sucursal. Pendiente opcional: `INS-SUC1` (empaques en sucursal). | — |
 | P12 | ✅ **Respondida:** producción desde las **3:00** y venta de **7:00 a 21:00**, todos los días. El sistema se usa ~18 h al día (3:00–21:00). Los procesos programados (respaldos, descarga SAT, recálculos) se agrupan dentro de esa ventana, para no despertar la base de madrugada. | — |
-| P13 | Turnos de producción (nombre, horario). | F2 |
+| P13 | Turnos de producción (nombre, horario). 🟡 **Fase 2:** se cargan en el catálogo "Turnos de producción"; el plan puede ir por día completo mientras no se definan. | No |
 | P14 | Número aproximado de usuarios del sistema y cuántos usarían el sistema al mismo tiempo en la hora pico. | No |
 | P15 | Centros de costo que quieres manejar (ej. por sucursal, planta, administración). | F1 |
 
@@ -48,13 +48,13 @@
 | P23 | ¿Hay **precios distintos por sucursal**? ¿Listas de precios de mayoreo? | F1 |
 | P24 | ✅ **Respondida:** hoy no hay crédito, pero puede haberlo más adelante. → Se deja lista la estructura de cuentas por cobrar (cliente con límite y días de crédito, saldo por documento) y el módulo de crédito se activa cuando lo pidas. | — |
 | P25 | ✅ **Respondida:** sí hay pedidos con anticipo. → Se agrega el módulo de pedidos y anticipos (diseño 4.7‑B). Preguntas de detalle en la sección I. | — |
-| P26 | Masas base que se preparan (lista). | F2 |
+| P26 | Masas base que se preparan (lista). 🟡 **Fase 2:** se cargan con los layouts de masas e intermedios y sus fórmulas. | No |
 | P27 | Otros intermedios (cubiertas, rellenos, betunes, almíbares). ¿Hay masa madre / prefermentos? | F2 |
-| P28 | Etapas del proceso de producción y en cuáles se registra avance y merma. | F2 |
-| P29 | ¿Las masas se preparan en **lote completo** (capacidad de amasadora) o en **cantidad exacta**? ¿Depende de la masa? Capacidad de cada amasadora. | F2 |
+| P28 | Etapas del proceso de producción y en cuáles se registra avance y merma. 🟡 **Fase 2:** catálogo "Etapas de producción" (con REGISTRA_MERMA). | F5 |
+| P29 | ¿Las masas se preparan en **lote completo** (capacidad de amasadora) o en **cantidad exacta**? ¿Depende de la masa? Capacidad de cada amasadora. 🟡 **Fase 2:** se define **por receta** (REGLA_LOTE = COMPLETO o EXACTO, obligatoria, sin valor por omisión) y la capacidad es opcional por receta. | No |
 | P30 | Vida útil de cada masa/intermedio, condición (ambiente, refrigerada, congelada) y si el sobrante es reutilizable. | F2 |
 | P31 | ¿Qué insumos manejan **lote y caducidad**? | F1 |
-| P32 | Criterio para **sugerir el plan de producción** (ej. promedio de ventas del mismo día de las últimas N semanas − existencia PT). | F2 |
+| P32 | Criterio para **sugerir el plan de producción** (ej. promedio de ventas del mismo día de las últimas N semanas − existencia PT). Se pospone a cuando haya ventas (Fase 6): en la Fase 2 el plan se captura o se carga por layout. | F6 |
 | P33a | ✅ **Respondida (21/11/2026):** el aviso por cambio de costo o precio en los layouts se queda en **10 %**. 🟡 El máximo de **5,000 renglones** por archivo sigue provisional (no afecta: el negocio tiene ~70 SKU). Ambos se cambian en Configuración → Cargas por layout. | — |
 | P33b | ✅ **Respondida (21/11/2026):** el precio de venta al público **ya incluye impuestos**. → Configuración `precios.incluyen_impuestos = si`; el POS y el CFDI desglosan los impuestos a partir del precio. | — |
 | P33c | Catálogos del SAT: el sistema **no trae claves del SAT precargadas**. El contador carga las que use el negocio (producto/servicio, unidad, objeto de impuesto, régimen, uso de CFDI, forma de pago, código agrupador), copiándolas del archivo oficial del SAT, con el layout "Catálogos del SAT". | F1B / F8 |
@@ -65,8 +65,12 @@
 | # | Pregunta | Bloquea |
 |---|---|---|
 | P34 | Método de valuación: **costo promedio** o **PEPS**. ¿Uno solo para todo o por tipo de inventario? | F3 (el modelo de datos soporta ambos desde F1) |
-| P35 | **Mano de obra directa**: ¿cómo se costea? (ej. costo por minuto por etapa, o por puesto). ¿De dónde sale el costo por minuto (nómina mensual ÷ minutos disponibles)? ¿Se necesita módulo de nómina? (no está en el documento; propongo capturar el costo por minuto como dato configurable por periodo). | F2 |
-| P36 | **Gastos indirectos de fabricación**: base de prorrateo (kg de masa, horas de horno, minutos de mano de obra, piezas…) y si es tasa predeterminada (estándar) con ajuste al cierre por la variación real. | F2 |
+| P35 | **Mano de obra directa**: ¿cómo se costea? (ej. costo por minuto por etapa, o por puesto). ¿De dónde sale el costo por minuto (nómina mensual ÷ minutos disponibles)? ¿Se necesita módulo de nómina? 🟡 **Fase 2:** se capturan los costos por minuto por etapa con vigencia (catálogo "Costo de mano de obra por minuto", lo carga el contralor). Faltan los importes reales. | No |
+| P36 | **Gastos indirectos de fabricación**: base de prorrateo (kg de masa, horas de horno, minutos de mano de obra, piezas…) y si es tasa predeterminada (estándar) con ajuste al cierre por la variación real. 🟡 **Fase 2:** catálogo de tasas predeterminadas con vigencia por base KG_MASA, MINUTO_MOD o PIEZA (se puede usar una o varias). Falta tu decisión y los importes; el ajuste al cierre va en la Fase 5. | F5 |
+| P66 | **Fórmula de la merma** en recetas: ¿con 10 % de merma, 100 g se vuelven 111.11 g (cantidad ÷ (1 − merma)) o 110 g (cantidad × (1 + merma))? Quedó **DIVIDIR provisional** en Configuración → Recetas y costos; cámbialo si tu Excel usa la otra. | No (provisional) |
+| P67 | **Mermas de un SKU:** el sistema aplica la merma de **horneado** a todo lo que se consume al formar (masa, cubiertas, insumos) y no al empaque; la de **formado** (recortes) solo a la masa. ¿Así lo calculas tú? | No (confirmar) |
+| P68 | **Rendimiento de la masa:** si no capturas RENDIMIENTO_LOTE, se calcula tamaño del lote × (1 − merma de proceso). ¿Prefieres capturar siempre el rendimiento real de tu Excel? | No (confirmar) |
+| P69 | **Costo de los insumos en la Fase 2:** se usa el COSTO_REFERENCIA del catálogo de insumos hasta que existan compras (Fase 3–4 usarán costo promedio o PEPS, P34). | No |
 | P37 | Destinos del producto no vendido (merma, donación, reproceso, venta de segunda) y su tratamiento contable. | F5 |
 | P38 | Causas de merma (catálogo inicial). | F3 |
 | P39 | ✅ **Provisional:** montos límite en la matriz de puestos (sección 4), editables en configuración. | — |
