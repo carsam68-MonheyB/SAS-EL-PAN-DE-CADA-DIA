@@ -570,6 +570,8 @@ export async function cerrarPeriodo(c: Cliente, u: UsuarioActual, ejercicio: num
   if (!b.cuadra) problemas.push("La balanza no cuadra.");
   if (problemas.length) throw new ErrorApp(409, "cierre", "No se puede cerrar el periodo todavía.", problemas.map((mensaje) => ({ campo: "periodo", mensaje })));
   await c.query("UPDATE periodo_contable SET estatus = 'CERRADO', cerrado_por = $2, cerrado_en = now() WHERE id = $1", [per.id, u.id]);
+  // Al cierre de cada mes contable se respalda la base fuera de Netlify (lo hace el proceso diario).
+  await c.query("INSERT INTO respaldo (tipo, motivo, solicitado_por) VALUES ('CIERRE', $1, $2)", [`Cierre contable ${String(mes).padStart(2, "0")}/${ejercicio}`, u.id]);
   return { ejercicio, mes, estatus: "CERRADO", polizas_generadas: gen.generadas };
 }
 

@@ -8,6 +8,7 @@ import { ContextoSesion, useSesion, type Yo } from "./sesion";
 import { ActivarCuenta, Entrar, EtapaAcceso, Instalacion } from "./paginas/Acceso";
 import { Inicio } from "./paginas/Inicio";
 import { Tablero } from "./paginas/Tablero";
+import { Arranque } from "./paginas/Arranque";
 import { Usuarios } from "./paginas/Usuarios";
 import { Roles } from "./paginas/Roles";
 import { Controles } from "./paginas/Controles";
@@ -61,6 +62,7 @@ const MENU = [
   { ruta: "/roles", texto: "Roles y permisos", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/controles", texto: "Segregación y límites", permisos: ["seguridad.usuarios:ver"] },
   { ruta: "/bitacora", texto: "Bitácora", permisos: ["seguridad.bitacora:ver"] },
+  { ruta: "/arranque", texto: "Arranque y respaldos", permisos: ["seguridad.configuracion:ver"] },
   { ruta: "/configuracion", texto: "Configuración y consumo", permisos: ["seguridad.configuracion:ver", "configuracion.parametros:ver"] },
   { ruta: "/mi-cuenta", texto: "Mi cuenta", permisos: [] },
 ];
@@ -95,6 +97,7 @@ function Marco() {
         <Routes>
           <Route path="/" element={<Inicio />} />
           {puede("reportes.tablero:ver") && <Route path="/tablero" element={<Tablero />} />}
+          {puede("seguridad.configuracion:ver") && <Route path="/arranque" element={<Arranque />} />}
           {puede(...VER_CATALOGOS) && <Route path="/catalogos" element={<Catalogos />} />}
           {puede(...VER_CATALOGOS) && <Route path="/catalogos/:clave" element={<Catalogos />} />}
           {puede(...VER_CARGAS) && <Route path="/cargas" element={<Cargas />} />}
