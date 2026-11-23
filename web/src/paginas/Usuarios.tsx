@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Modal, MultiSelect, SegmentedControl, Stack, Table, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Button, CopyButton, Group, List, Modal, MultiSelect, Progress, SegmentedControl, Stack, Table, Text, TextInput, Title } from "@mantine/core";
 import { GET, POST, PUT, textoError } from "../api";
 import { fecha, fechaHora } from "../formato";
 import { useSesion } from "../sesion";
@@ -122,6 +122,25 @@ export function Usuarios() {
   const [prueba, setPrueba] = useState<any>(null);
   const q = useQuery({ queryKey: ["usuarios", filtro], queryFn: () => GET(`/api/usuarios${filtro === "todos" ? "" : `?estatus=${filtro}`}`) });
   const datosPrueba = useMutation({ mutationFn: () => POST("/api/datos-prueba"), onSuccess: (r) => { setPrueba(r); qc.invalidateQueries({ queryKey: ["usuarios"] }); } });
+  // Escenario de demostración: carga los ejemplos de todas las fases, un archivo por llamada.
+  const [esc, setEsc] = useState<{ paso: number; total: number; pasos: string[]; error: string | null; pines: Record<string, string> | null } | null>(null);
+  const escenario = async () => {
+    if (!window.confirm("¿Cargar el escenario de demostración? Se cargan los archivos de ejemplo de todas las fases (DATOS FICTICIOS). Solo funciona en una base sin catálogos.")) return;
+    let estado = { paso: 0, total: 1, pasos: [] as string[], error: null as string | null, pines: null as Record<string, string> | null };
+    setEsc(estado);
+    while (estado.paso < estado.total) {
+      try {
+        const r = await POST("/api/datos-prueba/escenario", { paso: estado.paso });
+        estado = { ...estado, paso: estado.paso + 1, total: r.total, pasos: [...estado.pasos, r.descripcion], pines: r.pines ?? estado.pines };
+      } catch (e) {
+        estado = { ...estado, error: textoError(e) };
+        setEsc(estado);
+        return;
+      }
+      setEsc(estado);
+    }
+    qc.invalidateQueries();
+  };
   const lista = (q.data?.usuarios ?? []).filter((u: any) => `${u.usuario} ${u.nombre} ${u.puesto}`.toLowerCase().includes(busqueda.toLowerCase()));
   return (
     <Stack>
@@ -129,10 +148,21 @@ export function Usuarios() {
         <Title order={2}>Usuarios</Title>
         <Group>
           {puede("seguridad.usuarios:crear") && <Button variant="light" loading={datosPrueba.isPending} onClick={() => window.confirm("¿Crear o reiniciar los usuarios FICTICIOS de prueba (uno por puesto)?") && datosPrueba.mutate()}>Usuarios de prueba</Button>}
+          {puede("seguridad.usuarios:crear") && <Button variant="light" color="grape" loading={!!esc && !esc.error && esc.paso < esc.total} onClick={escenario}>Escenario de demostración</Button>}
           {puede("seguridad.usuarios:crear") && <Button onClick={() => { setResultadoAlta(null); setAlta(true); }}>Nuevo usuario</Button>}
         </Group>
       </Group>
       {datosPrueba.error && <Alert color="red">{textoError(datosPrueba.error)}</Alert>}
+      {esc && (
+        <Alert color={esc.error ? "red" : esc.paso >= esc.total ? "green" : "grape"} title="Escenario de demostración (FICTICIO)" withCloseButton onClose={() => setEsc(null)}>
+          <Progress value={(esc.paso / esc.total) * 100} mb="xs" />
+          <Text size="sm">{esc.paso >= esc.total ? "Listo: el sistema tiene catálogos, recetas activas, inventario, precios de hoy, catálogo contable y el plan de producción de ejemplo." : `Cargando ${esc.paso + 1} de ${esc.total}…`}</Text>
+          {esc.error && <Text size="sm" fw={600} mt={4}>{esc.error}</Text>}
+          {esc.pines && <Text size="sm" mt={4}>PIN de caja: {Object.entries(esc.pines).map(([u, p]) => `${u} ${p}`).join(" · ")}</Text>}
+          {esc.paso >= esc.total && <Text size="sm" mt={4}>Sigue la guía <b>docs/prueba-integral.md</b>.</Text>}
+          <List size="xs" mt="xs" c="dimmed">{esc.pasos.slice(-4).map((p, i) => <List.Item key={i}>{p}</List.Item>)}</List>
+        </Alert>
+      )}
       {prueba && (
         <Alert color="yellow" title="Usuarios de prueba (FICTICIOS)" withCloseButton onClose={() => setPrueba(null)}>
           <Text size="sm">{prueba.aviso}</Text>

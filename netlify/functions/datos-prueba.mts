@@ -3,7 +3,11 @@
 import type { Config, Context } from "@netlify/functions";
 import { hashear } from "../../src/servidor/contrasena";
 import { codigoRecuperacion } from "../../src/servidor/cripto";
+import { z } from "zod";
 import { ErrorApp } from "../../src/servidor/errores";
+import { pasoEscenario } from "../../src/servidor/escenario";
+import { hoyNegocio } from "../../src/servidor/fechas";
+import { leerCuerpo } from "../../src/servidor/http";
 import { ruta } from "../../src/servidor/ruta";
 import { sincronizarAsignaciones, validarDatosUsuario } from "../../src/servidor/seguridad";
 
@@ -20,6 +24,11 @@ const UBICACION: Record<string, { sucursales?: string[]; almacenes?: string[] }>
 const manejador = ruta({ permiso: "seguridad.usuarios:crear", metodos: ["POST"] }, async (ctx) => {
   if (process.env.PERMITIR_DATOS_PRUEBA !== "si") {
     throw new ErrorApp(403, "deshabilitado", "Los datos de prueba están deshabilitados en este ambiente.");
+  }
+  // Escenario de demostración: un archivo de ejemplo por llamada (la pantalla los encadena).
+  if (ctx.params.accion === "escenario") {
+    const d = await leerCuerpo(ctx.req, z.object({ paso: z.number().int().min(0).max(100) }));
+    return ctx.tx(async (c) => pasoEscenario(c, d.paso, await hoyNegocio(c)));
   }
   const password = `Prueba-${codigoRecuperacion(8)}-7`;
   return ctx.tx(async (c) => {
@@ -54,5 +63,5 @@ const manejador = ruta({ permiso: "seguridad.usuarios:crear", metodos: ["POST"] 
 });
 
 export default (req: Request, context: Context) => manejador(req, context);
-export const config: Config = { path: "/api/datos-prueba" };
+export const config: Config = { path: ["/api/datos-prueba", "/api/datos-prueba/:accion"] };
 export { manejador };
