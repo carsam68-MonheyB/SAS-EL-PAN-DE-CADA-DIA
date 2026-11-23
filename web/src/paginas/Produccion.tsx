@@ -154,7 +154,8 @@ function DetalleOrden({ id }: { id: string }) {
   const abiertaO = o.estatus === "LIBERADA" || o.estatus === "EN_PROCESO";
   const p = op.data?.puede ?? {};
   const ver = op.data?.ver_costos;
-  const listo = (msg: string) => { setAviso(msg); setAccion(null); r.refetch(); };
+  const [anular, setAnular] = useState<any>(null);
+  const listo = (msg: string) => { setAviso(msg); setAccion(null); setAnular(null); r.refetch(); };
   return (
     <Stack>
       <Group justify="space-between" align="flex-start">
@@ -218,9 +219,20 @@ function DetalleOrden({ id }: { id: string }) {
       {!!d.avances.length && <>
         <Text fw={600}>Avance por etapa</Text>
         <Table withTableBorder fz="sm">
-          <Table.Thead><Table.Tr><Table.Th>Fecha</Table.Th><Table.Th>Etapa</Table.Th><Table.Th ta="right">Cantidad</Table.Th><Table.Th ta="right">Merma</Table.Th><Table.Th>Causa</Table.Th><Table.Th ta="right">Minutos</Table.Th><Table.Th>Registró</Table.Th><Table.Th>Comentario</Table.Th></Table.Tr></Table.Thead>
-          <Table.Tbody>{d.avances.map((a: any, i: number) => <Table.Tr key={i}><Table.Td>{fechaHora(a.creado_en)}</Table.Td><Table.Td>{a.etapa}</Table.Td><Table.Td ta="right">{cant(a.cantidad)}</Table.Td><Table.Td ta="right">{cant(a.merma)}</Table.Td><Table.Td>{a.causa}</Table.Td><Table.Td ta="right">{cant(a.minutos, 1)}</Table.Td><Table.Td>{a.usuario}</Table.Td><Table.Td>{a.comentario}</Table.Td></Table.Tr>)}</Table.Tbody>
+          <Table.Thead><Table.Tr><Table.Th>Fecha</Table.Th><Table.Th>Etapa</Table.Th><Table.Th ta="right">Cantidad</Table.Th><Table.Th ta="right">Merma</Table.Th><Table.Th>Causa</Table.Th><Table.Th ta="right">Minutos</Table.Th><Table.Th>Registró</Table.Th><Table.Th>Comentario</Table.Th>{abiertaO && p.avance && <Table.Th />}</Table.Tr></Table.Thead>
+          <Table.Tbody>{d.avances.map((a: any) => {
+            const tachado = a.anulado_en ? { textDecoration: "line-through", color: "var(--mantine-color-dimmed)" } : undefined;
+            return (
+              <Table.Tr key={a.id}>
+                <Table.Td style={tachado}>{fechaHora(a.creado_en)}</Table.Td><Table.Td style={tachado}>{a.etapa}</Table.Td><Table.Td ta="right" style={tachado}>{cant(a.cantidad)}</Table.Td><Table.Td ta="right" style={tachado}>{cant(a.merma)}</Table.Td><Table.Td style={tachado}>{a.causa}</Table.Td><Table.Td ta="right" style={tachado}>{cant(a.minutos, 1)}</Table.Td><Table.Td style={tachado}>{a.usuario}</Table.Td>
+                <Table.Td>{a.anulado_en ? <Text size="xs" c="red">Anulado por {a.anulado_por} el {fechaHora(a.anulado_en)}: {a.anulado_motivo}</Text> : a.comentario}</Table.Td>
+                {abiertaO && p.avance && <Table.Td>{!a.anulado_en && <Button size="compact-xs" color="red" variant="subtle" onClick={() => setAnular(a)}>Anular</Button>}</Table.Td>}
+              </Table.Tr>
+            );
+          })}</Table.Tbody>
         </Table>
+        {anular && <AnularAvance orden={o} avance={anular} alCerrar={() => setAnular(null)} alTerminar={listo} />}
+        <Text size="xs" c="dimmed">Si un avance se capturó por error (por ejemplo, dos veces), anúlalo con su motivo: no se borra, pero deja de contar en minutos, merma y reportes.</Text>
       </>}
       {!!d.vales.length && <>
         <Text fw={600}>Vales de surtido</Text>
@@ -321,6 +333,27 @@ function Avance({ d, alTerminar }: { d: any; alTerminar: (m: string) => void }) 
       {!conMerma && <Text size="xs" c="dimmed" mt={4}>En esta etapa no se registra merma (catálogo de etapas).</Text>}
       {m.error && <Alert mt="xs" color="red">{textoError(m.error)}</Alert>}
     </Card>
+  );
+}
+
+function AnularAvance({ orden, avance, alCerrar, alTerminar }: { orden: any; avance: any; alCerrar: () => void; alTerminar: (m: string) => void }) {
+  const [motivo, setMotivo] = useState("");
+  const m = useMutation({
+    mutationFn: () => POST(`/api/produccion/ordenes/${orden.id}/anular-avance`, { avance: avance.id, motivo }),
+    onSuccess: () => alTerminar(`Avance de ${avance.etapa} anulado: ya no cuenta en la orden.`),
+  });
+  return (
+    <Modal opened onClose={alCerrar} title="Anular avance">
+      <Stack>
+        <Text size="sm">{avance.etapa} · {cant(avance.cantidad)} · merma {cant(avance.merma)} · {cant(avance.minutos, 1)} min · registró {avance.usuario} el {fechaHora(avance.creado_en)}</Text>
+        <Textarea label="Motivo" placeholder="ej. Se registró dos veces" value={motivo} onChange={(e) => setMotivo(e.currentTarget.value)} />
+        {m.error && <Alert color="red">{textoError(m.error)}</Alert>}
+        <Group justify="flex-end">
+          <Button variant="default" onClick={alCerrar}>Regresar</Button>
+          <Button color="red" disabled={!motivo.trim()} loading={m.isPending} onClick={() => m.mutate()}>Anular avance</Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }
 

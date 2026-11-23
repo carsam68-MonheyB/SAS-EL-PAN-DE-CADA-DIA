@@ -230,6 +230,26 @@ export async function surtirOrden(c: Cliente, u: UsuarioActual, id: string, d: {
   return { ...s, sobre_estandar: exceso };
 }
 
+/**
+ * Anula un avance capturado por error (por ejemplo, registrado dos veces). No se
+ * borra: queda con su motivo y deja de contar en minutos, merma y reportes.
+ * Lo anula quien lo registró o quien puede cerrar la orden; solo con la orden abierta.
+ */
+export async function anularAvance(c: Cliente, u: UsuarioActual, id: string, avanceId: string, motivo: string, puedeDeOtros: boolean) {
+  const o = await ordenBloqueada(c, u, id);
+  abierta(o);
+  const av = (await c.query(
+    "SELECT av.id, av.usuario_id, an.id AS anulacion FROM orden_avance av LEFT JOIN orden_avance_anulacion an ON an.avance_id = av.id WHERE av.id = $1 AND av.orden_id = $2",
+    [avanceId, id],
+  )).rows[0];
+  if (!av) throw noEncontrado("Ese avance no es de esta orden.");
+  if (av.anulacion) throw new ErrorApp(409, "estatus", "Ese avance ya estaba anulado.");
+  if (av.usuario_id !== u.id && !puedeDeOtros) throw prohibido("Solo quien registró el avance o el jefe de producción pueden anularlo.");
+  if (!motivo.trim()) throw invalido("Escribe el motivo de la anulación.");
+  await c.query("INSERT INTO orden_avance_anulacion (avance_id, motivo, usuario_id) VALUES ($1, $2, $3)", [avanceId, motivo.trim(), u.id]);
+  return { folio: o.folio, anulado: avanceId };
+}
+
 /** Avance por etapa: piezas (o kg) que terminaron la etapa, merma con su causa y minutos. */
 export async function registrarAvance(c: Cliente, u: UsuarioActual, id: string, d: { etapa: string; cantidad?: string | null; merma?: string | null; causa?: string | null; minutos?: string | null; comentario?: string | null }) {
   const o = await ordenBloqueada(c, u, id);
@@ -303,7 +323,7 @@ export async function cerrarOrden(c: Cliente, u: UsuarioActual, id: string, d: D
     capturados.set(k, dec(x.cantidad, k));
   }
   const avance = (await c.query(
-    "SELECT e.clave, coalesce(sum(av.merma), 0)::text AS merma, sum(av.minutos)::text AS minutos FROM orden_avance av JOIN etapa_produccion e ON e.id = av.etapa_id WHERE av.orden_id = $1 GROUP BY e.clave",
+    "SELECT e.clave, coalesce(sum(av.merma), 0)::text AS merma, sum(av.minutos)::text AS minutos FROM orden_avance_vigente av JOIN etapa_produccion e ON e.id = av.etapa_id WHERE av.orden_id = $1 GROUP BY e.clave",
     [id],
   )).rows;
   const mermaAvance = avance.reduce((s, x) => s.plus(x.merma), new D(0));
@@ -452,8 +472,10 @@ export async function detalleOrden(c: Cliente, a: Alc, id: string) {
     [id],
   )).rows;
   const avances = (await c.query(
-    `SELECT av.creado_en, e.clave AS etapa, av.cantidad::text, av.merma::text, cm.clave AS causa, av.minutos::text, av.comentario, us.usuario
+    `SELECT av.id, av.creado_en, e.clave AS etapa, av.cantidad::text, av.merma::text, cm.clave AS causa, av.minutos::text, av.comentario, us.usuario,
+            an.motivo AS anulado_motivo, an.creado_en AS anulado_en, ua.usuario AS anulado_por
        FROM orden_avance av JOIN etapa_produccion e ON e.id = av.etapa_id LEFT JOIN causa_merma cm ON cm.id = av.causa_id JOIN usuario us ON us.id = av.usuario_id
+       LEFT JOIN orden_avance_anulacion an ON an.avance_id = av.id LEFT JOIN usuario ua ON ua.id = an.usuario_id
       WHERE av.orden_id = $1 ORDER BY av.creado_en`,
     [id],
   )).rows;
@@ -554,7 +576,7 @@ export async function variaciones(c: Cliente, a: Alc, desde: string, hasta: stri
 
 /** Rendimiento y merma: por producto, por etapa y causa, y por quien registró el avance. */
 export async function rendimiento(c: Cliente, a: Alc, desde: string, hasta: string) {
-  const mermas = "LEFT JOIN (SELECT orden_id, sum(merma) AS merma FROM orden_avance GROUP BY orden_id) mv ON mv.orden_id = o.id";
+  const mermas = "LEFT JOIN (SELECT orden_id, sum(merma) AS merma FROM orden_avance_vigente GROUP BY orden_id) mv ON mv.orden_id = o.id";
   const productos = (await c.query(
     `SELECT a.clave, a.nombre, o.nivel, u.clave AS unidad, count(*)::int AS ordenes, sum(o.cantidad_plan)::text AS planeado, sum(o.cantidad_real)::text AS real,
             sum(o.piezas_formadas)::text AS formadas, round(sum(o.cantidad_real) / nullif(sum(o.cantidad_plan), 0) * 100, 2)::text AS cumplimiento_pct,
@@ -566,7 +588,7 @@ export async function rendimiento(c: Cliente, a: Alc, desde: string, hasta: stri
   )).rows;
   const porCausa = (await c.query(
     `SELECT e.clave AS etapa, coalesce(cm.clave, '—') AS causa, ar.clave AS producto, sum(av.merma)::text AS merma
-       FROM orden_avance av JOIN etapa_produccion e ON e.id = av.etapa_id LEFT JOIN causa_merma cm ON cm.id = av.causa_id
+       FROM orden_avance_vigente av JOIN etapa_produccion e ON e.id = av.etapa_id LEFT JOIN causa_merma cm ON cm.id = av.causa_id
        JOIN orden_produccion o ON o.id = av.orden_id JOIN articulo ar ON ar.id = o.articulo_id JOIN almacen pep ON pep.id = o.almacen_pep_id
       WHERE av.merma > 0 AND o.estatus = 'CERRADA' AND o.fecha BETWEEN $4 AND $5 AND ${VISIBLE}
       GROUP BY e.clave, e.orden, cm.clave, ar.clave ORDER BY e.orden, cm.clave, ar.clave`,
@@ -575,7 +597,7 @@ export async function rendimiento(c: Cliente, a: Alc, desde: string, hasta: stri
   const porPersona = (await c.query(
     `SELECT us.usuario, us.nombre, count(DISTINCT av.orden_id)::int AS ordenes, sum(av.cantidad)::text AS cantidad, sum(av.merma)::text AS merma,
             round(sum(av.merma) / nullif(sum(av.cantidad) + sum(av.merma), 0) * 100, 2)::text AS merma_pct
-       FROM orden_avance av JOIN usuario us ON us.id = av.usuario_id JOIN orden_produccion o ON o.id = av.orden_id JOIN almacen pep ON pep.id = o.almacen_pep_id
+       FROM orden_avance_vigente av JOIN usuario us ON us.id = av.usuario_id JOIN orden_produccion o ON o.id = av.orden_id JOIN almacen pep ON pep.id = o.almacen_pep_id
       WHERE o.estatus = 'CERRADA' AND o.fecha BETWEEN $4 AND $5 AND ${VISIBLE}
       GROUP BY us.usuario, us.nombre ORDER BY us.usuario`,
     [...pa(a), desde, hasta],

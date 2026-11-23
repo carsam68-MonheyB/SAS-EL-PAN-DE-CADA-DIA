@@ -167,6 +167,21 @@ describe("cierre de productos con balance de masa y piezas", () => {
     expect(r.estado, JSON.stringify(r.datos)).toBe(200);
   });
 
+  it("un avance capturado dos veces se anula con motivo: no se borra y deja de contar", async () => {
+    const url = `/api/produccion/ordenes/${orden["PRUEBA-BOLILLO"]}`;
+    expect((await nav.pan!.post(`${url}/avance`, { etapa: "PRUEBA-HORNEADO", cantidad: "480", merma: "10", causa: "QUEMADO" })).estado).toBe(200);
+    const dup = (await nav.pan!.get(url)).datos.avances.at(-1);
+    expect((await nav.pan!.post(`${url}/anular-avance`, { avance: dup.id, motivo: " " })).estado).toBe(400);
+    expect((await nav.alm!.post(`${url}/anular-avance`, { avance: dup.id, motivo: "x" })).estado).toBe(403);
+    const r = await nav.pan!.post(`${url}/anular-avance`, { avance: dup.id, motivo: "Se registró dos veces" });
+    expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+    expect((await nav.pan!.post(`${url}/anular-avance`, { avance: dup.id, motivo: "otra vez" })).estado).toBe(409);
+    const avs = (await nav.pan!.get(url)).datos.avances;
+    expect(avs).toHaveLength(2);
+    expect(avs[1]).toMatchObject({ anulado_motivo: "Se registró dos veces", anulado_por: "prueba.pan" });
+    await expect(pool.query("DELETE FROM orden_avance_anulacion")).rejects.toThrow();
+  });
+
   it("bolillo: 480 buenas de 490 formadas con 40 kg de masa: balance dentro y costo real", async () => {
     const datos = { cantidad: "480", consumos: [{ articulo: "PRUEBA-MASA-BLANCA", cantidad: "40" }] };
     // Las órdenes de producto las cierra el jefe de producción (el maestro de masas cierra las de masa).

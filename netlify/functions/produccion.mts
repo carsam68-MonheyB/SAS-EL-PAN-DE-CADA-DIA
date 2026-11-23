@@ -97,6 +97,11 @@ const manejador = ruta({ permiso: ["produccion.ordenes:ver", "produccion.ordenes
       const d = await leerCuerpo(ctx.req, z.object({ etapa: CLAVE, cantidad: NUM.optional().nullable(), merma: NUM.optional().nullable(), causa: TEXTO(20), minutos: NUM.optional().nullable(), comentario: TEXTO(300) }));
       return ctx.tx((c) => p.registrarAvance(c, u, id, d));
     }
+    if (id && accion === "anular-avance" && m === "POST") {
+      ctx.exigir("produccion.ordenes:editar");
+      const d = await leerCuerpo(ctx.req, z.object({ avance: z.string().uuid("Avance no válido."), motivo: z.string().trim().min(1, "Escribe el motivo de la anulación.").max(300) }));
+      return ctx.tx((c) => p.anularAvance(c, u, id, d.avance, d.motivo, ctx.puede("produccion.ordenes:cerrar")));
+    }
     if (id && accion === "cerrar" && m === "POST") {
       ctx.exigir("produccion.ordenes:cerrar");
       const d = await leerCuerpo(ctx.req, z.object({

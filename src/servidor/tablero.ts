@@ -144,7 +144,7 @@ export async function mermas(c: Cliente, a: Alcance, f: { desde: string; hasta: 
   const prod = (await c.query(
     `SELECT ar.id AS articulo_id, ar.clave, ar.nombre, ar.tipo, cm.clave AS causa, cm.nombre AS causa_nombre, al.clave AS almacen, sum(oa.merma)::text AS cantidad, u.clave AS unidad,
             (SELECT ce.costo_total FROM costo_estandar ce JOIN costeo k ON k.id = ce.costeo_id WHERE ce.articulo_id = ar.id AND (k.creado_en AT TIME ZONE '${ZONA}')::date <= $5 ORDER BY k.creado_en DESC LIMIT 1)::text AS costo
-       FROM orden_avance oa JOIN orden_produccion o ON o.id = oa.orden_id JOIN articulo ar ON ar.id = o.articulo_id JOIN unidad u ON u.id = ar.unidad_base_id
+       FROM orden_avance_vigente oa JOIN orden_produccion o ON o.id = oa.orden_id JOIN articulo ar ON ar.id = o.articulo_id JOIN unidad u ON u.id = ar.unidad_base_id
        JOIN causa_merma cm ON cm.id = oa.causa_id JOIN almacen al ON al.id = o.almacen_destino_id
       WHERE oa.merma > 0 AND o.estatus <> 'CANCELADA' AND (oa.creado_en AT TIME ZONE '${ZONA}')::date BETWEEN $4 AND $5 AND ${ALCANCE("al")}
       GROUP BY ar.id, ar.clave, ar.nombre, ar.tipo, cm.clave, cm.nombre, al.clave, u.clave`,
