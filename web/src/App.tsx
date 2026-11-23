@@ -7,6 +7,7 @@ import { copia, esErrorDeRed } from "./sinConexion";
 import { ContextoSesion, useSesion, type Yo } from "./sesion";
 import { ActivarCuenta, Entrar, EtapaAcceso, Instalacion } from "./paginas/Acceso";
 import { Inicio } from "./paginas/Inicio";
+import { Tablero } from "./paginas/Tablero";
 import { Usuarios } from "./paginas/Usuarios";
 import { Roles } from "./paginas/Roles";
 import { Controles } from "./paginas/Controles";
@@ -43,6 +44,7 @@ const VER_CONTABILIDAD = ["contabilidad.polizas:ver", "contabilidad.reportes:ver
 
 const MENU = [
   { ruta: "/", texto: "Inicio", permisos: [] as string[] },
+  { ruta: "/tablero", texto: "Tablero", permisos: ["reportes.tablero:ver"] },
   { ruta: "/catalogos", texto: "Catálogos", permisos: VER_CATALOGOS },
   { ruta: "/cargas", texto: "Cargas masivas", permisos: VER_CARGAS },
   { ruta: "/recetas", texto: "Recetas", permisos: ["produccion.recetas:ver"] },
@@ -92,6 +94,7 @@ function Marco() {
       <AppShell.Main>
         <Routes>
           <Route path="/" element={<Inicio />} />
+          {puede("reportes.tablero:ver") && <Route path="/tablero" element={<Tablero />} />}
           {puede(...VER_CATALOGOS) && <Route path="/catalogos" element={<Catalogos />} />}
           {puede(...VER_CATALOGOS) && <Route path="/catalogos/:clave" element={<Catalogos />} />}
           {puede(...VER_CARGAS) && <Route path="/cargas" element={<Cargas />} />}

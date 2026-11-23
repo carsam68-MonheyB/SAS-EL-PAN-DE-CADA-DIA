@@ -18,7 +18,6 @@ export function Inicio() {
           <Group mt="xs"><Text size="sm">Verificación en dos pasos: {yo.usuario.totp_activo ? "activada" : "no activada"}</Text></Group>
         </Card>
       </SimpleGrid>
-      <Alert color="blue" title="Fase 1A">Esta versión incluye usuarios, roles y permisos, bitácora y configuración. Los demás módulos se agregan en las siguientes fases.</Alert>
     </Stack>
   );
 }
