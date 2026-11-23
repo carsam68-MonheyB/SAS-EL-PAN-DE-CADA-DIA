@@ -2,6 +2,7 @@
 // reales y durante la operación en paralelo. Revisa llaves y variables, respaldos,
 // usuarios y permisos, datos de PRUEBA y valores provisionales. Solo lee; nunca
 // muestra el valor de un secreto.
+import { datosPruebaPermitidos } from "./ambiente";
 import { conflictosDeAsignacion } from "../dominio/permisos";
 import { estadoConfiguracion } from "./respaldo";
 import { leerIncompatibilidades, permisosDeRoles } from "./seguridad";
@@ -20,8 +21,8 @@ export async function revisarArranque(c: Cliente, env: Record<string, string | u
   const G1 = "Llaves y variables de entorno";
   add(G1, "llave_maestra", "LLAVE_MAESTRA", llave32(env.LLAVE_MAESTRA) ? "OK" : "FALLA",
     llave32(env.LLAVE_MAESTRA) ? "Definida (32 bytes)." : "Falta o no es de 32 bytes en base64.", "Genérala nueva para producción (README, Variables de entorno).");
-  add(G1, "datos_prueba", "Datos de prueba deshabilitados", env.PERMITIR_DATOS_PRUEBA === "si" ? "FALLA" : "OK",
-    env.PERMITIR_DATOS_PRUEBA === "si" ? "PERMITIR_DATOS_PRUEBA = si: se pueden crear usuarios ficticios y XML de PRUEBA." : "No se pueden crear usuarios ni XML de prueba.",
+  add(G1, "datos_prueba", "Datos de prueba deshabilitados", datosPruebaPermitidos(env) ? "FALLA" : "OK",
+    datosPruebaPermitidos(env) ? "PERMITIR_DATOS_PRUEBA está activada: se pueden crear usuarios ficticios y XML de PRUEBA." : "No se pueden crear usuarios ni XML de prueba.",
     "En producción, borra la variable PERMITIR_DATOS_PRUEBA en Netlify.");
   const hayUsuarios = (await c.query("SELECT count(*)::int AS n FROM usuario")).rows[0].n > 0;
   add(G1, "clave_instalacion", "CLAVE_INSTALACION retirada", env.CLAVE_INSTALACION && hayUsuarios ? "AVISO" : "OK",

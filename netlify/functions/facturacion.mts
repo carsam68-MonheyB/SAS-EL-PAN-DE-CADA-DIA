@@ -2,6 +2,7 @@
 // datos para capturar en el portal (individual y global diaria), registro del XML
 // descargado, cancelaciones con autorización y conciliación vendido vs. facturado.
 // Cada acción valida su permiso en el servidor.
+import { datosPruebaPermitidos } from "../../src/servidor/ambiente";
 import type { Config, Context } from "@netlify/functions";
 import { z } from "zod";
 import { ErrorApp, invalido } from "../../src/servidor/errores";
@@ -44,7 +45,7 @@ const manejador = ruta({ permiso: "fiscal.cfdi:ver" }, async (ctx) => {
         solicitar: ctx.puede("fiscal.cfdi:crear"), registrar: ctx.puede("fiscal.cfdi:timbrar"), cancelar: ctx.puede("fiscal.cfdi:cancelar"),
         autorizar: ctx.puede("fiscal.cfdi:autorizar"), exportar: ctx.puede("fiscal.cfdi:exportar"),
       },
-      xml_prueba: process.env.PERMITIR_DATOS_PRUEBA === "si",
+      xml_prueba: datosPruebaPermitidos(),
     }));
   }
 
@@ -110,7 +111,7 @@ const manejador = ruta({ permiso: "fiscal.cfdi:ver" }, async (ctx) => {
       return ctx.tx((c) => f.revisarXml(c, u, d));
     }
     if (id === "prueba") {
-      if (process.env.PERMITIR_DATOS_PRUEBA !== "si") throw new ErrorApp(403, "deshabilitado", "El XML de prueba solo existe en el ambiente de pruebas.");
+      if (!datosPruebaPermitidos()) throw new ErrorApp(403, "deshabilitado", "El XML de prueba solo existe en el ambiente de pruebas.");
       const d = await leerCuerpo(ctx.req, z.object({
         clase: CLASE, solicitudes: z.array(z.string().max(40)).max(50).optional(), fecha: FECHA.optional().nullable(), sucursal: z.string().max(20).optional().nullable(),
         relacionado: z.string().max(60).optional().nullable(), importe: z.string().regex(/^\d+(\.\d{1,2})?$/).optional().nullable(),

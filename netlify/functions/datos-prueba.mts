@@ -1,5 +1,6 @@
 // Crea un usuario FICTICIO por cada puesto (prefijo "prueba.", marcados es_prueba).
 // Solo funciona si la variable PERMITIR_DATOS_PRUEBA = "si" (nunca en producción real).
+import { datosPruebaPermitidos } from "../../src/servidor/ambiente";
 import type { Config, Context } from "@netlify/functions";
 import { hashear } from "../../src/servidor/contrasena";
 import { codigoRecuperacion } from "../../src/servidor/cripto";
@@ -22,7 +23,7 @@ const UBICACION: Record<string, { sucursales?: string[]; almacenes?: string[] }>
 };
 
 const manejador = ruta({ permiso: "seguridad.usuarios:crear", metodos: ["POST"] }, async (ctx) => {
-  if (process.env.PERMITIR_DATOS_PRUEBA !== "si") {
+  if (!datosPruebaPermitidos()) {
     throw new ErrorApp(403, "deshabilitado", "Los datos de prueba están deshabilitados en este ambiente.");
   }
   // Escenario de demostración: un archivo de ejemplo por llamada (la pantalla los encadena).
