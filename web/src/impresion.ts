@@ -7,7 +7,7 @@ import { fecha, fechaHora, numero } from "./formato";
 
 export interface Ticket {
   folio: string; fecha: string; sucursal: string; caja: string; cajero: string; pedido?: string | null;
-  renglones: { nombre: string; cantidad: string; unidad: string; precio: string; descuento: string; importe: string }[];
+  renglones: { nombre: string; cantidad: string; unidad: string; precio: string; descuento: string; oferta?: string | null; importe: string }[];
   subtotal: string; ieps: string; iva: string; descuento: string; total: string; anticipo_aplicado?: string;
   pagos: { forma: string; importe: string; referencia: string | null }[]; recibido: string; cambio: string;
   /** Ticket hecho sin conexión: los impuestos se desglosan al sincronizar. */
@@ -24,10 +24,18 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const $ = (v: string | number) => `$${numero(v, 2)}`;
 const cant = (v: string) => (Number(v) % 1 === 0 ? String(Number(v)) : numero(v, 3));
 
+/** Separa en el ticket la oferta de fin del día del descuento autorizado con PIN. */
+function lineasDescuento(r: Ticket["renglones"][number]): string {
+  const oferta = Number(r.oferta ?? 0);
+  const otro = Math.round((Number(r.descuento) - oferta) * 100) / 100;
+  const linea = (t: string, v: number) => `<tr><td>&nbsp;&nbsp;${t}</td><td class="d">-${$(v)}</td></tr>`;
+  return (oferta ? linea("Oferta de fin del día", oferta) : "") + (otro ? linea("Descuento autorizado", otro) : "");
+}
+
 function htmlTicket(t: Ticket): string {
   const filas = t.renglones.map((r) => `
     <tr><td colspan="2">${esc(r.nombre)}</td></tr>
-    <tr><td>${cant(r.cantidad)} ${esc(r.unidad)} × ${$(r.precio)}${Number(r.descuento) ? ` − ${$(r.descuento)}` : ""}</td><td class="d">${$(r.importe)}</td></tr>`).join("");
+    <tr><td>${cant(r.cantidad)} ${esc(r.unidad)} × ${$(r.precio)}</td><td class="d">${$(Number(r.importe) + Number(r.descuento))}</td></tr>${lineasDescuento(r)}`).join("");
   const pagos = t.pagos.map((p) => `<tr><td>${esc(p.forma)}${p.referencia ? ` (${esc(p.referencia)})` : ""}</td><td class="d">${$(p.importe)}</td></tr>`).join("");
   return `
     <div class="c"><b>${esc(t.sucursal)}</b><br>${esc(t.caja)}</div>

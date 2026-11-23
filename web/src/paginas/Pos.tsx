@@ -406,7 +406,7 @@ export function Pos() {
     copia.guardar("productos", { productos: nuevos });
     impresoraNavegador.imprimir({
       folio, fecha, sucursal: e0.caja.sucursal_nombre, caja: e0.caja.nombre, cajero: e0.cajero.nombre, provisional: true,
-      renglones: carrito.map((l) => ({ nombre: l.nombre, cantidad: l.cantidad, unidad: l.unidad, precio: String(l.precio), descuento: String(descOferta(l, ahora)), importe: String(cent(cent(l.precio * n(l.cantidad)) - descOferta(l, ahora))) })),
+      renglones: carrito.map((l) => ({ nombre: l.nombre, cantidad: l.cantidad, unidad: l.unidad, precio: String(l.precio), descuento: String(descOferta(l, ahora)), oferta: String(descOferta(l, ahora)), importe: String(cent(cent(l.precio * n(l.cantidad)) - descOferta(l, ahora))) })),
       subtotal: String(total), ieps: "0", iva: "0", descuento: String(cent(carrito.reduce((x, l) => x + descOferta(l, ahora), 0))), total: String(total),
       pagos: pagos.map((p) => ({ forma: e0.formas.find((f: any) => f.clave === p.forma)?.nombre ?? p.forma, importe: p.importe, referencia: p.referencia || null })),
       recibido: String(recibido), cambio: String(cent(recibido - total)),

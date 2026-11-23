@@ -611,7 +611,7 @@ export async function ticket(c: Cliente, ventaId: string) {
   )).rows[0];
   if (!v) throw noEncontrado("No existe esa venta.");
   const renglones = (await c.query(
-    `SELECT r.orden, a.clave, a.nombre, u.clave AS unidad, r.cantidad::text, r.precio::text, r.descuento::text, r.importe::text, r.cantidad_devuelta::text
+    `SELECT r.orden, a.clave, a.nombre, u.clave AS unidad, r.cantidad::text, r.precio::text, r.descuento::text, r.descuento_oferta::text AS oferta, r.importe::text, r.cantidad_devuelta::text
        FROM venta_renglon r JOIN articulo a ON a.id = r.articulo_id JOIN unidad u ON u.id = a.unidad_base_id WHERE r.venta_id = $1 ORDER BY r.orden`,
     [v.id],
   )).rows;
