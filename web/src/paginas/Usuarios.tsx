@@ -125,7 +125,7 @@ export function Usuarios() {
   // Escenario de demostración: carga los ejemplos de todas las fases, un archivo por llamada.
   const [esc, setEsc] = useState<{ paso: number; total: number; pasos: string[]; error: string | null; pines: Record<string, string> | null } | null>(null);
   const escenario = async () => {
-    if (!window.confirm("¿Cargar el escenario de demostración? Se cargan los archivos de ejemplo de todas las fases (DATOS FICTICIOS). Solo funciona en una base sin catálogos.")) return;
+    if (!window.confirm("¿Cargar el escenario de demostración? Se cargan los archivos de ejemplo de todas las fases (DATOS FICTICIOS). Lo que ya esté cargado se omite.")) return;
     let estado = { paso: 0, total: 1, pasos: [] as string[], error: null as string | null, pines: null as Record<string, string> | null };
     setEsc(estado);
     while (estado.paso < estado.total) {
@@ -160,7 +160,7 @@ export function Usuarios() {
           {esc.error && <Text size="sm" fw={600} mt={4}>{esc.error}</Text>}
           {esc.pines && <Text size="sm" mt={4}>PIN de caja: {Object.entries(esc.pines).map(([u, p]) => `${u} ${p}`).join(" · ")}</Text>}
           {esc.paso >= esc.total && <Text size="sm" mt={4}>Sigue la guía <b>docs/prueba-integral.md</b>.</Text>}
-          <List size="xs" mt="xs" c="dimmed">{esc.pasos.slice(-4).map((p, i) => <List.Item key={i}>{p}</List.Item>)}</List>
+          <List size="xs" mt="xs" c="dimmed">{(esc.paso >= esc.total ? esc.pasos : esc.pasos.slice(-4)).map((p, i) => <List.Item key={i}>{p}</List.Item>)}</List>
         </Alert>
       )}
       {prueba && (

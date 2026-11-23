@@ -23,7 +23,7 @@ describe("escenario de demostración", () => {
   });
 
   it("pide primero los usuarios de prueba", async () => {
-    expect((await admin.post("/api/datos-prueba/escenario", { paso: 0 })).datos.mensaje).toMatch(/usuarios de prueba/);
+    expect((await admin.post("/api/datos-prueba/escenario", { paso: 0 })).datos.mensaje).toMatch(/Usuarios de prueba/);
   });
 
   it("carga todos los pasos: catálogos, recetas activas, inventario autorizado, precios de hoy, contabilidad y plan", async () => {
@@ -40,8 +40,15 @@ describe("escenario de demostración", () => {
     expect(await q("SELECT count(*)::int AS n FROM carga_layout WHERE estatus = 'aplicada'")).toEqual({ n: total - 1 });
     expect(await q("SELECT count(*)::int AS n FROM precio_venta WHERE vigente_desde = (now() AT TIME ZONE 'America/Mexico_City')::date")).toEqual({ n: 4 });
     expect(await q("SELECT count(*)::int AS n FROM plan_produccion")).toEqual({ n: 1 });
-    // Una segunda vez no se carga encima.
-    expect((await admin.post("/api/datos-prueba/escenario", { paso: 0 })).estado).toBe(409);
+    // Una segunda vez no duplica nada: todo se omite y el inventario no cambia.
+    const inv = await q("SELECT count(*)::int AS n, sum(cantidad)::text AS c FROM existencia");
+    for (let i = 0; i < total; i++) {
+      const r = await admin.post("/api/datos-prueba/escenario", { paso: i });
+      expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+      if (i < total - 1) expect(r.datos.omitido, r.datos.descripcion).toBe(true);
+    }
+    expect(await q("SELECT count(*)::int AS n, sum(cantidad)::text AS c FROM existencia")).toEqual(inv);
+    expect(await q("SELECT count(*)::int AS n FROM carga_layout WHERE estatus <> 'aplicada'")).toEqual({ n: 0 });
   }, 240_000);
 
   it("con el escenario, el cajero vende y el contralor autoriza un descuento con su PIN, sin más preparación", async () => {
@@ -54,4 +61,30 @@ describe("escenario de demostración", () => {
     expect(v.estado, JSON.stringify(v.datos)).toBe(200);
     expect(v.datos.total).toBe("14.00");
   });
+});
+
+describe("escenario sobre una base con catálogos ya cargados a mano", () => {
+  it("completa lo que falta (recetas, inventario, precios…) sin duplicar lo que ya había", async () => {
+    const p2 = await baseLimpia("erp_prueba_escenario2");
+    const adm = (await instalarAdministrador()).nav;
+    const pw = (await adm.post("/api/datos-prueba")).datos.password;
+    const com = new Navegador();
+    await entrar(com, "prueba.com", pw);
+    for (const [layout, archivo] of [["unidades", "02-unidades.txt"], ["familias", "04-familias.txt"]]) {
+      const s = await com.post("/api/cargas", { layout, modo: "alta", nombre_archivo: archivo, contenido: readFileSync(`datos-ejemplo/fase-1b/${archivo}`).toString("base64") });
+      expect((await com.post(`/api/cargas/${s.datos.id}/aplicar`)).datos.estatus).toBe("aplicada");
+    }
+    const ya = (await p2.query("SELECT count(*)::int AS n FROM unidad")).rows[0].n;
+    let total = 1, omitidos: string[] = [];
+    for (let paso = 0; paso < total; paso++) {
+      const r = await adm.post("/api/datos-prueba/escenario", { paso });
+      expect(r.estado, JSON.stringify(r.datos)).toBe(200);
+      total = r.datos.total;
+      if (r.datos.omitido) omitidos.push(r.datos.descripcion);
+    }
+    expect(omitidos.map((x) => x.split(":")[0])).toEqual(["fase-1b/02-unidades.txt", "fase-1b/04-familias.txt"]);
+    expect((await p2.query("SELECT count(*)::int AS n FROM unidad")).rows[0].n).toBe(ya);
+    expect((await p2.query("SELECT count(*)::int AS n FROM receta WHERE estatus = 'ACTIVA'")).rows[0].n).toBe(7);
+    expect((await p2.query("SELECT count(*)::int AS n FROM existencia e JOIN almacen a ON a.id = e.almacen_id WHERE a.clave = 'PT-SUC1'")).rows[0].n).toBe(4);
+  }, 240_000);
 });

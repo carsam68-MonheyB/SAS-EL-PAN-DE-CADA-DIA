@@ -12,7 +12,7 @@ Marca cada paso en la columna **¿Bien?** y anota lo que no salió como dice "Re
 |---|---|---|---|
 | 0.1 | En Netlify, el sitio de desarrollo debe tener la variable `PERMITIR_DATOS_PRUEBA` = `si`. Para empezar limpio, usa un **deploy preview nuevo** (cada uno tiene su propia base). | — | |
 | 0.2 | Entra como **administrador** → **Usuarios → Usuarios de prueba**. | Aparece la contraseña de todos los usuarios `prueba.*`. **Anótala** (se muestra una sola vez). | |
-| 0.3 | **Usuarios → Escenario de demostración** y espera la barra. | "Listo". Quedan cargados los catálogos de todas las fases, 7 recetas activas, el inventario inicial (autorizado), los precios de hoy, el catálogo contable, las reglas y el plan de producción. PIN de caja: `prueba.caj` 4821, `prueba.enc` 4826, `prueba.con` 4830, `prueba.cnt` 4831. | |
+| 0.3 | **Usuarios → Escenario de demostración** y espera la barra (lo que ya estuviera cargado se omite; puedes pulsarlo otra vez sin duplicar nada). | "Listo". Quedan cargados los catálogos de todas las fases, 7 recetas activas, el inventario inicial (autorizado), los precios de hoy, el catálogo contable, las reglas y el plan de producción. PIN de caja: `prueba.caj` 4821, `prueba.enc` 4826, `prueba.con` 4830, `prueba.cnt` 4831. | |
 | 0.4 | Instala **Google Authenticator** o **Microsoft Authenticator** en tu teléfono. Contralor, contador, dirección y autorizador piden doble factor la primera vez: da de alta las cuatro cuentas en la misma aplicación. | Cada uno entra con su código de 6 dígitos. | |
 
 > **Consejo:** para trabajar con varios usuarios a la vez, abre cada uno en una ventana distinta: Chrome normal, Chrome incógnito, Edge, Edge InPrivate. O cierra sesión y entra con otro.

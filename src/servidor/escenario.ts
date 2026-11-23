@@ -4,7 +4,7 @@
 // activa las recetas y deja el PIN de los usuarios de caja. DATOS FICTICIOS.
 import { activarVersion } from "./recetas";
 import { hashear } from "./contrasena";
-import { ErrorApp, invalido } from "./errores";
+import { invalido } from "./errores";
 import { ARCHIVOS_ESCENARIO } from "./escenario-archivos";
 import { aplicar, resolverAutorizacion, simular } from "./layouts/servicio";
 import type { Cliente } from "./transaccion";
@@ -32,34 +32,75 @@ export const PINES: Record<string, string> = { caj: "4821", enc: "4826", con: "4
 
 export const TOTAL_PASOS = PASOS.length + 1;
 
+/** Usuario prueba.<rol>: el creado por "Usuarios de prueba" o, si ya existía uno a mano con ese nombre, ese. */
+async function usuarioPrueba(c: Cliente, r: string): Promise<UsuarioActual> {
+  const id = (await c.query("SELECT id FROM usuario WHERE usuario = $1 AND estatus = 'activo' ORDER BY es_prueba DESC LIMIT 1", [`prueba.${r}`])).rows[0]?.id;
+  if (!id) throw invalido(`Falta el usuario prueba.${r}: pulsa primero "Usuarios de prueba".`);
+  return (await cargarUsuario(c, id))!;
+}
+
+/** ¿El archivo ya está cargado? (para completar lo que falte sin duplicar) */
+async function yaCargado(c: Cliente, archivo: string, layout: string, texto: string): Promise<string | null> {
+  const nombre = archivo.split("/")[1]!;
+  if ((await c.query("SELECT 1 FROM carga_layout WHERE layout = $1 AND nombre_archivo = $2 AND estatus = 'aplicada' LIMIT 1", [layout, nombre])).rows[0]) return "ya se había cargado este archivo";
+  if (layout === "inventario_inicial") {
+    const almacenes = [...new Set(texto.split(/\r?\n/).slice(1).map((l) => l.split("|")[0]!.trim()).filter(Boolean))];
+    const hay = (await c.query("SELECT 1 FROM movimiento m JOIN almacen a ON a.id = m.almacen_id WHERE a.clave = ANY($1) LIMIT 1", [almacenes])).rows[0];
+    if (hay) return `ya hay movimientos en ${almacenes.join(", ")}`;
+  }
+  if (layout === "plan_produccion" && (await c.query("SELECT 1 FROM plan_produccion LIMIT 1")).rows[0]) return "ya hay un plan de producción";
+  return null;
+}
+
 /**
  * Un paso del escenario (cada uno en su propia transacción, para no rebasar el
  * tiempo de una función): 0..n-1 cargan un archivo; el último activa recetas y PINs.
+ * Completa lo que falte: si un archivo ya estaba cargado (o sus datos ya existen), se omite.
  */
 export async function pasoEscenario(c: Cliente, paso: number, hoy: string) {
   if (!Number.isInteger(paso) || paso < 0 || paso >= TOTAL_PASOS) throw invalido("Paso no válido.");
-  if (paso === 0 && (await c.query("SELECT count(*)::int AS n FROM articulo")).rows[0].n > 0) {
-    throw new ErrorApp(409, "con_datos", "Ya hay artículos cargados: el escenario de demostración se carga solo sobre una base sin catálogos (por ejemplo, la de un deploy preview nuevo).");
-  }
-  const u: Record<string, UsuarioActual> = {};
-  for (const r of ["cnt", "com", "jpr", "con", "dir", "caj", "enc"]) {
-    const id = (await c.query("SELECT id FROM usuario WHERE usuario = $1 AND es_prueba AND estatus = 'activo'", [`prueba.${r}`])).rows[0]?.id;
-    if (!id) throw invalido("Primero crea los usuarios de prueba (botón \"Usuarios de prueba\").");
-    u[r] = (await cargarUsuario(c, id))!;
-  }
   if (paso === PASOS.length) {
-    for (const k of RECETAS) await activarVersion(c, u.jpr!.id, k, 1);
-    for (const [r, pin] of Object.entries(PINES)) await c.query("UPDATE usuario SET pin_hash = $2, intentos_pin = 0, pin_bloqueado_hasta = NULL WHERE id = $1", [u[r]!.id, await hashear(pin)]);
-    return { paso, total: TOTAL_PASOS, descripcion: `${RECETAS.length} recetas activadas y PIN de caja`, terminado: true, pines: Object.fromEntries(Object.entries(PINES).map(([r, p]) => [`prueba.${r}`, p])) };
+    const jpr = await usuarioPrueba(c, "jpr");
+    const borradores = (await c.query("SELECT a.clave FROM receta r JOIN articulo a ON a.id = r.articulo_id WHERE a.clave = ANY($1) AND r.version = 1 AND r.estatus = 'BORRADOR'", [RECETAS])).rows.map((x) => x.clave as string);
+    for (const k of RECETAS.filter((x) => borradores.includes(x))) await activarVersion(c, jpr.id, k, 1);
+    const pines: Record<string, string> = {};
+    for (const [r, pin] of Object.entries(PINES)) {
+      const id = (await c.query("SELECT id FROM usuario WHERE usuario = $1 AND estatus = 'activo' ORDER BY es_prueba DESC LIMIT 1", [`prueba.${r}`])).rows[0]?.id;
+      if (!id) continue;
+      await c.query("UPDATE usuario SET pin_hash = $2, intentos_pin = 0, pin_bloqueado_hasta = NULL WHERE id = $1", [id, await hashear(pin)]);
+      pines[`prueba.${r}`] = pin;
+    }
+    const activas = (await c.query("SELECT count(*)::int AS n FROM receta r JOIN articulo a ON a.id = r.articulo_id WHERE a.clave = ANY($1) AND r.estatus = 'ACTIVA'", [RECETAS])).rows[0].n;
+    return { paso, total: TOTAL_PASOS, descripcion: `${activas} de ${RECETAS.length} recetas activas y PIN de caja`, terminado: true, pines };
   }
   const [archivo, layout, sube, autoriza] = PASOS[paso]!;
   const [a, m, d] = hoy.split("-");
   let texto = ARCHIVOS_ESCENARIO[archivo]!;
   if (archivo.includes("precios-HOY")) texto = texto.replaceAll("DD/MM/AAAA", `${d}/${m}/${a}`);
-  const s = await simular(c, u[sube]!.id, u[sube]!.permisos, { layout, modo: "alta", nombre: archivo.split("/")[1]!, bytes: new TextEncoder().encode(texto) });
-  if (s.errores) throw invalido(`El archivo ${archivo} tiene errores: no se cargó.`, s.detalle);
-  let r: { estatus: string } = await aplicar(c, u[sube]!.id, u[sube]!.permisos, s.id);
-  if (r.estatus === "pendiente_autorizacion" && autoriza) r = await resolverAutorizacion(c, u[autoriza]!.id, u[autoriza]!.permisos, s.id, "autorizar");
-  if (r.estatus !== "aplicada") throw invalido(`El archivo ${archivo} quedó "${r.estatus}".`);
-  return { paso, total: TOTAL_PASOS, descripcion: `${archivo} (${s.renglones} renglones, subió prueba.${sube}${autoriza ? `, autorizó prueba.${autoriza}` : ""})`, terminado: false };
+  const omitido = await yaCargado(c, archivo, layout, texto);
+  if (omitido) return { paso, total: TOTAL_PASOS, descripcion: `${archivo}: se omite (${omitido})`, terminado: false, omitido: true };
+  const quien = await usuarioPrueba(c, sube);
+  const bytes = new TextEncoder().encode(texto);
+  // Si el archivo se omite, no queda rastro de los intentos en el historial de cargas.
+  await c.query("SAVEPOINT escenario");
+  const omitir = async (motivo: string) => {
+    await c.query("ROLLBACK TO SAVEPOINT escenario");
+    return { paso, total: TOTAL_PASOS, descripcion: `${archivo}: se omite (${motivo})`, terminado: false, omitido: true };
+  };
+  let s = await simular(c, quien.id, quien.permisos, { layout, modo: "alta", nombre: archivo.split("/")[1]!, bytes });
+  if (s.errores) {
+    // Si los datos ya existían (por ejemplo, cargados a mano antes), se intenta como alta o actualización.
+    try { s = await simular(c, quien.id, quien.permisos, { layout, modo: "ambos", nombre: archivo.split("/")[1]!, bytes }); } catch { /* sin permiso de actualizar */ }
+    if (s.errores) {
+      const primero = (s.detalle as { severidad: string; mensaje: string }[] | undefined)?.find((x) => x.severidad === "error")?.mensaje ?? "tiene diferencias con lo ya cargado";
+      return omitir(primero);
+    }
+  }
+  let r: { estatus: string } = await aplicar(c, quien.id, quien.permisos, s.id);
+  if (r.estatus === "pendiente_autorizacion" && autoriza) {
+    const aut = await usuarioPrueba(c, autoriza);
+    r = await resolverAutorizacion(c, aut.id, aut.permisos, s.id, "autorizar");
+  }
+  if (r.estatus !== "aplicada") return omitir(`quedó "${r.estatus}"`);
+  return { paso, total: TOTAL_PASOS, descripcion: `${archivo} (${s.renglones} renglones, subió ${quien.usuario}${autoriza ? `, autorizó prueba.${autoriza}` : ""})`, terminado: false };
 }
