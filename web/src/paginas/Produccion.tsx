@@ -4,6 +4,7 @@
 // estado de costo de producción y ventas. Los botones se muestran según
 // permisos; el servidor valida de nuevo permisos, alcance y tolerancias.
 import { useMemo, useState } from "react";
+import Decimal from "decimal.js";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Badge, Button, Card, Group, Modal, ScrollArea, Select, SimpleGrid, Stack, Table, Tabs, Text, TextInput, Textarea, Title } from "@mantine/core";
@@ -272,7 +273,7 @@ function Surtir({ d, alTerminar }: { d: any; alTerminar: (m: string) => void }) 
   const origenes = (op.data?.almacenes ?? []).filter((a: any) => a.tipo === "MP" || a.tipo === "INS");
   const [origen, setOrigen] = useState<string | null>(origenes[0]?.clave ?? null);
   const materiales = d.componentes.filter((c: any) => !["MASA", "INTERMEDIO"].includes(c.tipo));
-  const [q, setQ] = useState<Record<string, string>>(() => Object.fromEntries(materiales.map((c: any) => [c.clave, String(Math.max(0, Number((Number(c.cantidad_estandar) - Number(c.surtido)).toFixed(3))))])));
+  const [q, setQ] = useState<Record<string, string>>(() => Object.fromEntries(materiales.map((c: any) => [c.clave, Decimal.max(0, new Decimal(c.cantidad_estandar).minus(c.surtido)).toString()])));
   const [motivo, setMotivo] = useState("");
   const m = useMutation({
     mutationFn: () => POST(`/api/produccion/ordenes/${d.orden.id}/surtir`, { origen: origen ?? origenes[0]?.clave, motivo: motivo || null, renglones: Object.entries(q).filter(([, v]) => Number(v) > 0).map(([articulo, cantidad]) => ({ articulo, cantidad })) }),
