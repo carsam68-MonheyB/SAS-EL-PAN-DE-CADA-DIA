@@ -156,7 +156,7 @@ export function Usuarios() {
       {esc && (
         <Alert color={esc.error ? "red" : esc.paso >= esc.total ? "green" : "grape"} title="Escenario de demostración (FICTICIO)" withCloseButton onClose={() => setEsc(null)}>
           <Progress value={(esc.paso / esc.total) * 100} mb="xs" />
-          <Text size="sm">{esc.paso >= esc.total ? "Listo: el sistema tiene catálogos, recetas activas, inventario, precios de hoy, catálogo contable y el plan de producción de ejemplo." : `Cargando ${esc.paso + 1} de ${esc.total}…`}</Text>
+          <Text size="sm">{esc.paso >= esc.total ? "Listo: el sistema tiene catálogos, recetas activas, inventario, precios de hoy, catálogo contable y el plan de producción de ejemplo." : esc.error ? `Se detuvo${esc.paso ? ` en el paso ${esc.paso + 1} de ${esc.total}` : ""}. Lo ya cargado se queda; corrige y vuelve a intentar.` : `Cargando ${esc.paso + 1}${esc.total > 1 ? ` de ${esc.total}` : ""}…`}</Text>
           {esc.error && <Text size="sm" fw={600} mt={4}>{esc.error}</Text>}
           {esc.pines && <Text size="sm" mt={4}>PIN de caja: {Object.entries(esc.pines).map(([u, p]) => `${u} ${p}`).join(" · ")}</Text>}
           {esc.paso >= esc.total && <Text size="sm" mt={4}>Sigue la guía <b>docs/prueba-integral.md</b>.</Text>}
