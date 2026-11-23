@@ -27,6 +27,8 @@ Defínelas **a nivel del proyecto**, nunca del team. Los valores secretos nunca 
 | `CLAVE_INSTALACION` | Sí, para instalar | Clave de al menos 20 caracteres para crear el primer administrador en `/instalacion`. Solo funciona mientras no haya usuarios. |
 | `PERMITIR_DATOS_PRUEBA` | No | `si` habilita el botón de usuarios FICTICIOS de prueba. **Nunca en producción real.** |
 | `AMBIENTE_ETIQUETA` | No | Texto visible en la barra superior, por ejemplo `Desarrollo · datos ficticios`. |
+| `RESPALDO_LLAVE` | Sí, para respaldos | Llave (32 bytes en base64) con que se cifran los respaldos. **Distinta de `LLAVE_MAESTRA`** y guardada también fuera de Netlify: sin ella no se pueden abrir. |
+| `RESPALDO_S3_ENDPOINT`, `RESPALDO_S3_REGION`, `RESPALDO_S3_BUCKET`, `RESPALDO_S3_LLAVE_ID`, `RESPALDO_S3_LLAVE_SECRETA` | Sí, para respaldos | Almacenamiento externo compatible con S3 con Object Lock (P06). Ver `docs/arranque/respaldos.md`. |
 | `NETLIFY_DB_URL` | Automática | La pone Netlify al crear la base. No se captura. |
 
 Para generar `LLAVE_MAESTRA` en Windows (PowerShell):
@@ -303,6 +305,20 @@ Decisiones del negocio (P49, P53, P54, P56, P58, P64): las facturas se hacen y s
   - Registrar XML: `fiscal.cfdi:timbrar` (encargado y contador).
   - Cancelar: `fiscal.cfdi:cancelar` (contador). Autorizar cancelación: `fiscal.cfdi:autorizar` (contralor).
 - **Pruebas:** `pruebas/facturacion-dominio.test.ts` y `pruebas/facturacion.test.ts`.
+
+## Tablero, respaldos y arranque (Fase 9)
+
+- **Tablero** (`/tablero`, `src/servidor/tablero.ts`, `src/dominio/tablero.ts`): ventas por día, hora, sucursal, cajero, SKU y familia (neto de devoluciones); margen por SKU contra el costo estándar (último costeo guardado) y el real (kárdex); mermas por SKU y causa; rotación y días de inventario de MP y PT; compras por proveedor y variación de precios. Cada quien ve los reportes de sus módulos y su alcance; costos solo con `datos.costos:ver`; Excel con `reportes.tablero:exportar`.
+- **Respaldo externo** (`src/servidor/respaldo.ts`, `src/servidor/almacen-externo.ts`):
+  - Exporta la base completa con una instantánea fija, en JSON (sin perder precisión), gzip y AES-256-GCM con `RESPALDO_LLAVE`.
+  - Lo sube a un almacenamiento compatible con S3 con **Object Lock COMPLIANCE** por `respaldo.anios_conservacion` años (firma SigV4 propia, sin SDK). El sistema no tiene función de borrar.
+  - Mensual (día 1) y al cierre contable, con el proceso programado diario `respaldo-diario` (6:15 hora de México). Respaldo manual y descarga cifrada para el administrador.
+  - Los XML emitidos y recibidos se archivan en `cfdi/{RFC}/{emitidos|recibidos}/AAAA/MM/UUID.xml`.
+- **Restauración:** `scripts/restaurar-respaldo.mjs` sobre una base nueva (`docs/arranque/restauracion.md`). Probada: todas las tablas quedan idénticas y los candados regresan.
+- **Revisión de arranque** (`/arranque`): llaves y variables (sin mostrarlas), respaldos, usuarios de prueba, doble factor, segregación, datos PRUEBA, valores provisionales, reglas contables, catálogos del SAT y productos.
+- **Documentos:** `docs/manual/manual-de-usuario.md` (por puesto), `docs/arranque/respaldos.md`, `docs/arranque/restauracion.md`, `docs/arranque/arranque-y-paralelo.md`.
+- **Respaldo del código:** `bash scripts/paquete-codigo.sh` genera un .zip de la versión (sin `node_modules`, `.env` ni secretos) para guardarlo fuera de GitHub.
+- **Pruebas:** `pruebas/tablero-dominio.test.ts`, `pruebas/tablero.test.ts`, `pruebas/respaldo.test.ts`.
 
 ## Traslado a la estructura definitiva
 

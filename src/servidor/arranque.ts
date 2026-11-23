@@ -39,7 +39,7 @@ export async function revisarArranque(c: Cliente, env: Record<string, string | u
   const ult = (await c.query("SELECT creado_en, terminado_en, tipo FROM respaldo WHERE estatus = 'COMPLETO' AND tipo <> 'DESCARGA' ORDER BY terminado_en DESC LIMIT 1")).rows[0];
   const dias = ult ? Math.floor((Date.now() - new Date(ult.terminado_en).getTime()) / 86_400_000) : null;
   add(G2, "ultimo_respaldo", "Último respaldo externo", dias === null ? "FALLA" : dias > 35 ? "FALLA" : "OK",
-    dias === null ? "Nunca se ha hecho un respaldo externo completo." : `Hace ${dias} día(s) (${ult.tipo.toLowerCase()}).`, "Configuración → Respaldos → Respaldar ahora.");
+    dias === null ? "Nunca se ha hecho un respaldo externo completo." : `Hace ${dias} día(s) (${ult.tipo.toLowerCase()}).`, "Arranque y respaldos → Respaldos → Respaldar ahora.");
   const errores = (await c.query("SELECT count(*)::int AS n FROM respaldo WHERE estatus = 'ERROR' AND creado_en > now() - interval '30 days'")).rows[0].n;
   if (errores) add(G2, "respaldos_error", "Respaldos con error (30 días)", "AVISO", `${errores} respaldo(s) fallaron. Revisa la razón en la pantalla de respaldos.`);
   const xml = (await c.query("SELECT (SELECT count(*) FROM cfdi_emitido) + (SELECT count(*) FROM factura_proveedor WHERE xml IS NOT NULL) - (SELECT count(*) FROM respaldo_cfdi) AS n")).rows[0].n;

@@ -100,7 +100,7 @@ function Resumen({ p, ve }: { p: Periodo; ve: any }) {
         )}
         {d.compras && (
           <Card withBorder p="sm"><Text fw={600} size="sm">Insumos que subieron de precio</Text>
-            <Table fz="sm"><Table.Tbody>{d.compras.alzas.map((x: any) => <Table.Tr key={x.clave}><Table.Td>{x.nombre}</Table.Td><Table.Td ta="right">{$(x.primero)} → {$(x.ultimo)}</Table.Td><Table.Td ta="right"><Badge color="orange" variant="light">+{numero(x.variacion_pct, 2)} %</Badge></Table.Td></Table.Tr>)}</Table.Tbody></Table>
+            <Table fz="sm"><Table.Tbody>{d.compras.alzas.map((x: any) => <Table.Tr key={x.clave}><Table.Td>{x.nombre}<Text size="xs" c="dimmed">{$(x.primero)} → {$(x.ultimo)}</Text></Table.Td><Table.Td ta="right" style={{ whiteSpace: "nowrap" }}><Text size="sm" fw={600} c="orange.8">+{numero(x.variacion_pct, 2)} %</Text></Table.Td></Table.Tr>)}</Table.Tbody></Table>
             {!d.compras.alzas.length && <Text size="sm" c="dimmed">Sin alzas en el periodo.</Text>}
           </Card>
         )}
