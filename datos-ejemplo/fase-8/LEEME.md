@@ -36,9 +36,24 @@ Usuarios de **Datos de prueba**:
 | 14 | caja | **Pedidos → Nuevo pedido** con anticipo | Además del comprobante del pedido se imprime el **recibo de anticipo** `REC-…` con la leyenda "no es comprobante fiscal". Al entregar, el ticket incluye todo y se factura completo. |
 | 15 | contador | **Contabilidad → Pólizas** → **Generar pólizas** → abre la póliza de la venta facturada | Muestra el UUID de su factura. |
 
+## XML del SAT (ZIP de la descarga masiva)
+
+El contador baja del portal del SAT el ZIP con las facturas **emitidas y recibidas** de un periodo y lo sube aquí. El sistema **no se conecta al SAT** ni guarda la e.firma: solo lee el ZIP.
+
+| Paso | Quién | Qué hacer | Resultado esperado |
+|---|---|---|---|
+| 16 | encargado | Intenta abrir **Facturación → XML del SAT** | No aparece: trae todas las facturas de la empresa (también compras con sus costos). Solo contador y contralor. |
+| 17 | contador | **XML del SAT → Elegir ZIP o XML** → `81-descarga-SAT-PRUEBA.zip` | Folio `SAT-…`: **4 facturas nuevas** (2 emitidas, 2 recibidas) y 3 rechazos explicados: una factura de otra empresa, un XML dañado y un archivo que no es XML. Si `empresa.rfc` está vacío, avisa que tomó el RFC `EKU9003173C9` de las facturas. |
+| 18 | contador | Sube el mismo ZIP otra vez | 0 nuevas, 4 ya cargadas: no se duplica nada. |
+| 19 | contador | Periodo **01/11/2026 – 30/11/2026** | Cada factura con su situación: **Registrada** (en el SAT y en el sistema), **Falta registrar** (en el SAT, no en el sistema) o **No viene en el SAT** (registrada aquí, revisar si se canceló o si falta bajar ese periodo). Las de ejemplo salen como "Falta registrar". |
+| 20 | contador | Botón **XML** de una factura | Baja el XML para subirlo donde corresponde (Solicitudes, Factura global o Compras → Facturas). |
+| 21 | contralor | **Exportar a Excel** | La comparación completa del periodo. |
+
+El ZIP de ejemplo se regenera con `node scripts/generar-zip-sat.mjs`.
+
 ## Lo que no hace (por la decisión de facturar en el portal del SAT)
 
 - No timbra ni cancela ante el SAT: eso se hace en el portal y aquí solo se registra.
-- No descarga XML del SAT automáticamente (no hay e.firma en el sistema): los XML se suben.
+- No descarga XML del SAT automáticamente (no hay e.firma en el sistema): el contador baja el ZIP del portal y lo sube en **XML del SAT**.
 - No verifica el estatus de una factura ante el SAT.
 - No hace complementos de pago (las ventas de mostrador son de contado, PUE).

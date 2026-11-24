@@ -12,6 +12,7 @@ import { hoyNegocio } from "../../src/servidor/fechas";
 import { leerCuerpo } from "../../src/servidor/http";
 import { fechaParam } from "../../src/servidor/inventarios-consultas";
 import { ruta } from "../../src/servidor/ruta";
+import * as sat from "../../src/servidor/xml-sat";
 
 const FECHA = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha AAAA-MM-DD.");
 const CLASE = z.enum(["NOMINATIVA", "GLOBAL", "EGRESO"]);
@@ -151,6 +152,42 @@ const manejador = ruta({ permiso: "fiscal.cfdi:ver" }, async (ctx) => {
       ctx.exigir("fiscal.cfdi:autorizar");
       const d = await leerCuerpo(ctx.req, z.object({ nota: z.string().trim().max(300).optional().nullable() }));
       return ctx.tx((c) => f.resolverCancelacion(c, u, id, accion === "autorizar-cancelacion", d.nota ?? null));
+    }
+  }
+
+  // ---- XML descargados del portal del SAT (ZIP de la descarga masiva) ----
+  if (recurso === "sat") {
+    // Trae todas las facturas de la empresa (también las compras con sus costos): solo
+    // contador y contralor. El encargado (que también timbra) no lo ve.
+    ctx.exigir("fiscal.cfdi:exportar");
+    if (id === "cargas" && m === "GET") return ctx.tx(async (c) => ({ cargas: await sat.listarCargasSat(c) }));
+    if (id === "cargas" && m === "POST") {
+      ctx.exigir("fiscal.cfdi:timbrar"); // el contador
+      const d = await leerCuerpo(ctx.req, z.object({
+        nombre: z.string().trim().min(1).max(200),
+        contenido: z.string().min(4, "Falta el archivo.").max(Math.ceil((sat.BYTES_ZIP * 4) / 3) + 8, `El archivo pasa de ${sat.BYTES_ZIP / 1_000_000} MB: descárgalo del SAT por semanas.`),
+      }));
+      const bytes = new Uint8Array(Buffer.from(d.contenido, "base64"));
+      if (!bytes.length) throw invalido("El archivo está vacío.");
+      return ctx.tx((c) => sat.cargarZipSat(c, u, { nombre: d.nombre, bytes }));
+    }
+    if (id === "conciliacion" && m === "GET") {
+      const { desde, hasta } = await periodo();
+      const dir = sp.get("direccion");
+      const r = await ctx.tx((c) => sat.conciliacionSat(c, desde, hasta, dir === "EMITIDO" || dir === "RECIBIDO" ? dir : null));
+      if (sp.get("formato") !== "xlsx") return r;
+      const SIT: Record<string, string> = { REGISTRADO: "Registrada", FALTA_REGISTRAR: "Falta registrar en el sistema", NO_EN_SAT: "No viene en el SAT" };
+      return respuestaExcel(await libroExcel([{ nombre: "SAT vs sistema", columnas: [
+        { titulo: "Situación", clave: "situacion_texto", ancho: 30 }, { titulo: "Emitida/recibida", clave: "direccion" }, { titulo: "Fecha", clave: "fecha" },
+        { titulo: "UUID", clave: "uuid", ancho: 40 }, { titulo: "Tipo", clave: "tipo" }, { titulo: "Serie", clave: "serie" }, { titulo: "Folio", clave: "folio" },
+        { titulo: "RFC emisor", clave: "emisor_rfc" }, { titulo: "Emisor", clave: "emisor_nombre", ancho: 30 }, { titulo: "RFC receptor", clave: "receptor_rfc" },
+        { titulo: "Receptor", clave: "receptor_nombre", ancho: 30 }, { titulo: "Total SAT", clave: "total_sat" }, { titulo: "Total sistema", clave: "total_sistema" },
+        { titulo: "Dónde está", clave: "donde", ancho: 26 }, { titulo: "Estatus en el sistema", clave: "estatus_sistema" },
+      ], filas: r.filas.map((x: any) => ({ ...x, situacion_texto: SIT[x.situacion] ?? x.situacion })) }], "XML del SAT contra el sistema"), `sat-vs-sistema-${desde}-${hasta}.xlsx`);
+    }
+    if (id && accion === "xml" && m === "GET") {
+      const x = await ctx.tx((c) => sat.xmlSat(c, id));
+      return new Response(x.xml, { headers: { "content-type": "application/xml; charset=utf-8", "content-disposition": `attachment; filename="${x.uuid}.xml"`, "cache-control": "no-store" } });
     }
   }
 

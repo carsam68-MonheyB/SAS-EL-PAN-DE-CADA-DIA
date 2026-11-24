@@ -299,12 +299,13 @@ Decisiones del negocio (P49, P53, P54, P56, P58, P64): las facturas se hacen y s
 - **Conciliación vendido contra facturado:** por día y sucursal, con alertas de días sin global, devoluciones sin nota de crédito y cancelaciones por autorizar.
 - **Recibo de anticipo** (`anticipo.folio`, `REC-000001`): se imprime al cobrar el anticipo o un abono de un pedido. No es comprobante fiscal; todo se factura a la entrega.
 - **Contabilidad:** la póliza de una venta muestra el UUID de su factura, y la de una factura de proveedor el suyo.
+- **XML del SAT** (`cfdi_sat`, `carga_sat`; `src/servidor/xml-sat.ts`): el contador sube el ZIP de la descarga masiva del portal (o un XML). Cada XML se guarda una vez por UUID, se clasifica como emitido o recibido con `empresa.rfc` (si está vacío, solo en desarrollo, se toma el RFC que aparece en más de la mitad de las facturas) y se rechaza lo que no es de la empresa, con motivo. La comparación por periodo marca cada factura como registrada, falta registrar o no viene en el SAT. Límite 4 MB por ZIP (base64 dentro del límite de las funciones). Los XML del SAT también se archivan en el respaldo externo. Ver: `fiscal.cfdi:exportar` (contador y contralor); subir: además `fiscal.cfdi:timbrar` (contador). Sin e.firma en el sistema.
 - **XML de PRUEBA:** solo con `PERMITIR_DATOS_PRUEBA=si`. Imita el XML del portal para ensayar; no está timbrado.
 - **Permisos:**
   - Solicitudes: `fiscal.cfdi:crear` (encargado de su sucursal, contador).
   - Registrar XML: `fiscal.cfdi:timbrar` (encargado y contador).
   - Cancelar: `fiscal.cfdi:cancelar` (contador). Autorizar cancelación: `fiscal.cfdi:autorizar` (contralor).
-- **Pruebas:** `pruebas/facturacion-dominio.test.ts` y `pruebas/facturacion.test.ts`.
+- **Pruebas:** `pruebas/facturacion-dominio.test.ts`, `pruebas/facturacion.test.ts` y `pruebas/xml-sat.test.ts`.
 
 ## Tablero, respaldos y arranque (Fase 9)
 

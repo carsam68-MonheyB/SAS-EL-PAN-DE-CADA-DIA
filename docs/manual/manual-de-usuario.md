@@ -88,6 +88,7 @@ Menú **Punto de venta (caja)**.
   3. **Factura global diaria:** con los tickets del día que no se facturaron aparte. Se capturan en el portal y se sube el XML.
   4. **Cancelaciones:** se cancelan en el portal y aquí se registran; las autoriza el contralor.
   5. **Notas de crédito:** si se devuelve producto de un ticket ya facturado, el sistema avisa; se hace en el portal y se sube el XML en la factura.
+  6. **XML del SAT** (cada semana o cada mes): en el portal del SAT baja el ZIP de las facturas **emitidas** y **recibidas** del periodo y súbelo en **Facturación → XML del SAT**. El sistema dice cuáles ya están registradas, cuáles **faltan por registrar** (con su XML para subirlo donde corresponde) y cuáles están aquí pero **no vinieron del SAT**. Puedes subir el mismo ZIP varias veces sin duplicar.
 - **Ofertas de fin del día:** **Ventas y cortes → Ofertas de fin del día**: % de descuento y hora desde la que aplica.
 
 ---

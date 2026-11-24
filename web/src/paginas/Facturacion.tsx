@@ -409,6 +409,113 @@ function Conciliacion() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// XML del SAT: el contador sube el ZIP de la descarga masiva del portal y el
+// sistema lo compara con lo registrado (sin e.firma en el sistema).
+// ---------------------------------------------------------------------------
+const SITUACION: Record<string, { t: string; c: string }> = {
+  REGISTRADO: { t: "Registrada", c: "green" }, FALTA_REGISTRAR: { t: "Falta registrar", c: "red" }, NO_EN_SAT: { t: "No viene en el SAT", c: "orange" },
+};
+const aBase64 = (f: File) => new Promise<string>((ok, mal) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result).split(",")[1] ?? "");
+  r.onerror = () => mal(new Error("No se pudo leer el archivo."));
+  r.readAsDataURL(f);
+});
+
+function XmlSat() {
+  const { puede } = useSesion();
+  const qc = useQueryClient();
+  const [p, setP] = useState({ desde: primeroDeMes(), hasta: hoyIso(), direccion: null as string | null, situacion: null as string | null });
+  const [res, setRes] = useState<any>(null);
+  const q = `desde=${p.desde}&hasta=${p.hasta}${p.direccion ? `&direccion=${p.direccion}` : ""}`;
+  const r = useQuery({ queryKey: ["f-sat", q], queryFn: () => GET(`/api/facturacion/sat/conciliacion?${q}`) });
+  const cargas = useQuery({ queryKey: ["f-sat-cargas"], queryFn: () => GET("/api/facturacion/sat/cargas") });
+  const subir = useMutation({
+    mutationFn: async (f: File) => POST("/api/facturacion/sat/cargas", { nombre: f.name, contenido: await aBase64(f) }),
+    onSuccess: (x) => { setRes(x); qc.invalidateQueries({ queryKey: ["f-sat"] }); qc.invalidateQueries({ queryKey: ["f-sat-cargas"] }); },
+  });
+  const d = r.data;
+  const filas = (d?.filas ?? []).filter((x: any) => !p.situacion || x.situacion === p.situacion);
+  return (
+    <Stack>
+      {puede("fiscal.cfdi:timbrar") && (
+        <Card withBorder>
+          <Text fw={600}>Subir el ZIP del SAT</Text>
+          <List size="sm" type="ordered" mt={4}>
+            <List.Item>En el portal del SAT entra a <b>Factura electrónica → Consultar facturas emitidas</b> (y luego <b>recibidas</b>), elige el periodo y pulsa <b>Descargar seleccionados</b> o usa la descarga masiva.</List.Item>
+            <List.Item>Sube aquí el ZIP tal como lo bajaste (también puedes subir un solo XML). Hasta 4 MB: si es más grande, bájalo por semanas.</List.Item>
+            <List.Item>El sistema guarda cada factura una sola vez y la compara con lo registrado en Facturación y Compras. Puedes subir el mismo ZIP otra vez sin duplicar nada.</List.Item>
+          </List>
+          <Group mt="sm">
+            <FileButton accept=".zip,.xml,application/zip,text/xml,application/xml" onChange={(f) => { if (f) { setRes(null); subir.mutate(f); } }}>
+              {(props) => <Button {...props} loading={subir.isPending}>Elegir ZIP o XML</Button>}
+            </FileButton>
+          </Group>
+          {subir.error && <Alert mt="sm" color="red">{textoError(subir.error)}</Alert>}
+          {res && (
+            <Alert mt="sm" color={res.rechazos.length ? "orange" : "green"} title={`${res.folio} · ${res.nombre}`}>
+              <Text size="sm">{res.archivos} archivo(s): <b>{res.nuevos} factura(s) nuevas</b>, {res.repetidos} ya estaban cargadas, {res.rechazos.length} rechazado(s). RFC de la empresa: {res.rfc}.</Text>
+              {res.rfc_deducido && <Text size="sm" c="orange">El RFC de la empresa no está en Configuración (empresa.rfc): se tomó el que aparece en la mayoría de las facturas del ZIP. Configúralo antes de arrancar.</Text>}
+              {!!res.rechazos.length && <List size="xs" mt={4}>{res.rechazos.slice(0, 30).map((x: any, i: number) => <List.Item key={i}>{x.archivo}: {x.motivo}</List.Item>)}</List>}
+            </Alert>
+          )}
+        </Card>
+      )}
+      <Group align="flex-end">
+        <Fecha label="Desde" valor={p.desde} onChange={(v) => setP({ ...p, desde: v })} />
+        <Fecha label="Hasta" valor={p.hasta} onChange={(v) => setP({ ...p, hasta: v })} />
+        <Select label="Facturas" w={160} clearable placeholder="Emitidas y recibidas" value={p.direccion} onChange={(v) => setP({ ...p, direccion: v })} data={[{ value: "EMITIDO", label: "Emitidas" }, { value: "RECIBIDO", label: "Recibidas" }]} />
+        <Select label="Situación" w={190} clearable placeholder="Todas" value={p.situacion} onChange={(v) => setP({ ...p, situacion: v })} data={Object.entries(SITUACION).map(([value, x]) => ({ value, label: x.t }))} />
+        <Exportar ruta={`/api/facturacion/sat/conciliacion?${q}&formato=xlsx`} archivo={`sat-vs-sistema-${p.desde}-${p.hasta}.xlsx`} />
+      </Group>
+      {r.error && <Alert color="red">{textoError(r.error)}</Alert>}
+      {d && (
+        <>
+          <SimpleGrid cols={{ base: 1, sm: 3 }}>
+            <Card withBorder p="xs"><Text size="xs" c="dimmed">Registradas (SAT y sistema)</Text><Text fw={700} c="green">{d.resumen.registrado}</Text></Card>
+            <Card withBorder p="xs"><Text size="xs" c="dimmed">En el SAT, falta registrar en el sistema</Text><Text fw={700} c={d.resumen.falta_registrar ? "red" : undefined}>{d.resumen.falta_registrar}</Text></Card>
+            <Card withBorder p="xs"><Text size="xs" c="dimmed">En el sistema, no vienen en el SAT</Text><Text fw={700} c={d.resumen.no_en_sat ? "orange" : undefined}>{d.resumen.no_en_sat}</Text></Card>
+          </SimpleGrid>
+          {!!d.resumen.falta_registrar && <Alert color="red" variant="light">"Falta registrar": la factura existe en el SAT pero no en el sistema. Descarga su XML con el botón y súbela donde corresponde: emitidas en <b>Solicitudes</b> o <b>Factura global</b>; recibidas en <b>Compras → Facturas</b>.</Alert>}
+          {!!d.resumen.no_en_sat && <Alert color="orange" variant="light">"No viene en el SAT": revisa si el ZIP cubre ese periodo o si la factura se canceló en el portal.</Alert>}
+          <ScrollArea>
+            <Table striped withTableBorder fz="sm">
+              <Table.Thead><Table.Tr><Table.Th>Situación</Table.Th><Table.Th>Fecha</Table.Th><Table.Th>Tipo</Table.Th><Table.Th>Emisor / receptor</Table.Th><Table.Th>Serie-folio</Table.Th><Table.Th ta="right">Total SAT</Table.Th><Table.Th ta="right">Total sistema</Table.Th><Table.Th>Dónde está</Table.Th><Table.Th>UUID</Table.Th><Table.Th /></Table.Tr></Table.Thead>
+              <Table.Tbody>{filas.map((x: any) => (
+                <Table.Tr key={x.uuid}>
+                  <Table.Td miw={130}><Text size="sm" fw={700} c={SITUACION[x.situacion]?.c}>{SITUACION[x.situacion]?.t}</Text></Table.Td>
+                  <Table.Td>{fecha(x.fecha)}</Table.Td>
+                  <Table.Td>{x.direccion === "EMITIDO" ? "Emitida" : "Recibida"} · {x.tipo}</Table.Td>
+                  <Table.Td>{x.direccion === "EMITIDO" ? `${x.receptor_rfc ?? ""} ${x.receptor_nombre ?? ""}` : `${x.emisor_rfc ?? ""} ${x.emisor_nombre ?? ""}`}</Table.Td>
+                  <Table.Td>{[x.serie, x.folio].filter(Boolean).join("-") || "—"}</Table.Td>
+                  <Table.Td ta="right">{$(x.total_sat)}</Table.Td>
+                  <Table.Td ta="right" c={x.total_sat && x.total_sistema && Number(x.total_sat) !== Number(x.total_sistema) ? "red" : undefined}>{$(x.total_sistema)}</Table.Td>
+                  <Table.Td>{x.donde ?? "—"}{x.estatus_sistema && x.estatus_sistema !== "VIGENTE" ? ` (${x.estatus_sistema.toLowerCase()})` : ""}</Table.Td>
+                  <Table.Td><Text size="xs" ff="monospace">{x.uuid}</Text></Table.Td>
+                  <Table.Td>{x.total_sat !== null && <Button size="compact-xs" variant="subtle" onClick={() => descargar(`/api/facturacion/sat/${x.uuid}/xml`, `${x.uuid}.xml`)}>XML</Button>}</Table.Td>
+                </Table.Tr>
+              ))}
+              {!filas.length && <Table.Tr><Table.Td colSpan={10}><Text size="sm" c="dimmed">Sin facturas en el periodo.</Text></Table.Td></Table.Tr>}</Table.Tbody>
+            </Table>
+          </ScrollArea>
+        </>
+      )}
+      {!!cargas.data?.cargas.length && (
+        <>
+          <Text fw={600} size="sm">ZIP cargados</Text>
+          <Table withTableBorder fz="xs">
+            <Table.Thead><Table.Tr><Table.Th>Folio</Table.Th><Table.Th>Archivo</Table.Th><Table.Th>Subió</Table.Th><Table.Th>Fecha</Table.Th><Table.Th ta="right">Nuevas</Table.Th><Table.Th ta="right">Ya cargadas</Table.Th><Table.Th ta="right">Rechazadas</Table.Th></Table.Tr></Table.Thead>
+            <Table.Tbody>{cargas.data.cargas.map((x: any) => (
+              <Table.Tr key={x.id}><Table.Td>{x.folio}</Table.Td><Table.Td>{x.nombre_archivo}</Table.Td><Table.Td>{x.usuario}</Table.Td><Table.Td>{fechaHora(x.creado_en)}</Table.Td><Table.Td ta="right">{x.nuevos}</Table.Td><Table.Td ta="right">{x.repetidos}</Table.Td><Table.Td ta="right">{x.rechazados}</Table.Td></Table.Tr>
+            ))}</Table.Tbody>
+          </Table>
+        </>
+      )}
+    </Stack>
+  );
+}
+
 export function Facturacion() {
   const { puede } = useSesion();
   const [params, setParams] = useSearchParams();
@@ -418,6 +525,7 @@ export function Facturacion() {
     { v: "global", t: "Factura global diaria", ok: true },
     { v: "facturas", t: "Facturas registradas", ok: true },
     { v: "conciliacion", t: "Vendido vs. facturado", ok: true },
+    { v: "sat", t: "XML del SAT", ok: puede("fiscal.cfdi:exportar") },
   ].filter((p) => p.ok);
   const tab = pestanas.some((p) => p.v === params.get("tab")) ? params.get("tab")! : pestanas[0]?.v;
   return (
@@ -430,6 +538,7 @@ export function Facturacion() {
         <Tabs.Panel value="global" pt="md"><Global /></Tabs.Panel>
         <Tabs.Panel value="facturas" pt="md"><Facturas /></Tabs.Panel>
         <Tabs.Panel value="conciliacion" pt="md"><Conciliacion /></Tabs.Panel>
+        <Tabs.Panel value="sat" pt="md"><XmlSat /></Tabs.Panel>
       </Tabs>
     </Stack>
   );

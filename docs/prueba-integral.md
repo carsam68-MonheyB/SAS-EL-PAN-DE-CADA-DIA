@@ -91,6 +91,7 @@ Detalle: `datos-ejemplo/fase-8/LEEME.md`.
 | 6.4 | `prueba.cnt` | **Factura global diaria** de hoy, Sucursal 1 → XML de PRUEBA → Registrar | Un concepto por ticket, 01010101 / ACT, periodicidad 01. | |
 | 6.5 | `prueba.cnt` → `prueba.con` | Registrar una cancelación y autorizarla | El ticket vuelve a poderse facturar. | |
 | 6.6 | `prueba.con` | **Vendido vs. facturado** | Lo vendido contra lo facturado por día; alertas. | |
+| 6.7 | `prueba.cnt` | **XML del SAT** → sube `datos-ejemplo/fase-8/81-descarga-SAT-PRUEBA.zip`; luego periodo 01/11/2026 – 30/11/2026 | 4 facturas nuevas y 3 rechazos explicados. Cada factura dice si está registrada, si falta registrar o si no vino del SAT. Subirlo otra vez no duplica. | |
 
 ## 7. Contabilidad
 

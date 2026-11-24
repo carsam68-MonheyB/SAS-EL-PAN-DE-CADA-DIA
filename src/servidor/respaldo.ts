@@ -160,15 +160,20 @@ export async function archivarCfdi(c: Cliente, cfg: ConfigS3, hacerFetch: typeof
        SELECT e.uuid_cfdi, 'EMITIDO' AS origen, to_char(e.fecha_emision AT TIME ZONE 'America/Mexico_City', 'YYYY/MM') AS mes, e.xml FROM cfdi_emitido e
        UNION ALL
        SELECT f.uuid_cfdi, 'RECIBIDO', to_char(f.fecha AT TIME ZONE 'America/Mexico_City', 'YYYY/MM'), f.xml FROM factura_proveedor f WHERE f.xml IS NOT NULL
+       UNION ALL
+       SELECT s.uuid_cfdi, s.direccion, to_char(s.fecha_emision AT TIME ZONE 'America/Mexico_City', 'YYYY/MM'), s.xml FROM cfdi_sat s
      ) x WHERE NOT EXISTS (SELECT 1 FROM respaldo_cfdi r WHERE r.uuid_cfdi = x.uuid_cfdi) ORDER BY mes LIMIT $1`,
     [maximo],
   )).rows;
+  const vistos = new Set<string>(); // el mismo UUID puede venir registrado y también del ZIP del SAT
   for (const p of pendientes) {
+    if (vistos.has(p.uuid_cfdi)) continue;
+    vistos.add(p.uuid_cfdi);
     const destino = `cfdi/${rfc}/${p.origen === "EMITIDO" ? "emitidos" : "recibidos"}/${p.mes}/${p.uuid_cfdi}.xml`;
     await subir(cfg, destino, Buffer.from(p.xml, "utf8"), { tipo: "application/xml", retenerHasta: retener }, hacerFetch);
     await c.query("INSERT INTO respaldo_cfdi (uuid_cfdi, origen, destino) VALUES ($1, $2, $3)", [p.uuid_cfdi, p.origen, destino]);
   }
-  return { archivados: pendientes.length };
+  return { archivados: vistos.size };
 }
 
 // ---------------------------------------------------------------------------
